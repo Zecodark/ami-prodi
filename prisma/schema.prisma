@@ -1,0 +1,164 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model Role {
+  id         BigInt   @id @default(autoincrement())
+  nama_role  String   @db.VarChar(50)
+  created_at DateTime @default(now()) @db.Timestamp(0)
+  updated_at DateTime @default(now()) @updatedAt @db.Timestamp(0)
+
+  users User[]
+
+  @@map("roles")
+}
+
+model User {
+  id         BigInt   @id @default(autoincrement())
+  role_id    BigInt?
+  email      String   @unique @db.VarChar(150)
+  password   String   @db.VarChar(255)
+  created_at DateTime @default(now()) @db.Timestamp(0)
+  updated_at DateTime @default(now()) @updatedAt @db.Timestamp(0)
+
+  role   Role?  @relation(fields: [role_id], references: [id], onDelete: SetNull)
+  dosen  Dosen?
+
+  @@map("users")
+}
+
+model Jurusan {
+  id            BigInt   @id @default(autoincrement())
+  nama_jurusan  String   @db.VarChar(150)
+  created_at    DateTime @default(now()) @db.Timestamp(0)
+  updated_at    DateTime @default(now()) @updatedAt @db.Timestamp(0)
+
+  prodis Prodi[]
+
+  @@map("jurusans")
+}
+
+model Prodi {
+  id          BigInt   @id @default(autoincrement())
+  jurusan_id  BigInt?
+  nama_prodi  String   @db.VarChar(150)
+  created_at  DateTime @default(now()) @db.Timestamp(0)
+  updated_at  DateTime @default(now()) @updatedAt @db.Timestamp(0)
+
+  jurusan Jurusan? @relation(fields: [jurusan_id], references: [id], onDelete: Cascade)
+  dosens  Dosen[]
+
+  @@map("prodis")
+}
+
+model Dosen {
+  id            BigInt   @id @default(autoincrement())
+  user_id       BigInt?  @unique
+  prodi_id      BigInt?
+  nip           String   @unique @db.VarChar(30)
+  nama_lengkap  String   @db.VarChar(150)
+  created_at    DateTime @default(now()) @db.Timestamp(0)
+  updated_at    DateTime @default(now()) @updatedAt @db.Timestamp(0)
+
+  user   User?   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  prodi  Prodi?  @relation(fields: [prodi_id], references: [id], onDelete: SetNull)
+  isians Isian[]
+
+  @@map("dosens")
+}
+
+model PeriodeAmi {
+  id         BigInt   @id @default(autoincrement())
+  tahun      String   @db.VarChar(10)
+  is_active  Boolean  @default(false)
+  created_at DateTime @default(now()) @db.Timestamp(0)
+  updated_at DateTime @default(now()) @updatedAt @db.Timestamp(0)
+
+  instrumens Instrumen[]
+  isians     Isian[]
+
+  @@map("periode_amis")
+}
+
+model Instrumen {
+  id              BigInt   @id @default(autoincrement())
+  periode_id      BigInt?
+  nama_instrumen  String   @db.VarChar(255)
+  created_at      DateTime @default(now()) @db.Timestamp(0)
+  updated_at      DateTime @default(now()) @updatedAt @db.Timestamp(0)
+
+  periode         PeriodeAmi?     @relation(fields: [periode_id], references: [id], onDelete: Cascade)
+  butir_instrumens ButirInstrumen[]
+
+  @@map("instrumens")
+}
+
+model ButirInstrumen {
+  id                    BigInt   @id @default(autoincrement())
+  instrumen_id          BigInt?
+  kode_butir            String   @db.VarChar(20)
+  deskripsi_area_audit  String   @db.Text
+  target_standar        String   @db.Text
+  created_at            DateTime @default(now()) @db.Timestamp(0)
+  updated_at            DateTime @default(now()) @updatedAt @db.Timestamp(0)
+
+  instrumen Instrumen? @relation(fields: [instrumen_id], references: [id], onDelete: Cascade)
+  isians    Isian[]
+
+  @@map("butir_instrumens")
+}
+
+enum KetersediaanStandar {
+  ada
+  tidak_ada
+}
+
+enum DokumenStatus {
+  ada
+  tidak_ada
+}
+
+enum IsianStatus {
+  proses
+  valid
+  revisi
+}
+
+model Isian {
+  id                        BigInt              @id @default(autoincrement())
+  butir_id                  BigInt
+  dosen_id                  BigInt
+  periode_id                BigInt
+  judul_dokumen             String              @db.VarChar(255)
+  attempt                   Int                 @default(1)
+  status_attempt            String              @default("submitted") @db.VarChar(50)
+  ketersediaan_standar      KetersediaanStandar @default(tidak_ada)
+  dokumen                   DokumenStatus       @default(tidak_ada)
+  pencapaian_standar_spt_pt Boolean             @default(false)
+  pencapaian_standar_sn_dikti Boolean           @default(false)
+  lokal                     Boolean             @default(false)
+  nasional                  Boolean             @default(false)
+  internasional             Boolean             @default(false)
+  bukti_dokumen             String?             @db.VarChar(255)
+  bukti_link                String?             @db.VarChar(500)
+  tahun_pelaksanaan         String              @db.VarChar(4)
+  capaian                   String?             @db.Text
+  keterangan                String?             @db.Text
+  status                    IsianStatus         @default(proses)
+  catatan_kaprodi           String?             @db.Text
+  created_at                DateTime            @default(now()) @db.Timestamp(0)
+  updated_at                DateTime            @default(now()) @updatedAt @db.Timestamp(0)
+
+  butir_instrumen ButirInstrumen @relation(fields: [butir_id], references: [id], onDelete: Cascade)
+  dosen           Dosen          @relation(fields: [dosen_id], references: [id], onDelete: Cascade)
+  periode         PeriodeAmi     @relation(fields: [periode_id], references: [id], onDelete: Cascade)
+
+  @@map("isians")
+}
