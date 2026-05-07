@@ -31,7 +31,15 @@ yarn-error.log*
 .pnpm-debug.log*
 
 # env files (can opt-in for committing if needed)
-.env*
+# Abaikan semua file .env yang berisi rahasia
+.env
+.env*.local
+.env.development
+.env.production
+
+# PENTING: Jika sebelumnya kamu menggunakan aturan .env* (yang memblokir semua file berawalan .env),
+# tambahkan tanda seru (!) untuk mengecualikan .env.example agar tetap dibaca oleh Git.
+!.env.example
 
 # vercel
 .vercel
