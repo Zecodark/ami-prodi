@@ -11,7 +11,7 @@ const serialize = (data: unknown) =>
 const select = {
   id: true, email: true, created_at: true, updated_at: true,
   role: { select: { id: true, nama_role: true } },
-  dosen: { select: { id: true, nip: true, nama_lengkap: true, prodi: true } },
+  dosen: { select: { id: true, nip: true, nama_lengkap: true, status_kepegawaian: true, prodi: { select: { nama_prodi: true } } } },
 };
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -31,9 +31,12 @@ export async function GET(request: NextRequest, { params }: Ctx) {
 // PUT /api/users/[id]
 export async function PUT(request: NextRequest, { params }: Ctx) {
   try {
-    const { error } = guard(request, 'admin');
+    const { user, error } = guard(request);
     if (error) return error;
     const { id } = await params;
+    if (user.roleName.toLowerCase() !== 'admin' && user.userId.toString() !== id) {
+      return R.forbidden('Anda hanya dapat mengubah data Anda sendiri');
+    }
     const body = await request.json();
     const schema = z.object({
       email: z.string().email().optional(),

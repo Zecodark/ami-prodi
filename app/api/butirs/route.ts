@@ -23,7 +23,7 @@ const butirSelect = {
 
 export async function GET(request: NextRequest) {
   try {
-    const { error } = guard(request, 'admin');
+    const { error } = guard(request, 'admin', 'dosen', 'kaprodi');
     if (error) return error;
 
     const instrumenId = request.nextUrl.searchParams.get('instrumen_id');

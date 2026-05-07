@@ -12,10 +12,12 @@ const updateSchema = z.object({
   prodi_id: z.coerce.bigint().optional(),
   nip: z.string().min(1).optional(),
   nama_lengkap: z.string().min(1).optional(),
+  status_kepegawaian: z.string().min(1).optional(),
+  no_hp: z.string().min(1).optional(),
 });
 
 const dosenSelect = {
-  id: true, nip: true, nama_lengkap: true, created_at: true, updated_at: true,
+  id: true, nip: true, nama_lengkap: true, status_kepegawaian: true, no_hp: true, created_at: true, updated_at: true,
   user: { select: { id: true, email: true, role: { select: { nama_role: true } } } },
   prodi: { select: { id: true, nama_prodi: true, jurusan: { select: { nama_jurusan: true } } } },
 };

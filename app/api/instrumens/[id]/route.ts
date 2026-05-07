@@ -9,7 +9,8 @@ const serialize = (data: unknown) =>
 
 const schema = z.object({
   periode_id: z.coerce.bigint().optional(),
-  nama_instrumen: z.string().min(1, 'Nama instrumen wajib diisi'),
+  nama_instrumen: z.string().min(1, 'Nama instrumen wajib diisi').optional(),
+  is_active: z.boolean().optional(),
 });
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -24,9 +25,14 @@ export async function PUT(request: NextRequest, { params }: Ctx) {
     const parsed = schema.safeParse(body);
     if (!parsed.success) return R.badRequest('Validasi gagal', parsed.error.flatten());
 
+    const updateData: any = {};
+    if (parsed.data.nama_instrumen) updateData.nama_instrumen = parsed.data.nama_instrumen;
+    if (parsed.data.periode_id !== undefined) updateData.periode_id = parsed.data.periode_id ?? null;
+    if (parsed.data.is_active !== undefined) updateData.is_active = parsed.data.is_active;
+
     const data = await prisma.instrumen.update({
       where: { id: BigInt(id) },
-      data: { nama_instrumen: parsed.data.nama_instrumen, periode_id: parsed.data.periode_id ?? null },
+      data: updateData,
       include: { periode: true },
     });
     return R.ok(serialize(data), 'Instrumen berhasil diperbarui');

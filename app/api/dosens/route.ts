@@ -12,10 +12,12 @@ const createSchema = z.object({
   prodi_id: z.coerce.bigint().optional(),
   nip: z.string().min(1, 'NIP wajib diisi'),
   nama_lengkap: z.string().min(1, 'Nama lengkap wajib diisi'),
+  status_kepegawaian: z.string().min(1, 'Status kepegawaian wajib diisi'),
+  no_hp: z.string().min(1, 'No HP wajib diisi'),
 });
 
 const dosenSelect = {
-  id: true, nip: true, nama_lengkap: true, created_at: true, updated_at: true,
+  id: true, nip: true, nama_lengkap: true, status_kepegawaian: true, no_hp: true, created_at: true, updated_at: true,
   user: { select: { id: true, email: true, role: { select: { nama_role: true } } } },
   prodi: { select: { id: true, nama_prodi: true, jurusan: { select: { nama_jurusan: true } } } },
 };
@@ -39,9 +41,9 @@ export async function POST(request: NextRequest) {
     const parsed = createSchema.safeParse(body);
     if (!parsed.success) return R.badRequest('Validasi gagal', parsed.error.flatten());
     
-    const { nip, nama_lengkap, user_id, prodi_id } = parsed.data;
+    const { nip, nama_lengkap, status_kepegawaian, no_hp, user_id, prodi_id } = parsed.data;
     const data = await prisma.dosen.create({
-      data: { nip, nama_lengkap, user_id: user_id ?? null, prodi_id: prodi_id ?? null },
+      data: { nip, nama_lengkap, status_kepegawaian, no_hp, user_id: user_id ?? null, prodi_id: prodi_id ?? null },
       select: dosenSelect,
     });
     return R.created(serialize(data), 'Dosen berhasil dibuat');

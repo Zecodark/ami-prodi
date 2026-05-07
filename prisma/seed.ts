@@ -2,6 +2,17 @@ import { prisma } from '../app/lib/prisma';
 import bcrypt from 'bcryptjs';
 
 async function main() {
+  // --- 0. Clear Existing Data ---
+  await prisma.isian.deleteMany();
+  await prisma.butirInstrumen.deleteMany();
+  await prisma.instrumen.deleteMany();
+  await prisma.periodeAmi.deleteMany();
+  await prisma.dosen.deleteMany();
+  await prisma.user.deleteMany();
+  await prisma.prodi.deleteMany();
+  await prisma.jurusan.deleteMany();
+  await prisma.role.deleteMany();
+
   // --- 1. Seed Roles ---
   const roleAdmin = await prisma.role.create({
     data: { nama_role: 'Admin' },
@@ -11,9 +22,6 @@ async function main() {
   });
   const roleDosen = await prisma.role.create({
     data: { nama_role: 'Dosen' },
-  });
-  const roleAsesor = await prisma.role.create({
-    data: { nama_role: 'Asesor' },
   });
 
   // --- 2. Seed Jurusan & Prodi ---
@@ -30,7 +38,7 @@ async function main() {
 
   const prodiD4TRPL = await prisma.prodi.create({
     data: { 
-      nama_prodi: 'D4 Teknologi Rekayasa Perangkat Lunak',
+      nama_prodi: 'D4 Teknologi Rekayasa Komputer',
       jurusan_id: jurusanTeknikInformatika.id
     },
   });
@@ -41,7 +49,7 @@ async function main() {
   // Admin User
   const adminUser = await prisma.user.create({
     data: {
-      email: 'admin@polbeng.ac.id',
+      email: 'admin@polines.ac.id',
       password: hashedPassword,
       role_id: roleAdmin.id,
     },
@@ -50,7 +58,7 @@ async function main() {
   // Kaprodi User
   const kaprodiUser = await prisma.user.create({
     data: {
-      email: 'kaprodi.trpl@polbeng.ac.id',
+      email: 'kaprodi.trpl@polines.ac.id',
       password: hashedPassword,
       role_id: roleKaprodi.id,
     },
@@ -59,7 +67,7 @@ async function main() {
   // Dosen Users
   const dosenUser1 = await prisma.user.create({
     data: {
-      email: 'dosen1@polbeng.ac.id',
+      email: 'dosen1@polines.ac.id',
       password: hashedPassword,
       role_id: roleDosen.id,
     },
@@ -67,7 +75,7 @@ async function main() {
 
   const dosenUser2 = await prisma.user.create({
     data: {
-      email: 'dosen2@polbeng.ac.id',
+      email: 'dosen2@polines.ac.id',
       password: hashedPassword,
       role_id: roleDosen.id,
     },
@@ -80,6 +88,8 @@ async function main() {
       prodi_id: prodiD4TRPL.id,
       nip: '198001012005011001',
       nama_lengkap: 'Budi Santoso, M.Kom.',
+      status_kepegawaian: 'PNS',
+      no_hp: '081234567890',
     },
   });
 
@@ -89,6 +99,8 @@ async function main() {
       prodi_id: prodiD3TI.id,
       nip: '198502022010121002',
       nama_lengkap: 'Siti Aminah, M.T.',
+      status_kepegawaian: 'PNS',
+      no_hp: '081298765432',
     },
   });
 

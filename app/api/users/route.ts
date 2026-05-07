@@ -11,7 +11,7 @@ const serialize = (data: unknown) =>
 const select = {
   id: true, email: true, created_at: true, updated_at: true,
   role: { select: { id: true, nama_role: true } },
-  dosen: { select: { id: true, nip: true, nama_lengkap: true } },
+  dosen: { select: { id: true, nip: true, nama_lengkap: true, status_kepegawaian: true, prodi: { select: { nama_prodi: true } } } },
 };
 
 // GET /api/users

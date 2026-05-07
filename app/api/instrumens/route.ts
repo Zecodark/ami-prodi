@@ -10,15 +10,25 @@ const serialize = (data: unknown) =>
 const schema = z.object({
   periode_id: z.coerce.bigint().optional(),
   nama_instrumen: z.string().min(1, 'Nama instrumen wajib diisi'),
+  is_active: z.boolean().optional(),
 });
 
 export async function GET(request: NextRequest) {
   try {
-    const { error } = guard(request, 'admin');
+    const { error } = guard(request, 'admin', 'dosen', 'kaprodi');
     if (error) return error;
 
     const periodeId = request.nextUrl.searchParams.get('periode_id');
-    const where = periodeId ? { periode_id: BigInt(periodeId) } : {};
+    const isActive = request.nextUrl.searchParams.get('is_active');
+    
+    const where: any = {};
+    if (periodeId) {
+      where.OR = [
+        { periode_id: BigInt(periodeId) },
+        { periode_id: null }
+      ];
+    }
+    if (isActive !== null) where.is_active = isActive === 'true';
 
     const data = await prisma.instrumen.findMany({
       where,
@@ -42,7 +52,11 @@ export async function POST(request: NextRequest) {
     if (!parsed.success) return R.badRequest('Validasi gagal', parsed.error.flatten());
 
     const data = await prisma.instrumen.create({
-      data: { nama_instrumen: parsed.data.nama_instrumen, periode_id: parsed.data.periode_id ?? null },
+      data: { 
+        nama_instrumen: parsed.data.nama_instrumen, 
+        periode_id: parsed.data.periode_id ?? null,
+        is_active: parsed.data.is_active ?? true
+      },
       include: { periode: true },
     });
     return R.created(serialize(data), 'Instrumen berhasil dibuat');

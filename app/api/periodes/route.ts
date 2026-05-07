@@ -14,7 +14,7 @@ const createSchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
-    const { error } = guard(request, 'admin');
+    const { error } = guard(request, 'admin', 'dosen', 'kaprodi');
     if (error) return error;
 
     const data = await prisma.periodeAmi.findMany({
