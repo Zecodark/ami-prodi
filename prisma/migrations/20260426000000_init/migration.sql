@@ -49,6 +49,8 @@ CREATE TABLE `dosens` (
     `prodi_id` BIGINT NULL,
     `nip` VARCHAR(30) NOT NULL,
     `nama_lengkap` VARCHAR(150) NOT NULL,
+    `status_kepegawaian` VARCHAR(50) NOT NULL,
+    `no_hp` VARCHAR(20) NOT NULL,
     `created_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
     `updated_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
 
@@ -73,6 +75,7 @@ CREATE TABLE `instrumens` (
     `id` BIGINT NOT NULL AUTO_INCREMENT,
     `periode_id` BIGINT NULL,
     `nama_instrumen` VARCHAR(255) NOT NULL,
+    `is_active` BOOLEAN NOT NULL DEFAULT true,
     `created_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
     `updated_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
 
