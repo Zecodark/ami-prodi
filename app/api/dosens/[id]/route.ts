@@ -8,27 +8,30 @@ const serialize = (data: unknown) =>
   JSON.parse(JSON.stringify(data, (_, v) => (typeof v === 'bigint' ? v.toString() : v)));
 
 const updateSchema = z.object({
-  user_id: z.coerce.bigint().optional(),
-  prodi_id: z.coerce.bigint().optional(),
+  user_id: z.coerce.bigint().optional().nullable(),
+  prodi_id: z.coerce.bigint().optional().nullable(),
   nip: z.string().min(1).optional(),
   nama_lengkap: z.string().min(1).optional(),
   status_kepegawaian: z.string().min(1).optional(),
-  no_hp: z.string().min(1).optional(),
+  no_hp: z.string().optional().nullable(),
+  alamat: z.string().optional().nullable(),
+  is_active: z.boolean().optional(),
 });
 
 const dosenSelect = {
-  id: true, nip: true, nama_lengkap: true, status_kepegawaian: true, no_hp: true, created_at: true, updated_at: true,
-  user: { select: { id: true, email: true, role: { select: { nama_role: true } } } },
-  prodi: { select: { id: true, nama_prodi: true, jurusan: { select: { nama_jurusan: true } } } },
+  id: true, nip: true, nama_lengkap: true, status_kepegawaian: true, no_hp: true,
+  alamat: true, is_active: true, created_at: true, updated_at: true,
+  user: { select: { id: true, email: true, is_active: true, role: { select: { nama_role: true } } } },
+  prodi: { select: { id: true, nama_prodi: true, jenjang: true, jurusan: { select: { nama_jurusan: true } } } },
 };
 
 type Ctx = { params: Promise<{ id: string }> };
 
 export async function GET(request: NextRequest, { params }: Ctx) {
   try {
-    const { error } = guard(request, 'admin');
+    const { error } = guard(request, 'admin', 'kaprodi');
     if (error) return error;
-    
+
     const { id } = await params;
     const data = await prisma.dosen.findUnique({
       where: { id: BigInt(id) }, select: dosenSelect,
@@ -42,14 +45,16 @@ export async function PUT(request: NextRequest, { params }: Ctx) {
   try {
     const { error } = guard(request, 'admin');
     if (error) return error;
-    
+
     const { id } = await params;
     const body = await request.json();
     const parsed = updateSchema.safeParse(body);
     if (!parsed.success) return R.badRequest('Validasi gagal', parsed.error.flatten());
-    
+
     const data = await prisma.dosen.update({
-      where: { id: BigInt(id) }, data: parsed.data, select: dosenSelect,
+      where: { id: BigInt(id) },
+      data: parsed.data,
+      select: dosenSelect,
     });
     return R.ok(serialize(data), 'Dosen berhasil diperbarui');
   } catch (e: any) {
@@ -63,7 +68,7 @@ export async function DELETE(request: NextRequest, { params }: Ctx) {
   try {
     const { error } = guard(request, 'admin');
     if (error) return error;
-    
+
     const { id } = await params;
     await prisma.dosen.delete({ where: { id: BigInt(id) } });
     return R.ok(null, 'Dosen berhasil dihapus');

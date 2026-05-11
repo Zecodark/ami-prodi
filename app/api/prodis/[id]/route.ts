@@ -8,11 +8,27 @@ const serialize = (data: unknown) =>
   JSON.parse(JSON.stringify(data, (_, v) => (typeof v === 'bigint' ? v.toString() : v)));
 
 const schema = z.object({
-  jurusan_id: z.coerce.bigint().optional(),
+  jurusan_id: z.coerce.bigint().optional().nullable(),
   nama_prodi: z.string().min(1, 'Nama prodi wajib diisi'),
+  jenjang: z.string().optional().nullable(),
 });
 
 type Ctx = { params: Promise<{ id: string }> };
+
+export async function GET(request: NextRequest, { params }: Ctx) {
+  try {
+    const { error } = guard(request, 'admin', 'kaprodi');
+    if (error) return error;
+
+    const { id } = await params;
+    const data = await prisma.prodi.findUnique({
+      where: { id: BigInt(id) },
+      include: { jurusan: true },
+    });
+    if (!data) return R.notFound();
+    return R.ok(serialize(data));
+  } catch (e) { return R.serverError(e); }
+}
 
 export async function PUT(request: NextRequest, { params }: Ctx) {
   try {
@@ -26,7 +42,11 @@ export async function PUT(request: NextRequest, { params }: Ctx) {
     
     const data = await prisma.prodi.update({
       where: { id: BigInt(id) },
-      data: { nama_prodi: parsed.data.nama_prodi, jurusan_id: parsed.data.jurusan_id ?? null },
+      data: { 
+        nama_prodi: parsed.data.nama_prodi, 
+        jurusan_id: parsed.data.jurusan_id ?? null,
+        jenjang: parsed.data.jenjang ?? null
+      },
       include: { jurusan: true },
     });
     return R.ok(serialize(data), 'Prodi berhasil diperbarui');

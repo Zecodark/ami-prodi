@@ -10,24 +10,61 @@ const serialize = (data: unknown) =>
 const updateSchema = z.object({
   tahun: z.string().min(4).optional(),
   is_active: z.boolean().optional(),
+  tanggal_mulai: z.string().optional().nullable(),
+  tanggal_selesai: z.string().optional().nullable(),
 });
 
 type Ctx = { params: Promise<{ id: string }> };
+
+export async function GET(request: NextRequest, { params }: Ctx) {
+  try {
+    const { error } = guard(request, 'admin', 'dosen', 'kaprodi');
+    if (error) return error;
+
+    const { id } = await params;
+    const data = await prisma.periode.findUnique({
+      where: { id: BigInt(id) },
+      include: {
+        _count: { select: { instrumens: true, isians: true } },
+      },
+    });
+    if (!data) return R.notFound();
+    return R.ok(serialize(data));
+  } catch (e) { return R.serverError(e); }
+}
 
 export async function PUT(request: NextRequest, { params }: Ctx) {
   try {
     const { error } = guard(request, 'admin');
     if (error) return error;
-    
+
     const { id } = await params;
     const body = await request.json();
     const parsed = updateSchema.safeParse(body);
     if (!parsed.success) return R.badRequest('Validasi gagal', parsed.error.flatten());
 
-    const data = await prisma.periodeAmi.update({
-      where: { id: BigInt(id) }, data: parsed.data,
-    });
-    return R.ok(serialize(data), 'Periode berhasil diperbarui');
+    const updateData: any = {};
+    if (parsed.data.tahun !== undefined) updateData.tahun = parsed.data.tahun;
+    if (parsed.data.tanggal_mulai !== undefined)
+      updateData.tanggal_mulai = parsed.data.tanggal_mulai ? new Date(parsed.data.tanggal_mulai) : null;
+    if (parsed.data.tanggal_selesai !== undefined)
+      updateData.tanggal_selesai = parsed.data.tanggal_selesai ? new Date(parsed.data.tanggal_selesai) : null;
+
+    if (parsed.data.is_active === true) {
+      // Set all others to false in a transaction
+      const [_, data] = await prisma.$transaction([
+        prisma.periode.updateMany({ where: { id: { not: BigInt(id) } }, data: { is_active: false } }),
+        prisma.periode.update({ where: { id: BigInt(id) }, data: { ...updateData, is_active: true } })
+      ]);
+      return R.ok(serialize(data), 'Periode berhasil diaktifkan dan diperbarui');
+    } else {
+      if (parsed.data.is_active === false) updateData.is_active = false;
+      const data = await prisma.periode.update({
+        where: { id: BigInt(id) },
+        data: updateData,
+      });
+      return R.ok(serialize(data), 'Periode berhasil diperbarui');
+    }
   } catch (e: any) {
     if (e.code === 'P2025') return R.notFound();
     return R.serverError(e);
@@ -38,9 +75,9 @@ export async function DELETE(request: NextRequest, { params }: Ctx) {
   try {
     const { error } = guard(request, 'admin');
     if (error) return error;
-    
+
     const { id } = await params;
-    await prisma.periodeAmi.delete({ where: { id: BigInt(id) } });
+    await prisma.periode.delete({ where: { id: BigInt(id) } });
     return R.ok(null, 'Periode berhasil dihapus');
   } catch (e: any) {
     if (e.code === 'P2025') return R.notFound();

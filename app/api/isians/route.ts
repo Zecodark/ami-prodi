@@ -10,36 +10,49 @@ const serialize = (data: unknown) =>
   JSON.parse(JSON.stringify(data, (_, v) => (typeof v === 'bigint' ? v.toString() : v)));
 
 const createSchema = z.object({
-  butir_id: z.coerce.bigint(),
+  pemeriksaan_unsur_id: z.coerce.bigint(),
   periode_id: z.coerce.bigint(),
-  judul_dokumen: z.string().min(1),
+  judul_dokumen: z.string().min(1).optional().or(z.literal('')),
   ketersediaan_standar: z.enum(['ada', 'tidak_ada']).default('tidak_ada'),
   dokumen: z.enum(['ada', 'tidak_ada']).default('tidak_ada'),
   pencapaian_standar_spt_pt: z.preprocess((v) => v === 'true' || v === true, z.boolean().default(false)),
   pencapaian_standar_sn_dikti: z.preprocess((v) => v === 'true' || v === true, z.boolean().default(false)),
-  lokal: z.preprocess((v) => v === 'true' || v === true, z.boolean().default(false)),
-  nasional: z.preprocess((v) => v === 'true' || v === true, z.boolean().default(false)),
-  internasional: z.preprocess((v) => v === 'true' || v === true, z.boolean().default(false)),
+  daya_saing_lokal: z.preprocess((v) => v === 'true' || v === true, z.boolean().default(false)),
+  daya_saing_nasional: z.preprocess((v) => v === 'true' || v === true, z.boolean().default(false)),
+  daya_saing_internasional: z.preprocess((v) => v === 'true' || v === true, z.boolean().default(false)),
   bukti_link: z.string().url().optional().or(z.literal('')),
-  tahun_pelaksanaan: z.string().length(4),
-  capaian: z.string().optional(),
-  keterangan: z.string().optional(),
+  tahun_pelaksanaan: z.string().length(4).optional().nullable(),
+  capaian: z.string().optional().nullable(),
+  keterangan: z.string().optional().nullable(),
 });
 
 const isianInclude = {
-  butir_instrumen: {
-    select: {
-      id: true, kode_butir: true, deskripsi_area_audit: true,
-      instrumen: { select: { id: true, nama_instrumen: true } },
+  pemeriksaan_unsur: {
+    include: {
+      deskripsi_area: {
+        include: {
+          kode_ami: {
+            include: {
+              kriteria: {
+                include: {
+                  instrumen: { select: { id: true, nama_instrumen: true } },
+                },
+              },
+            },
+          },
+        },
+      },
     },
   },
   dosen: {
     select: {
       id: true, nip: true, nama_lengkap: true,
-      prodi: { select: { id: true, nama_prodi: true } },
+      prodi: { select: { id: true, nama_prodi: true, jenjang: true } },
     },
   },
   periode: { select: { id: true, tahun: true } },
+  prodi: { select: { id: true, nama_prodi: true, jenjang: true } },
+  bukti_files: true,
 };
 
 export async function GET(request: NextRequest) {
@@ -52,7 +65,8 @@ export async function GET(request: NextRequest) {
 
     if (searchParams.get('periode_id')) where.periode_id = BigInt(searchParams.get('periode_id')!);
     if (searchParams.get('status')) where.status = searchParams.get('status');
-    if (searchParams.get('butir_id')) where.butir_id = BigInt(searchParams.get('butir_id')!);
+    if (searchParams.get('pemeriksaan_unsur_id'))
+      where.pemeriksaan_unsur_id = BigInt(searchParams.get('pemeriksaan_unsur_id')!);
 
     if (user.roleName.toLowerCase() === 'dosen') {
       const dosen = await prisma.dosen.findUnique({ where: { user_id: user.userId } });
@@ -61,12 +75,14 @@ export async function GET(request: NextRequest) {
     } else {
       // Kaprodi
       if (searchParams.get('dosen_id')) where.dosen_id = BigInt(searchParams.get('dosen_id')!);
-      if (searchParams.get('prodi_id')) {
-        where.dosen = { prodi_id: BigInt(searchParams.get('prodi_id')!) };
-      }
+      if (searchParams.get('prodi_id')) where.prodi_id = BigInt(searchParams.get('prodi_id')!);
     }
 
-    const data = await prisma.isian.findMany({ where, include: isianInclude, orderBy: { updated_at: 'desc' } });
+    const data = await prisma.isianAmi.findMany({
+      where,
+      include: isianInclude,
+      orderBy: { updated_at: 'desc' },
+    });
     return R.ok(serialize(data));
   } catch (e) { return R.serverError(e); }
 }
@@ -82,40 +98,91 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const dataObj: Record<string, any> = {};
     formData.forEach((value, key) => {
-      if (key !== 'bukti_dokumen') dataObj[key] = value;
+      if (key !== 'bukti_file') dataObj[key] = value;
     });
 
     const parsed = createSchema.safeParse(dataObj);
     if (!parsed.success) return R.badRequest('Validasi gagal', parsed.error.flatten());
 
-    let bukti_dokumen_name: string | undefined;
-    const file = formData.get('bukti_dokumen') as File | null;
-    
+    // Cek apakah unsur ini aktif (instrumen aktif)
+    const unsur = await prisma.pemeriksaanUnsur.findUnique({
+      where: { id: parsed.data.pemeriksaan_unsur_id },
+      include: {
+        deskripsi_area: {
+          include: {
+            kode_ami: {
+              include: { kriteria: { include: { instrumen: true } } },
+            },
+          },
+        },
+      },
+    });
+    if (!unsur) return R.notFound('Pemeriksaan unsur tidak ditemukan');
+    if (!unsur.deskripsi_area.kode_ami.kriteria.instrumen.is_active)
+      return R.forbidden('Instrumen AMI tidak aktif');
+
+    // Cek attempt
+    const existing = await prisma.isianAmi.findFirst({
+      where: {
+        pemeriksaan_unsur_id: parsed.data.pemeriksaan_unsur_id,
+        dosen_id: dosen.id,
+        periode_id: parsed.data.periode_id,
+      },
+      orderBy: { attempt: 'desc' },
+    });
+    const attempt = existing ? existing.attempt + 1 : 1;
+
+    // Upload file bukti
+    let buktiFIleData: { original_name: string; file_name: string; file_path: string; mime_type?: string; file_size?: bigint } | null = null;
+    const file = formData.get('bukti_file') as File | null;
     if (file && file.size > 0) {
       const bytes = await file.arrayBuffer();
       const buffer = Buffer.from(bytes);
       const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
       const ext = path.extname(file.name);
-      bukti_dokumen_name = `dokumen-${uniqueSuffix}${ext}`;
-      
-      const uploadDir = path.join(process.cwd(), 'public/uploads');
+      const file_name = `bukti-${uniqueSuffix}${ext}`;
+      const uploadDir = path.join(process.cwd(), 'public/uploads/bukti');
       await mkdir(uploadDir, { recursive: true });
-      await writeFile(path.join(uploadDir, bukti_dokumen_name), buffer);
+      const file_path = `/uploads/bukti/${file_name}`;
+      await writeFile(path.join(uploadDir, file_name), buffer);
+      buktiFIleData = {
+        original_name: file.name.slice(0, 50),
+        file_name,
+        file_path,
+        mime_type: file.type || undefined,
+        file_size: BigInt(file.size),
+      };
     }
 
-    const existing = await prisma.isian.findFirst({
-      where: { butir_id: parsed.data.butir_id, dosen_id: dosen.id, periode_id: parsed.data.periode_id },
-      orderBy: { attempt: 'desc' },
-    });
-    const attempt = existing ? existing.attempt + 1 : 1;
-
-    const data = await prisma.isian.create({
+    const data = await prisma.isianAmi.create({
       data: {
-        ...parsed.data,
+        pemeriksaan_unsur_id: parsed.data.pemeriksaan_unsur_id,
+        periode_id: parsed.data.periode_id,
         dosen_id: dosen.id,
-        attempt,
-        bukti_dokumen: bukti_dokumen_name ?? null,
+        prodi_id: dosen.prodi_id,
+        judul_dokumen: parsed.data.judul_dokumen || null,
+        ketersediaan_standar: parsed.data.ketersediaan_standar,
+        dokumen: parsed.data.dokumen,
+        pencapaian_standar_spt_pt: parsed.data.pencapaian_standar_spt_pt,
+        pencapaian_standar_sn_dikti: parsed.data.pencapaian_standar_sn_dikti,
+        daya_saing_lokal: parsed.data.daya_saing_lokal,
+        daya_saing_nasional: parsed.data.daya_saing_nasional,
+        daya_saing_internasional: parsed.data.daya_saing_internasional,
         bukti_link: parsed.data.bukti_link || null,
+        tahun_pelaksanaan: parsed.data.tahun_pelaksanaan || null,
+        capaian: parsed.data.capaian || null,
+        keterangan: parsed.data.keterangan || null,
+        status: 'proses',
+        attempt,
+        submitted_at: new Date(),
+        bukti_files: buktiFIleData
+          ? {
+              create: {
+                ...buktiFIleData,
+                uploaded_by: user.userId,
+              },
+            }
+          : undefined,
       },
       include: isianInclude,
     });

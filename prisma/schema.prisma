@@ -11,9 +11,13 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// =========================================================
+// 1. ROLES
+// =========================================================
 model Role {
   id         BigInt   @id @default(autoincrement())
-  nama_role  String   @db.VarChar(50)
+  nama_role  String   @unique @db.VarChar(10)
+  deskripsi  String?  @db.VarChar(50)
   created_at DateTime @default(now()) @db.Timestamp(0)
   updated_at DateTime @default(now()) @updatedAt @db.Timestamp(0)
 
@@ -22,23 +26,37 @@ model Role {
   @@map("roles")
 }
 
+// =========================================================
+// 2. USERS
+// =========================================================
 model User {
-  id         BigInt   @id @default(autoincrement())
-  role_id    BigInt?
-  email      String   @unique @db.VarChar(150)
-  password   String   @db.VarChar(255)
-  created_at DateTime @default(now()) @db.Timestamp(0)
-  updated_at DateTime @default(now()) @updatedAt @db.Timestamp(0)
+  id            BigInt    @id @default(autoincrement())
+  email         String    @unique @db.VarChar(50)
+  password      String    @db.VarChar(255)
+  role_id       BigInt?
+  is_active     Boolean   @default(true)
+  last_login_at DateTime? @db.Timestamp(0)
+  created_at    DateTime  @default(now()) @db.Timestamp(0)
+  updated_at    DateTime  @default(now()) @updatedAt @db.Timestamp(0)
 
-  role  Role?  @relation(fields: [role_id], references: [id], onDelete: SetNull)
+  role  Role?  @relation(fields: [role_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
   dosen Dosen?
 
+  instrumens_created  Instrumen[]       @relation("InstrumenCreatedBy")
+  isian_reviewed      IsianAmi[]        @relation("IsianReviewedBy")
+  isian_bukti_uploads IsianBuktiFile[]  @relation("BuktiFIleUploadedBy")
+  review_logs         IsianReviewLog[]  @relation("ReviewLogReviewer")
+
+  @@index([role_id])
   @@map("users")
 }
 
+// =========================================================
+// 3. JURUSANS
+// =========================================================
 model Jurusan {
   id           BigInt   @id @default(autoincrement())
-  nama_jurusan String   @db.VarChar(150)
+  nama_jurusan String   @unique @db.VarChar(30)
   created_at   DateTime @default(now()) @db.Timestamp(0)
   updated_at   DateTime @default(now()) @updatedAt @db.Timestamp(0)
 
@@ -47,79 +65,214 @@ model Jurusan {
   @@map("jurusans")
 }
 
+// =========================================================
+// 4. PRODIS
+// =========================================================
 model Prodi {
   id         BigInt   @id @default(autoincrement())
   jurusan_id BigInt?
-  nama_prodi String   @db.VarChar(150)
+  nama_prodi String   @db.VarChar(50)
+  jenjang    String?  @db.VarChar(20)
   created_at DateTime @default(now()) @db.Timestamp(0)
   updated_at DateTime @default(now()) @updatedAt @db.Timestamp(0)
 
-  jurusan Jurusan? @relation(fields: [jurusan_id], references: [id], onDelete: Cascade)
+  jurusan Jurusan? @relation(fields: [jurusan_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
   dosens  Dosen[]
+  isians  IsianAmi[]
 
+  @@unique([nama_prodi, jurusan_id])
+  @@index([jurusan_id])
   @@map("prodis")
 }
 
+// =========================================================
+// 5. DOSENS
+// =========================================================
 model Dosen {
   id                 BigInt   @id @default(autoincrement())
   user_id            BigInt?  @unique
   prodi_id           BigInt?
-  nip                String   @unique @db.VarChar(30)
-  nama_lengkap       String   @db.VarChar(150)
+  nip                String   @unique @db.VarChar(20)
+  nama_lengkap       String   @db.VarChar(50)
   status_kepegawaian String   @db.VarChar(50)
-  no_hp              String   @db.VarChar(20)
+  no_hp              String?  @db.VarChar(20)
+  alamat             String?  @db.Text
+  is_active          Boolean  @default(true)
   created_at         DateTime @default(now()) @db.Timestamp(0)
   updated_at         DateTime @default(now()) @updatedAt @db.Timestamp(0)
 
-  user   User?   @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  prodi  Prodi?  @relation(fields: [prodi_id], references: [id], onDelete: SetNull)
-  isians Isian[]
+  user   User?  @relation(fields: [user_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  prodi  Prodi? @relation(fields: [prodi_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
 
+  isians IsianAmi[]
+
+  @@index([prodi_id])
   @@map("dosens")
 }
 
-model PeriodeAmi {
-  id         BigInt   @id @default(autoincrement())
-  tahun      String   @db.VarChar(10)
-  is_active  Boolean  @default(false)
-  created_at DateTime @default(now()) @db.Timestamp(0)
-  updated_at DateTime @default(now()) @updatedAt @db.Timestamp(0)
+// =========================================================
+// 6. PERIODES
+// =========================================================
+model Periode {
+  id              BigInt    @id @default(autoincrement())
+  tahun           String    @unique @db.VarChar(10)
+  is_active       Boolean   @default(false)
+  tanggal_mulai   DateTime? @db.Date
+  tanggal_selesai DateTime? @db.Date
+  created_at      DateTime  @default(now()) @db.Timestamp(0)
+  updated_at      DateTime  @default(now()) @updatedAt @db.Timestamp(0)
 
   instrumens Instrumen[]
-  isians     Isian[]
+  isians     IsianAmi[]
 
-  @@map("periode_amis")
+  @@index([is_active])
+  @@map("periodes")
 }
 
+// =========================================================
+// 7. INSTRUMENS
+// =========================================================
 model Instrumen {
   id             BigInt   @id @default(autoincrement())
   periode_id     BigInt?
-  nama_instrumen String   @db.VarChar(255)
+  nama_instrumen String   @db.VarChar(50)
+  deskripsi      String?  @db.Text
   is_active      Boolean  @default(true)
+  created_by     BigInt?
   created_at     DateTime @default(now()) @db.Timestamp(0)
   updated_at     DateTime @default(now()) @updatedAt @db.Timestamp(0)
 
-  periode          PeriodeAmi?      @relation(fields: [periode_id], references: [id], onDelete: Cascade)
-  butir_instrumens ButirInstrumen[]
+  periode          Periode?          @relation(fields: [periode_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  creator          User?             @relation("InstrumenCreatedBy", fields: [created_by], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  kriteria_standars KriteriaStandar[]
 
+  @@index([periode_id])
+  @@index([is_active])
+  @@index([created_by])
   @@map("instrumens")
 }
 
-model ButirInstrumen {
-  id                   BigInt   @id @default(autoincrement())
-  instrumen_id         BigInt?
-  kode_butir           String   @db.VarChar(20)
-  deskripsi_area_audit String   @db.Text
-  target_standar       String   @db.Text
-  created_at           DateTime @default(now()) @db.Timestamp(0)
-  updated_at           DateTime @default(now()) @updatedAt @db.Timestamp(0)
+// =========================================================
+// 8. KRITERIA STANDAR
+// =========================================================
+model KriteriaStandar {
+  id            BigInt   @id @default(autoincrement())
+  instrumen_id  BigInt
+  kode_kriteria String   @db.VarChar(50)
+  nama_kriteria String   @db.VarChar(50)
+  deskripsi     String?  @db.Text
+  urutan        Int      @default(1) @db.UnsignedInt
+  created_at    DateTime @default(now()) @db.Timestamp(0)
+  updated_at    DateTime @default(now()) @updatedAt @db.Timestamp(0)
 
-  instrumen Instrumen? @relation(fields: [instrumen_id], references: [id], onDelete: Cascade)
-  isians    Isian[]
+  instrumen  Instrumen  @relation(fields: [instrumen_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  kode_amis  KodeAmi[]
 
-  @@map("butir_instrumens")
+  @@unique([instrumen_id, kode_kriteria])
+  @@index([instrumen_id])
+  @@index([urutan])
+  @@map("kriteria_standars")
 }
 
+// =========================================================
+// 9. KODE AMI
+// =========================================================
+model KodeAmi {
+  id          BigInt   @id @default(autoincrement())
+  kriteria_id BigInt
+  kode_ami    String   @db.VarChar(50)
+  urutan      Int      @default(1) @db.UnsignedInt
+  created_at  DateTime @default(now()) @db.Timestamp(0)
+  updated_at  DateTime @default(now()) @updatedAt @db.Timestamp(0)
+
+  kriteria         KriteriaStandar        @relation(fields: [kriteria_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  butir_standars   KodeAmiButirStandar[]
+  deskripsi_areas  DeskripsiArea[]
+
+  @@unique([kriteria_id, kode_ami])
+  @@index([kriteria_id])
+  @@index([urutan])
+  @@map("kode_amis")
+}
+
+// =========================================================
+// 10. JENJANG STANDAR
+// =========================================================
+model JenjangStandar {
+  id           BigInt   @id @default(autoincrement())
+  kode_jenjang String   @unique @db.VarChar(10)
+  nama_jenjang String   @db.VarChar(50)
+  urutan       Int      @default(1) @db.UnsignedInt
+  created_at   DateTime @default(now()) @db.Timestamp(0)
+  updated_at   DateTime @default(now()) @updatedAt @db.Timestamp(0)
+
+  butir_standars KodeAmiButirStandar[]
+
+  @@map("jenjang_standars")
+}
+
+// =========================================================
+// 11. KODE AMI BUTIR STANDAR
+// =========================================================
+model KodeAmiButirStandar {
+  id          BigInt   @id @default(autoincrement())
+  kode_ami_id BigInt
+  jenjang_id  BigInt
+  no_butir    String?  @db.VarChar(50)
+  created_at  DateTime @default(now()) @db.Timestamp(0)
+  updated_at  DateTime @default(now()) @updatedAt @db.Timestamp(0)
+
+  kode_ami KodeAmi        @relation(fields: [kode_ami_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  jenjang  JenjangStandar @relation(fields: [jenjang_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@unique([kode_ami_id, jenjang_id])
+  @@index([kode_ami_id])
+  @@index([jenjang_id])
+  @@map("kode_ami_butir_standars")
+}
+
+// =========================================================
+// 12. DESKRIPSI AREA
+// =========================================================
+model DeskripsiArea {
+  id                  BigInt   @id @default(autoincrement())
+  kode_ami_id         BigInt
+  deskripsi_area_audit String  @db.Text
+  target_standar      String?  @db.Text
+  urutan              Int      @default(1) @db.UnsignedInt
+  created_at          DateTime @default(now()) @db.Timestamp(0)
+  updated_at          DateTime @default(now()) @updatedAt @db.Timestamp(0)
+
+  kode_ami            KodeAmi            @relation(fields: [kode_ami_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  pemeriksaan_unsurs  PemeriksaanUnsur[]
+
+  @@index([kode_ami_id])
+  @@index([urutan])
+  @@map("deskripsi_areas")
+}
+
+// =========================================================
+// 13. PEMERIKSAAN UNSUR
+// =========================================================
+model PemeriksaanUnsur {
+  id                BigInt   @id @default(autoincrement())
+  deskripsi_area_id BigInt
+  isi_unsur         String   @db.Text
+  urutan            Int      @default(1) @db.UnsignedInt
+  created_at        DateTime @default(now()) @db.Timestamp(0)
+  updated_at        DateTime @default(now()) @updatedAt @db.Timestamp(0)
+
+  deskripsi_area DeskripsiArea @relation(fields: [deskripsi_area_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  isians         IsianAmi[]
+
+  @@index([deskripsi_area_id])
+  @@index([urutan])
+  @@map("pemeriksaan_unsurs")
+}
+
+// =========================================================
+// 14. ISIAN AMI
+// =========================================================
 enum KetersediaanStandar {
   ada
   tidak_ada
@@ -136,34 +289,103 @@ enum IsianStatus {
   revisi
 }
 
-model Isian {
+model IsianAmi {
   id                          BigInt              @id @default(autoincrement())
-  butir_id                    BigInt
-  dosen_id                    BigInt
+  pemeriksaan_unsur_id        BigInt
   periode_id                  BigInt
-  judul_dokumen               String              @db.VarChar(255)
-  attempt                     Int                 @default(1)
-  status_attempt              String              @default("submitted") @db.VarChar(50)
+  dosen_id                    BigInt
+  prodi_id                    BigInt?
+
+  judul_dokumen               String?             @db.VarChar(100)
   ketersediaan_standar        KetersediaanStandar @default(tidak_ada)
   dokumen                     DokumenStatus       @default(tidak_ada)
+
   pencapaian_standar_spt_pt   Boolean             @default(false)
   pencapaian_standar_sn_dikti Boolean             @default(false)
-  lokal                       Boolean             @default(false)
-  nasional                    Boolean             @default(false)
-  internasional               Boolean             @default(false)
-  bukti_dokumen               String?             @db.VarChar(255)
-  bukti_link                  String?             @db.VarChar(500)
-  tahun_pelaksanaan           String              @db.VarChar(4)
+
+  daya_saing_lokal            Boolean             @default(false)
+  daya_saing_nasional         Boolean             @default(false)
+  daya_saing_internasional    Boolean             @default(false)
+
+  bukti_link                  String?             @db.VarChar(255)
+  tahun_pelaksanaan           String?             @db.Char(4)
   capaian                     String?             @db.Text
   keterangan                  String?             @db.Text
+
   status                      IsianStatus         @default(proses)
   catatan_kaprodi             String?             @db.Text
+
+  reviewed_by                 BigInt?
+  reviewed_at                 DateTime?           @db.Timestamp(0)
+
+  attempt                     Int                 @default(1) @db.UnsignedInt
+
+  submitted_at                DateTime?           @db.Timestamp(0)
   created_at                  DateTime            @default(now()) @db.Timestamp(0)
   updated_at                  DateTime            @default(now()) @updatedAt @db.Timestamp(0)
 
-  butir_instrumen ButirInstrumen @relation(fields: [butir_id], references: [id], onDelete: Cascade)
-  dosen           Dosen          @relation(fields: [dosen_id], references: [id], onDelete: Cascade)
-  periode         PeriodeAmi     @relation(fields: [periode_id], references: [id], onDelete: Cascade)
+  pemeriksaan_unsur PemeriksaanUnsur @relation(fields: [pemeriksaan_unsur_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  periode           Periode          @relation(fields: [periode_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  dosen             Dosen            @relation(fields: [dosen_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  prodi             Prodi?           @relation(fields: [prodi_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  reviewer          User?            @relation("IsianReviewedBy", fields: [reviewed_by], references: [id], onDelete: SetNull, onUpdate: Cascade)
 
-  @@map("isians")
+  bukti_files  IsianBuktiFile[]
+  review_logs  IsianReviewLog[]
+
+  @@unique([pemeriksaan_unsur_id, periode_id, dosen_id, attempt])
+  @@index([pemeriksaan_unsur_id])
+  @@index([periode_id])
+  @@index([dosen_id])
+  @@index([prodi_id])
+  @@index([status])
+  @@index([reviewed_by])
+  @@index([submitted_at])
+  @@map("isian_ami")
+}
+
+// =========================================================
+// 15. ISIAN BUKTI FILES
+// =========================================================
+model IsianBuktiFile {
+  id            BigInt   @id @default(autoincrement())
+  isian_id      BigInt
+  original_name String   @db.VarChar(50)
+  file_name     String   @db.VarChar(50)
+  file_path     String   @db.VarChar(100)
+  mime_type     String?  @db.VarChar(50)
+  file_size     BigInt?
+
+  uploaded_by   BigInt?
+  created_at    DateTime @default(now()) @db.Timestamp(0)
+
+  isian       IsianAmi @relation(fields: [isian_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  uploader    User?    @relation("BuktiFIleUploadedBy", fields: [uploaded_by], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@index([isian_id])
+  @@index([uploaded_by])
+  @@map("isian_bukti_files")
+}
+
+// =========================================================
+// 16. ISIAN REVIEW LOGS
+// =========================================================
+model IsianReviewLog {
+  id              BigInt      @id @default(autoincrement())
+  isian_id        BigInt
+  reviewer_id     BigInt?
+
+  status_sebelum  IsianStatus?
+  status_sesudah  IsianStatus
+
+  catatan         String?  @db.Text
+  created_at      DateTime @default(now()) @db.Timestamp(0)
+
+  isian    IsianAmi @relation(fields: [isian_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  reviewer User?    @relation("ReviewLogReviewer", fields: [reviewer_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@index([isian_id])
+  @@index([reviewer_id])
+  @@index([status_sesudah])
+  @@map("isian_review_logs")
 }

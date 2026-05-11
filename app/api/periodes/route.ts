@@ -10,6 +10,8 @@ const serialize = (data: unknown) =>
 const createSchema = z.object({
   tahun: z.string().min(4, 'Format tahun: 2024/2025'),
   is_active: z.boolean().default(false),
+  tanggal_mulai: z.string().optional().nullable(),
+  tanggal_selesai: z.string().optional().nullable(),
 });
 
 export async function GET(request: NextRequest) {
@@ -17,8 +19,15 @@ export async function GET(request: NextRequest) {
     const { error } = guard(request, 'admin', 'dosen', 'kaprodi');
     if (error) return error;
 
-    const data = await prisma.periodeAmi.findMany({
-      include: { _count: { select: { instrumens: true, isians: true } } },
+    const isActive = request.nextUrl.searchParams.get('is_active');
+    const where: any = {};
+    if (isActive !== null) where.is_active = isActive === 'true';
+
+    const data = await prisma.periode.findMany({
+      where,
+      include: {
+        _count: { select: { instrumens: true, isians: true } },
+      },
       orderBy: { tahun: 'desc' },
     });
     return R.ok(serialize(data));
@@ -34,7 +43,15 @@ export async function POST(request: NextRequest) {
     const parsed = createSchema.safeParse(body);
     if (!parsed.success) return R.badRequest('Validasi gagal', parsed.error.flatten());
 
-    const data = await prisma.periodeAmi.create({ data: parsed.data });
-    return R.created(serialize(data), 'Periode AMI berhasil dibuat');
+    const { tahun, is_active, tanggal_mulai, tanggal_selesai } = parsed.data;
+    const data = await prisma.periode.create({
+      data: {
+        tahun,
+        is_active,
+        tanggal_mulai: tanggal_mulai ? new Date(tanggal_mulai) : null,
+        tanggal_selesai: tanggal_selesai ? new Date(tanggal_selesai) : null,
+      },
+    });
+    return R.created(serialize(data), 'Periode berhasil dibuat');
   } catch (e) { return R.serverError(e); }
 }

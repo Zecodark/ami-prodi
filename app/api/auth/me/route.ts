@@ -18,13 +18,25 @@ export async function GET(request: NextRequest) {
       select: {
         id: true,
         email: true,
+        is_active: true,
+        last_login_at: true,
         role: { select: { id: true, nama_role: true } },
         dosen: {
           select: {
             id: true,
             nip: true,
             nama_lengkap: true,
-            prodi: { select: { id: true, nama_prodi: true } },
+            status_kepegawaian: true,
+            no_hp: true,
+            is_active: true,
+            prodi: {
+              select: {
+                id: true,
+                nama_prodi: true,
+                jenjang: true,
+                jurusan: { select: { id: true, nama_jurusan: true } },
+              },
+            },
           },
         },
         created_at: true,

@@ -42,6 +42,7 @@ export async function PUT(request: NextRequest, { params }: Ctx) {
       email: z.string().email().optional(),
       password: z.string().min(6).optional(),
       role_id: z.coerce.bigint().nullable().optional(),
+      is_active: z.boolean().optional(),
     });
     const parsed = schema.safeParse(body);
     if (!parsed.success) return R.badRequest('Validasi gagal', parsed.error.flatten());
@@ -50,6 +51,7 @@ export async function PUT(request: NextRequest, { params }: Ctx) {
     if (parsed.data.email) updateData.email = parsed.data.email;
     if (parsed.data.password) updateData.password = await bcrypt.hash(parsed.data.password, 12);
     if (parsed.data.role_id !== undefined) updateData.role_id = parsed.data.role_id;
+    if (parsed.data.is_active !== undefined) updateData.is_active = parsed.data.is_active;
 
     const data = await prisma.user.update({ where: { id: BigInt(id) }, data: updateData, select });
     return R.ok(serialize(data), 'User berhasil diperbarui');

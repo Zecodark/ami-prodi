@@ -8,8 +8,9 @@ const serialize = (data: unknown) =>
   JSON.parse(JSON.stringify(data, (_, v) => (typeof v === 'bigint' ? v.toString() : v)));
 
 const schema = z.object({
-  periode_id: z.coerce.bigint().optional(),
+  periode_id: z.coerce.bigint().optional().nullable(),
   nama_instrumen: z.string().min(1, 'Nama instrumen wajib diisi'),
+  deskripsi: z.string().optional().nullable(),
   is_active: z.boolean().optional(),
 });
 
@@ -20,21 +21,16 @@ export async function GET(request: NextRequest) {
 
     const periodeId = request.nextUrl.searchParams.get('periode_id');
     const isActive = request.nextUrl.searchParams.get('is_active');
-    
+
     const where: any = {};
-    if (periodeId) {
-      where.OR = [
-        { periode_id: BigInt(periodeId) },
-        { periode_id: null }
-      ];
-    }
+    if (periodeId) where.periode_id = BigInt(periodeId);
     if (isActive !== null) where.is_active = isActive === 'true';
 
     const data = await prisma.instrumen.findMany({
       where,
       include: {
         periode: { select: { id: true, tahun: true, is_active: true } },
-        _count: { select: { butir_instrumens: true } },
+        _count: { select: { kriteria_standars: true } },
       },
       orderBy: { created_at: 'asc' },
     });
@@ -44,7 +40,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { error } = guard(request, 'admin');
+    const { user, error } = guard(request, 'admin');
     if (error) return error;
 
     const body = await request.json();
@@ -52,12 +48,16 @@ export async function POST(request: NextRequest) {
     if (!parsed.success) return R.badRequest('Validasi gagal', parsed.error.flatten());
 
     const data = await prisma.instrumen.create({
-      data: { 
-        nama_instrumen: parsed.data.nama_instrumen, 
+      data: {
+        nama_instrumen: parsed.data.nama_instrumen,
+        deskripsi: parsed.data.deskripsi ?? null,
         periode_id: parsed.data.periode_id ?? null,
-        is_active: parsed.data.is_active ?? true
+        is_active: parsed.data.is_active ?? true,
+        created_by: user.userId,
       },
-      include: { periode: true },
+      include: {
+        periode: { select: { id: true, tahun: true } },
+      },
     });
     return R.created(serialize(data), 'Instrumen berhasil dibuat');
   } catch (e) { return R.serverError(e); }
