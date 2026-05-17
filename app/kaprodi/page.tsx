@@ -1,7 +1,18 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { FileText, CheckCircle, AlertCircle, Clock, Users } from 'lucide-react';
+import Link from 'next/link';
+import { FileText, CheckCircle, AlertCircle, Clock, Users, ArrowRight } from 'lucide-react';
+
+interface IsianItem {
+  id: string;
+  dosen_nama: string;
+  dosen_nip: string;
+  judul_dokumen: string;
+  kriteria: string;
+  kode_ami: string;
+  submitted_at: string;
+}
 
 interface SummaryData {
   periode_aktif: string;
@@ -13,31 +24,51 @@ interface SummaryData {
     valid: number;
     revisi: number;
   };
+  recent_isians: IsianItem[];
+}
+
+function timeAgo(dateString: string): string {
+  const date = new Date(dateString);
+  const now = new Date();
+  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+  if (seconds < 60) return 'baru saja';
+  if (seconds < 3600) return `${Math.floor(seconds / 60)} menit lalu`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)} jam lalu`;
+  if (seconds < 604800) return `${Math.floor(seconds / 86400)} hari lalu`;
+  return date.toLocaleDateString('id-ID');
 }
 
 export default function KaprodiDashboard() {
   const [data, setData] = useState<SummaryData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
-        await new Promise(resolve => setTimeout(resolve, 800));
-        
-        setData({
-          periode_aktif: 'Tahun 2024/2025 Genap',
-          instrumen_aktif: 'Instrumen AMI D3 Teknik Informatika',
-          dosen_count: 5,
-          isians: {
-            masuk: 45, // Total yang di submit dosen (proses+valid+revisi)
-            proses: 12,
-            valid: 28,
-            revisi: 5
-          }
+        const token = localStorage.getItem('ami_token');
+        if (!token) {
+          setError('Token tidak ditemukan');
+          return;
+        }
+
+        const res = await fetch('/api/kaprodi/dashboard', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         });
-      } catch (error) {
-        console.error("Failed to fetch dashboard data:", error);
+
+        if (!res.ok) {
+          throw new Error('Gagal mengambil data dashboard');
+        }
+
+        const result = await res.json();
+        setData(result.data);
+      } catch (err) {
+        console.error('Failed to fetch dashboard data:', err);
+        setError('Gagal memuat data dashboard');
       } finally {
         setLoading(false);
       }
@@ -46,10 +77,20 @@ export default function KaprodiDashboard() {
     fetchDashboardData();
   }, []);
 
-  if (loading || !data) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md">
+          <p className="text-red-800 font-medium">{error || 'Gagal memuat data dashboard'}</p>
+        </div>
       </div>
     );
   }
@@ -104,30 +145,37 @@ export default function KaprodiDashboard() {
                   Terdapat <strong className="text-amber-600">{data.isians.proses} isian</strong> yang menunggu review Anda.
                 </p>
                 
-                {/* Dummy List */}
-                <div className="border border-slate-200 rounded-lg overflow-hidden">
-                   <div className="bg-slate-50 px-4 py-3 border-b border-slate-200 flex justify-between items-center text-sm font-medium text-slate-700">
-                      <span>Ahmad Rizky</span>
-                      <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full">Kriteria 1</span>
-                   </div>
-                   <div className="p-4 bg-white">
-                      <p className="text-sm font-medium text-slate-800">C.1.4.2 Visi Misi - A. Dokumen Rencana Strategis</p>
-                      <p className="text-xs text-slate-500 mt-1">Disubmit: 2 jam yang lalu</p>
-                      <button className="mt-3 text-sm text-indigo-600 font-medium hover:underline">Review Sekarang &rarr;</button>
-                   </div>
-                </div>
+                {/* Real Data List */}
+                {data.recent_isians.length > 0 ? (
+                  <div className="space-y-3">
+                    {data.recent_isians.map((isian) => (
+                      <div key={isian.id} className="border border-slate-200 rounded-lg overflow-hidden hover:shadow-md transition">
+                        <div className="bg-slate-50 px-4 py-3 border-b border-slate-200 flex justify-between items-center text-sm font-medium text-slate-700">
+                          <span>{isian.dosen_nama}</span>
+                          <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full">{isian.kode_ami}</span>
+                        </div>
+                        <div className="p-4 bg-white">
+                          <p className="text-sm font-medium text-slate-800 line-clamp-2">{isian.judul_dokumen}</p>
+                          <p className="text-xs text-slate-500 mt-1">Disubmit: {timeAgo(isian.submitted_at)}</p>
+                          <Link href={`/kaprodi/review?isian_id=${isian.id}`} className="mt-3 inline-block text-sm text-indigo-600 font-medium hover:underline">
+                            Review Sekarang <ArrowRight size={14} className="inline" />
+                          </Link>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-4">
+                    <p className="text-sm text-slate-600">Tidak ada isian yang perlu direview untuk ditampilkan</p>
+                  </div>
+                )}
 
-                <div className="border border-slate-200 rounded-lg overflow-hidden">
-                   <div className="bg-slate-50 px-4 py-3 border-b border-slate-200 flex justify-between items-center text-sm font-medium text-slate-700">
-                      <span>Budi Santoso</span>
-                      <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full">Kriteria 2</span>
-                   </div>
-                   <div className="p-4 bg-white">
-                      <p className="text-sm font-medium text-slate-800">C.2.4 Tata Kelola - SOP Perwalian</p>
-                      <p className="text-xs text-slate-500 mt-1">Disubmit: 5 jam yang lalu</p>
-                      <button className="mt-3 text-sm text-indigo-600 font-medium hover:underline">Review Sekarang &rarr;</button>
-                   </div>
-                </div>
+                <Link 
+                  href="/kaprodi/review" 
+                  className="block mt-4 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 text-center transition"
+                >
+                  Lihat Semua Isian ({data.isians.proses}) →
+                </Link>
              </div>
            ) : (
              <div className="text-center py-8">

@@ -13,26 +13,43 @@ const reviewSchema = z.object({
 });
 
 const isianInclude = {
-  butir_instrumen: {
-    select: {
-      id: true, kode_butir: true, deskripsi_area_audit: true,
-      instrumen: { select: { id: true, nama_instrumen: true } },
+  pemeriksaan_unsur: {
+    include: {
+      deskripsi_area: {
+        include: {
+          kode_ami: {
+            include: {
+              kriteria: {
+                include: {
+                  instrumen: { select: { id: true, nama_instrumen: true } },
+                },
+              },
+            },
+          },
+        },
+      },
     },
   },
   dosen: {
     select: {
       id: true, nip: true, nama_lengkap: true,
-      prodi: { select: { id: true, nama_prodi: true } },
+      prodi: { select: { id: true, nama_prodi: true, jenjang: true } },
     },
   },
   periode: { select: { id: true, tahun: true } },
+  prodi: { select: { id: true, nama_prodi: true, jenjang: true } },
+  bukti_files: true,
+  review_logs: {
+    orderBy: { created_at: 'desc' as const },
+    take: 5,
+  },
 };
 
 type Ctx = { params: Promise<{ id: string }> };
 
 export async function PATCH(request: NextRequest, { params }: Ctx) {
   try {
-    const { error } = guard(request, 'kaprodi');
+    const { user, error } = guard(request, 'kaprodi');
     if (error) return error;
 
     const body = await request.json();
@@ -40,16 +57,34 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
     if (!parsed.success) return R.badRequest('Validasi gagal', parsed.error.flatten());
 
     const { id } = await params;
-    const isian = await prisma.isian.findUnique({ where: { id: BigInt(id) } });
+    const isian = await prisma.isianAmi.findUnique({ where: { id: BigInt(id) } });
     if (!isian) return R.notFound();
 
-    const data = await prisma.isian.update({
-      where: { id: BigInt(id) },
-      data: { status: parsed.data.status, catatan_kaprodi: parsed.data.catatan_kaprodi ?? null },
-      include: isianInclude,
+    // Update isian dan buat review log dalam transaction
+    const data = await prisma.$transaction(async (tx) => {
+      const updated = await tx.isianAmi.update({
+        where: { id: BigInt(id) },
+        data: {
+          status: parsed.data.status,
+          catatan_kaprodi: parsed.data.catatan_kaprodi ?? null,
+          reviewed_by: user.userId,
+          reviewed_at: new Date(),
+        },
+        include: isianInclude,
+      });
+      await tx.isianReviewLog.create({
+        data: {
+          isian_id: BigInt(id),
+          reviewer_id: user.userId,
+          status_sebelum: isian.status,
+          status_sesudah: parsed.data.status,
+          catatan: parsed.data.catatan_kaprodi ?? null,
+        },
+      });
+      return updated;
     });
-    
-    const msg = parsed.data.status === 'valid' ? 'Isian berhasil diapprove' : 'Isian dikembalikan untuk revisi';
+
+    const msg = parsed.data.status === 'valid' ? 'Isian berhasil divalidkan' : 'Isian dikembalikan untuk revisi';
     return R.ok(serialize(data), msg);
   } catch (e) { return R.serverError(e); }
 }

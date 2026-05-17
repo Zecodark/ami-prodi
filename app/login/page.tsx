@@ -39,7 +39,7 @@ export default function LoginPage() {
       if (role === 'admin') {
         router.push('/admin');
       } else if (role === 'kaprodi') {
-        router.push('/admin');
+        router.push('/kaprodi');
       } else {
         router.push('/dosen');
       }

@@ -1,8 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Plus, ChevronDown, ChevronRight, Edit2, Trash2, FolderTree, FileText, AlertCircle, X, ChevronUp } from 'lucide-react';
+
+export const dynamic = 'force-dynamic';
 
 // Interfaces for our nested data structure
 interface UnsurData {

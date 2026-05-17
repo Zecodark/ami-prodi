@@ -15,14 +15,14 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
     
     const { id } = await params;
     const targetId = BigInt(id);
-    const exists = await prisma.periodeAmi.findUnique({ where: { id: targetId } });
+    const exists = await prisma.periode.findUnique({ where: { id: targetId } });
     if (!exists) return R.notFound();
 
     await prisma.$transaction([
-      prisma.periodeAmi.updateMany({ data: { is_active: false } }),
-      prisma.periodeAmi.update({ where: { id: targetId }, data: { is_active: true } }),
+      prisma.periode.updateMany({ data: { is_active: false } }),
+      prisma.periode.update({ where: { id: targetId }, data: { is_active: true } }),
     ]);
-    const data = await prisma.periodeAmi.findUnique({ where: { id: targetId } });
+    const data = await prisma.periode.findUnique({ where: { id: targetId } });
     return R.ok(serialize(data), 'Periode berhasil diaktifkan');
   } catch (e) { return R.serverError(e); }
 }
