@@ -156,17 +156,16 @@ export default function IsiAmiPage() {
   const handleNodeClick = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     setSelectedUnsur(id);
-    setFormData(prev => ({ ...prev, pemeriksaan_unsur_id: id }));
-    resetForm();
+    resetForm(id);
   };
 
   const handleToggle = (id: string) => {
     setTreeData(toggleExpanded(id, treeData));
   };
 
-  const resetForm = () => {
-    setFormData({
-      pemeriksaan_unsur_id: formData.pemeriksaan_unsur_id,
+  const resetForm = (newId?: string) => {
+    setFormData(prev => ({
+      pemeriksaan_unsur_id: newId !== undefined ? newId : prev.pemeriksaan_unsur_id,
       judul_dokumen: '',
       ketersediaan_standar: 'tidak_ada',
       dokumen: 'tidak_ada',
@@ -180,7 +179,7 @@ export default function IsiAmiPage() {
       capaian: '',
       keterangan: '',
       bukti_file: null,
-    });
+    }));
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -316,10 +315,9 @@ export default function IsiAmiPage() {
         <p className="text-slate-500 text-sm mt-1">Lengkapi instrumen AMI dengan data dan bukti yang diperlukan</p>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-6">
-        {/* Sidebar - Pilih Instrumen & Struktur */}
-        <div className="lg:col-span-1">
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 sticky top-20">
+      {!selectedUnsur ? (
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-6">
+          <div className="max-w-xl">
             <label className="block text-sm font-bold text-slate-700 mb-2">Pilih Instrumen</label>
             <select 
               value={selectedInstrumen}
@@ -336,37 +334,45 @@ export default function IsiAmiPage() {
                 <option key={i.id} value={i.id}>{i.nama_instrumen}</option>
               ))}
             </select>
-
-            {selectedInstrumen && (
-              <div className="mt-4">
-                <label className="block text-sm font-bold text-slate-700 mb-2">Struktur Instrumen</label>
-                <div className="border border-slate-200 rounded-lg p-3 max-h-[500px] overflow-y-auto space-y-1 bg-slate-50">
-                  {treeData.length === 0 ? (
-                    <p className="text-xs text-slate-500 text-center py-4">Memuat struktur...</p>
-                  ) : (
-                    renderTree(treeData)
-                  )}
-                </div>
-              </div>
-            )}
           </div>
-        </div>
 
-        {/* Main Form */}
-        <div className="lg:col-span-2">
-          {selectedUnsur ? (
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-6">
-              <div className="flex items-center gap-2 px-4 py-3 bg-indigo-50 border border-indigo-200 rounded-lg">
-                <CheckCircle size={18} className="text-indigo-600" />
-                <span className="text-sm text-indigo-700 font-medium">Unsur terpilih</span>
+          {selectedInstrumen && (
+            <div>
+              <label className="block text-sm font-bold text-slate-700 mb-2">Struktur Instrumen</label>
+              <div className="border border-slate-200 rounded-lg p-4 max-h-[600px] overflow-y-auto space-y-2 bg-slate-50">
+                {treeData.length === 0 ? (
+                  <p className="text-sm text-slate-500 text-center py-8">Memuat struktur...</p>
+                ) : (
+                  renderTree(treeData)
+                )}
               </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-6">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={() => setSelectedUnsur(null)} 
+                className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors"
+                title="Kembali ke Struktur"
+              >
+                <ChevronDown size={20} className="rotate-90" />
+              </button>
+              <div className="flex items-center gap-2 px-4 py-2 bg-indigo-50 border border-indigo-200 rounded-lg">
+                <CheckCircle size={18} className="text-indigo-600" />
+                <span className="text-sm text-indigo-700 font-medium">Mengisi form unsur terpilih</span>
+              </div>
+            </div>
+          </div>
 
               <form className="space-y-5">
                 {/* Row 1 */}
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">
-                      Judul Dokumen <span className="text-rose-500">*</span>
+                      Judul Dokumen
                     </label>
                     <input 
                       type="text"
@@ -594,14 +600,7 @@ export default function IsiAmiPage() {
                 </div>
               </form>
             </div>
-          ) : (
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-12 text-center">
-              <FileText size={48} className="mx-auto text-slate-300 mb-4" />
-              <p className="text-slate-500">Pilih instrumen dan unsur di sebelah kiri untuk mulai mengisi</p>
-            </div>
           )}
-        </div>
-      </div>
     </div>
   );
 }

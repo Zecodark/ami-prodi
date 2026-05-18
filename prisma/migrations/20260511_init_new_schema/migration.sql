@@ -1,4 +1,4 @@
-﻿-- CreateTable
+
 CREATE TABLE `roles` (
     `id` BIGINT NOT NULL AUTO_INCREMENT,
     `nama_role` VARCHAR(10) NOT NULL,
@@ -10,7 +10,7 @@ CREATE TABLE `roles` (
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
--- CreateTable
+
 CREATE TABLE `users` (
     `id` BIGINT NOT NULL AUTO_INCREMENT,
     `email` VARCHAR(50) NOT NULL,
@@ -26,7 +26,7 @@ CREATE TABLE `users` (
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
--- CreateTable
+
 CREATE TABLE `jurusans` (
     `id` BIGINT NOT NULL AUTO_INCREMENT,
     `nama_jurusan` VARCHAR(30) NOT NULL,
@@ -37,7 +37,7 @@ CREATE TABLE `jurusans` (
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
--- CreateTable
+
 CREATE TABLE `prodis` (
     `id` BIGINT NOT NULL AUTO_INCREMENT,
     `jurusan_id` BIGINT NULL,
@@ -51,7 +51,7 @@ CREATE TABLE `prodis` (
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
--- CreateTable
+
 CREATE TABLE `dosens` (
     `id` BIGINT NOT NULL AUTO_INCREMENT,
     `user_id` BIGINT NULL,
@@ -71,7 +71,7 @@ CREATE TABLE `dosens` (
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
--- CreateTable
+
 CREATE TABLE `periodes` (
     `id` BIGINT NOT NULL AUTO_INCREMENT,
     `tahun` VARCHAR(10) NOT NULL,
@@ -86,7 +86,7 @@ CREATE TABLE `periodes` (
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
--- CreateTable
+
 CREATE TABLE `instrumens` (
     `id` BIGINT NOT NULL AUTO_INCREMENT,
     `periode_id` BIGINT NULL,
@@ -103,7 +103,7 @@ CREATE TABLE `instrumens` (
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
--- CreateTable
+
 CREATE TABLE `kriteria_standars` (
     `id` BIGINT NOT NULL AUTO_INCREMENT,
     `instrumen_id` BIGINT NOT NULL,
@@ -120,7 +120,7 @@ CREATE TABLE `kriteria_standars` (
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
--- CreateTable
+
 CREATE TABLE `kode_amis` (
     `id` BIGINT NOT NULL AUTO_INCREMENT,
     `kriteria_id` BIGINT NOT NULL,
@@ -135,7 +135,7 @@ CREATE TABLE `kode_amis` (
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
--- CreateTable
+
 CREATE TABLE `jenjang_standars` (
     `id` BIGINT NOT NULL AUTO_INCREMENT,
     `kode_jenjang` VARCHAR(10) NOT NULL,
@@ -148,7 +148,7 @@ CREATE TABLE `jenjang_standars` (
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
--- CreateTable
+
 CREATE TABLE `kode_ami_butir_standars` (
     `id` BIGINT NOT NULL AUTO_INCREMENT,
     `kode_ami_id` BIGINT NOT NULL,
@@ -163,7 +163,7 @@ CREATE TABLE `kode_ami_butir_standars` (
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
--- CreateTable
+
 CREATE TABLE `deskripsi_areas` (
     `id` BIGINT NOT NULL AUTO_INCREMENT,
     `kode_ami_id` BIGINT NOT NULL,
@@ -178,7 +178,7 @@ CREATE TABLE `deskripsi_areas` (
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
--- CreateTable
+
 CREATE TABLE `pemeriksaan_unsurs` (
     `id` BIGINT NOT NULL AUTO_INCREMENT,
     `deskripsi_area_id` BIGINT NOT NULL,
@@ -192,7 +192,7 @@ CREATE TABLE `pemeriksaan_unsurs` (
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
--- CreateTable
+
 CREATE TABLE `isian_ami` (
     `id` BIGINT NOT NULL AUTO_INCREMENT,
     `pemeriksaan_unsur_id` BIGINT NOT NULL,
@@ -231,7 +231,7 @@ CREATE TABLE `isian_ami` (
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
--- CreateTable
+
 CREATE TABLE `isian_bukti_files` (
     `id` BIGINT NOT NULL AUTO_INCREMENT,
     `isian_id` BIGINT NOT NULL,
@@ -248,7 +248,7 @@ CREATE TABLE `isian_bukti_files` (
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
--- CreateTable
+
 CREATE TABLE `isian_review_logs` (
     `id` BIGINT NOT NULL AUTO_INCREMENT,
     `isian_id` BIGINT NOT NULL,
@@ -326,4 +326,5 @@ ALTER TABLE `isian_review_logs` ADD CONSTRAINT `isian_review_logs_isian_id_fkey`
 
 -- AddForeignKey
 ALTER TABLE `isian_review_logs` ADD CONSTRAINT `isian_review_logs_reviewer_id_fkey` FOREIGN KEY (`reviewer_id`) REFERENCES `users`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
 

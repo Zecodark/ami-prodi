@@ -135,7 +135,10 @@ export default function KaprodiReviewPage() {
   useEffect(() => {
     const fetchPeriodes = async () => {
       try {
-        const res = await fetch('/api/periodes');
+        const token = localStorage.getItem('ami_token');
+        const res = await fetch('/api/periodes', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
         const data = await res.json();
         setPeriodes(data.data || []);
         if (data.data?.length > 0) {
@@ -154,7 +157,10 @@ export default function KaprodiReviewPage() {
     if (!selectedPeriode) return;
     const fetchInstrumens = async () => {
       try {
-        const res = await fetch(`/api/instrumens?periode_id=${selectedPeriode}`);
+        const token = localStorage.getItem('ami_token');
+        const res = await fetch(`/api/instrumens?periode_id=${selectedPeriode}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
         const data = await res.json();
         setInstrumens(data.data || []);
         if (data.data?.length > 0) {
@@ -171,9 +177,11 @@ export default function KaprodiReviewPage() {
   useEffect(() => {
     const fetchOptions = async () => {
       try {
+        const token = localStorage.getItem('ami_token');
+        const headers = { Authorization: `Bearer ${token}` };
         const [dosenRes, prodiRes] = await Promise.all([
-          fetch('/api/dosens'),
-          fetch('/api/prodis'),
+          fetch('/api/dosens', { headers }),
+          fetch('/api/prodis', { headers }),
         ]);
         const dosenData = await dosenRes.json();
         const prodiData = await prodiRes.json();
@@ -196,6 +204,7 @@ export default function KaprodiReviewPage() {
     const fetchIsians = async () => {
       try {
         setLoading(true);
+        const token = localStorage.getItem('ami_token');
         let url = `/api/isians?periode_id=${selectedPeriode}`;
 
         if (filterType === 'dosen' && selectedDosen) {
@@ -204,7 +213,9 @@ export default function KaprodiReviewPage() {
           url += `&prodi_id=${selectedProdi}`;
         }
 
-        const res = await fetch(url);
+        const res = await fetch(url, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
         const data = await res.json();
 
         // Group isians by instrumen row
@@ -247,6 +258,7 @@ export default function KaprodiReviewPage() {
         const fetchIsians = async () => {
           try {
             setLoading(true);
+            const token = localStorage.getItem('ami_token');
             let url = `/api/isians?periode_id=${selectedPeriode}`;
 
             if (filterType === 'dosen' && selectedDosen) {
@@ -255,7 +267,9 @@ export default function KaprodiReviewPage() {
               url += `&prodi_id=${selectedProdi}`;
             }
 
-            const res = await fetch(url);
+            const res = await fetch(url, {
+              headers: { Authorization: `Bearer ${token}` }
+            });
             const data = await res.json();
 
             const iisiansData: IsianDetail[] = data.data || [];
@@ -300,12 +314,15 @@ export default function KaprodiReviewPage() {
 
     const fetchDetail = async () => {
       try {
-        const res = await fetch(`/api/isians/${selectedRowId}`);
+        const token = localStorage.getItem('ami_token');
+        const res = await fetch(`/api/isians/${selectedRowId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
         const data = await res.json();
         setDetailData(data.data);
         setReviewStatus(data.data.status === 'valid' ? 'valid' : 'revisi');
         setReviewCatatan(data.data.catatan_kaprodi || '');
-        setReviewHistory(data.data.review_history || []);
+        setReviewHistory(data.data.review_logs || []);
       } catch (error) {
         console.error('Failed to fetch detail:', error);
       }
@@ -323,9 +340,13 @@ export default function KaprodiReviewPage() {
 
     try {
       setIsSubmitting(true);
+      const token = localStorage.getItem('ami_token');
       const res = await fetch(`/api/isians/${selectedRowId}/review`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
         body: JSON.stringify({
           status: status,
           catatan_kaprodi: status === 'revisi' ? reviewCatatan : null,

@@ -71,11 +71,15 @@ export async function GET(request: NextRequest) {
     if (user.roleName.toLowerCase() === 'dosen') {
       const dosen = await prisma.dosen.findUnique({ where: { user_id: user.userId } });
       if (!dosen) return R.notFound('Profil dosen tidak ditemukan');
-      where.dosen_id = dosen.id;
+      // Dosen hanya bisa melihat isian dari prodinya sendiri
+      where.prodi_id = dosen.prodi_id;
+      // Jika ingin filter dosen tertentu
+      if (searchParams.get('dosen_id')) where.dosen_id = BigInt(searchParams.get('dosen_id')!);
     } else {
       // Kaprodi
       if (searchParams.get('dosen_id')) where.dosen_id = BigInt(searchParams.get('dosen_id')!);
       if (searchParams.get('prodi_id')) where.prodi_id = BigInt(searchParams.get('prodi_id')!);
+      // note: Kaprodi will probably need to filter by their own prodi in the frontend if needed
     }
 
     const data = await prisma.isianAmi.findMany({

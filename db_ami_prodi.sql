@@ -1,16 +1,13 @@
 -- =========================================================
--- DATABASE FRESH CREATE-ONLY - SISTEM AMI PRODI
+-- PRISMA MIGRATION - SISTEM AMI PRODI
 -- MySQL 8+ / MariaDB
 -- =========================================================
-
-CREATE DATABASE IF NOT EXISTS ami_prodi
-CHARACTER SET utf8mb4
-COLLATE utf8mb4_unicode_ci;
-
-USE ami_prodi;
-
--- Script fresh create-only. Tidak memakai DROP TABLE dan tidak mematikan FOREIGN_KEY_CHECKS.
--- Jalankan pada database kosong / fresh.
+-- Catatan:
+-- 1. Jangan pakai CREATE DATABASE di Prisma migration.
+-- 2. Jangan pakai USE database.
+-- 3. Jangan pakai DELIMITER.
+-- 4. Trigger periode aktif dihapus dulu, lebih aman ditangani lewat backend Prisma.
+-- =========================================================
 
 -- =========================================================
 -- 1. ROLES
@@ -31,7 +28,7 @@ CREATE TABLE roles (
 CREATE TABLE users (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     email VARCHAR(50) NOT NULL UNIQUE,
-    password VARCHAR(20) NOT NULL,
+    password VARCHAR(255) NOT NULL,
     role_id BIGINT UNSIGNED NULL,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     last_login_at TIMESTAMP NULL,
@@ -142,7 +139,6 @@ CREATE INDEX idx_periodes_is_active ON periodes(is_active);
 
 -- =========================================================
 -- 7. INSTRUMENS
--- Admin membuat nama instrumen utama.
 -- =========================================================
 
 CREATE TABLE instrumens (
@@ -174,8 +170,6 @@ CREATE INDEX idx_instrumens_created_by ON instrumens(created_by);
 
 -- =========================================================
 -- 8. KRITERIA / STANDAR
--- Contoh:
--- KRITERIA 1: Visi, Misi, Tujuan dan Strategi
 -- =========================================================
 
 CREATE TABLE kriteria_standars (
@@ -203,7 +197,6 @@ CREATE INDEX idx_kriteria_urutan ON kriteria_standars(urutan);
 
 -- =========================================================
 -- 9. KODE AMI
--- Satu kriteria bisa punya banyak kode AMI.
 -- =========================================================
 
 CREATE TABLE kode_amis (
@@ -229,8 +222,6 @@ CREATE INDEX idx_kode_amis_urutan ON kode_amis(urutan);
 
 -- =========================================================
 -- 10. JENJANG STANDAR
--- Untuk No. Butir Standar:
--- S2/Mgtr, STr, D3, dan bisa ditambah jenjang lain.
 -- =========================================================
 
 CREATE TABLE jenjang_standars (
@@ -244,13 +235,6 @@ CREATE TABLE jenjang_standars (
 
 -- =========================================================
 -- 11. KODE AMI - BUTIR STANDAR
--- Relasi antara kode AMI dan nomor butir standar per jenjang.
---
--- Contoh:
--- kode_ami_id = 1
--- S2_MGTR = 1.1
--- STR     = 1.1
--- D3      = 1.1
 -- =========================================================
 
 CREATE TABLE kode_ami_butir_standars (
@@ -282,7 +266,6 @@ CREATE INDEX idx_butir_standar_jenjang_id ON kode_ami_butir_standars(jenjang_id)
 
 -- =========================================================
 -- 12. DESKRIPSI AREA AUDIT
--- Satu kode AMI bisa punya banyak deskripsi area audit.
 -- =========================================================
 
 CREATE TABLE deskripsi_areas (
@@ -306,8 +289,6 @@ CREATE INDEX idx_deskripsi_area_urutan ON deskripsi_areas(urutan);
 
 -- =========================================================
 -- 13. PEMERIKSAAN PADA UNSUR
--- Satu deskripsi area bisa punya banyak row pemeriksaan.
--- Ini adalah level paling detail pada struktur instrumen.
 -- =========================================================
 
 CREATE TABLE pemeriksaan_unsurs (
@@ -330,8 +311,6 @@ CREATE INDEX idx_pemeriksaan_unsur_urutan ON pemeriksaan_unsurs(urutan);
 
 -- =========================================================
 -- 14. ISIAN AMI
--- Dosen mengisi berdasarkan pemeriksaan_unsur_id.
--- Bukan lagi berdasarkan butir_id lama.
 -- =========================================================
 
 CREATE TABLE isian_ami (
@@ -421,18 +400,16 @@ CREATE INDEX idx_isian_submitted_at ON isian_ami(submitted_at);
 
 -- =========================================================
 -- 15. FILE BUKTI ISIAN
--- Dipisah supaya satu isian bisa punya banyak file.
--- Kalau hanya butuh satu file, tetap bisa simpan satu row.
 -- =========================================================
 
 CREATE TABLE isian_bukti_files (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     isian_id BIGINT UNSIGNED NOT NULL,
 
-    original_name VARCHAR(50) NOT NULL,
-    file_name VARCHAR(50) NOT NULL,
-    file_path VARCHAR(100) NOT NULL,
-    mime_type VARCHAR(50) NULL,
+    original_name VARCHAR(100) NOT NULL,
+    file_name VARCHAR(100) NOT NULL,
+    file_path VARCHAR(255) NOT NULL,
+    mime_type VARCHAR(100) NULL,
     file_size BIGINT UNSIGNED NULL,
 
     uploaded_by BIGINT UNSIGNED NULL,
@@ -456,7 +433,6 @@ CREATE INDEX idx_bukti_file_uploaded_by ON isian_bukti_files(uploaded_by);
 
 -- =========================================================
 -- 16. LOG REVIEW ISIAN
--- Menyimpan histori review kaprodi.
 -- =========================================================
 
 CREATE TABLE isian_review_logs (
@@ -489,7 +465,6 @@ CREATE INDEX idx_review_log_status_sesudah ON isian_review_logs(status_sesudah);
 
 -- =========================================================
 -- 17. VIEW STRUKTUR INSTRUMEN FLAT
--- Untuk menampilkan bentuk seperti Excel.
 -- =========================================================
 
 CREATE OR REPLACE VIEW v_instrumen_structure_flat AS
@@ -566,7 +541,6 @@ GROUP BY
 
 -- =========================================================
 -- 18. VIEW DETAIL ISIAN AMI
--- Untuk kebutuhan kaprodi, dosen, dashboard, dan filter.
 -- =========================================================
 
 CREATE OR REPLACE VIEW v_isian_ami_detail AS
@@ -690,32 +664,3 @@ GROUP BY
     pr.nama_prodi,
     i.id,
     i.nama_instrumen;
-
--- =========================================================
--- 20. TRIGGER OPSIONAL:
--- Jika satu periode diaktifkan, periode lain otomatis nonaktif.
--- =========================================================
-
-DELIMITER $$
-
-CREATE TRIGGER trg_periodes_only_one_active_insert
-BEFORE INSERT ON periodes
-FOR EACH ROW
-BEGIN
-    IF NEW.is_active = TRUE THEN
-        UPDATE periodes SET is_active = FALSE;
-    END IF;
-END$$
-
-CREATE TRIGGER trg_periodes_only_one_active_update
-BEFORE UPDATE ON periodes
-FOR EACH ROW
-BEGIN
-    IF NEW.is_active = TRUE THEN
-        UPDATE periodes
-        SET is_active = FALSE
-        WHERE id <> OLD.id;
-    END IF;
-END$$
-
-DELIMITER ;
