@@ -23,7 +23,7 @@ export async function GET(request: NextRequest, { params }: Ctx) {
 
     const { id } = await params;
     const data = await prisma.kriteriaStandar.findUnique({
-      where: { id: BigInt(id) },
+      where: { id: Number(id) },
       include: {
         instrumen: { select: { id: true, nama_instrumen: true } },
         kode_amis: {
@@ -53,7 +53,7 @@ export async function PUT(request: NextRequest, { params }: Ctx) {
     if (!parsed.success) return R.badRequest('Validasi gagal', parsed.error.flatten());
 
     const data = await prisma.kriteriaStandar.update({
-      where: { id: BigInt(id) },
+      where: { id: Number(id) },
       data: parsed.data,
     });
     return R.ok(serialize(data), 'Kriteria berhasil diperbarui');
@@ -70,7 +70,7 @@ export async function DELETE(request: NextRequest, { params }: Ctx) {
     if (error) return error;
 
     const { id } = await params;
-    await prisma.kriteriaStandar.delete({ where: { id: BigInt(id) } });
+    await prisma.kriteriaStandar.delete({ where: { id: Number(id) } });
     return R.ok(null, 'Kriteria berhasil dihapus');
   } catch (e: any) {
     if (e.code === 'P2025') return R.notFound();

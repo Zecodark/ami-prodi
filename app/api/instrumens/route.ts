@@ -8,7 +8,7 @@ const serialize = (data: unknown) =>
   JSON.parse(JSON.stringify(data, (_, v) => (typeof v === 'bigint' ? v.toString() : v)));
 
 const schema = z.object({
-  periode_id: z.coerce.bigint().optional().nullable(),
+  periode_id: z.coerce.number().optional().nullable(),
   nama_instrumen: z.string().min(1, 'Nama instrumen wajib diisi'),
   deskripsi: z.string().optional().nullable(),
   is_active: z.boolean().optional(),
@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     const isActive = request.nextUrl.searchParams.get('is_active');
 
     const where: any = {};
-    if (periodeId) where.periode_id = BigInt(periodeId);
+    if (periodeId) where.periode_id = Number(periodeId);
     if (isActive !== null) where.is_active = isActive === 'true';
 
     const data = await prisma.instrumen.findMany({

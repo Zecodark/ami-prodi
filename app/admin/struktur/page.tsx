@@ -4,8 +4,6 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Plus, ChevronDown, ChevronRight, Edit2, Trash2, FolderTree, FileText, AlertCircle, X, ChevronUp } from 'lucide-react';
 
-export const dynamic = 'force-dynamic';
-
 // Interfaces for our nested data structure
 interface UnsurData {
   id: string;
@@ -43,7 +41,7 @@ interface InstrumenData {
 
 type NodeType = 'kriteria' | 'kode_ami' | 'deskripsi' | 'unsur';
 
-export default function StrukturInstrumenPage() {
+function StrukturContent() {
   const searchParams = useSearchParams();
   const initInstrumenId = searchParams?.get('instrumen_id') || '';
 
@@ -485,5 +483,13 @@ export default function StrukturInstrumenPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function StrukturInstrumenPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-slate-500">Memuat...</div>}>
+      <StrukturContent />
+    </Suspense>
   );
 }

@@ -14,8 +14,8 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = request.nextUrl;
     const where: Record<string, unknown> = {};
-    if (searchParams.get('periode_id')) where.periode_id = BigInt(searchParams.get('periode_id')!);
-    if (searchParams.get('prodi_id')) where.prodi_id = BigInt(searchParams.get('prodi_id')!);
+    if (searchParams.get('periode_id')) where.periode_id = Number(searchParams.get('periode_id')!);
+    if (searchParams.get('prodi_id')) where.prodi_id = Number(searchParams.get('prodi_id')!);
 
     const [total, proses, valid, revisi] = await Promise.all([
       prisma.isianAmi.count({ where }),

@@ -29,7 +29,7 @@ export async function PUT(request: NextRequest, { params }: Ctx) {
     if (parsed.data.urutan !== undefined) updateData.urutan = parsed.data.urutan;
 
     const data = await prisma.kodeAmi.update({
-      where: { id: BigInt(id) },
+      where: { id: Number(id) },
       data: updateData,
     });
     return R.ok(serialize(data), 'Kode AMI berhasil diperbarui');
@@ -46,7 +46,7 @@ export async function DELETE(request: NextRequest, { params }: Ctx) {
     if (error) return error;
 
     const { id } = await params;
-    await prisma.kodeAmi.delete({ where: { id: BigInt(id) } });
+    await prisma.kodeAmi.delete({ where: { id: Number(id) } });
     return R.ok(null, 'Kode AMI berhasil dihapus');
   } catch (e: any) {
     if (e.code === 'P2025') return R.notFound();

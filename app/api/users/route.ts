@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
     const roleId = request.nextUrl.searchParams.get('role_id');
     const where: any = {};
     if (isActive !== null) where.is_active = isActive === 'true';
-    if (roleId) where.role_id = BigInt(roleId);
+    if (roleId) where.role_id = Number(roleId);
 
     const data = await prisma.user.findMany({
       where,
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
     const schema = z.object({
       email: z.string().email().max(50),
       password: z.string().min(4, 'Password minimal 4 karakter').max(20),
-      role_id: z.coerce.bigint().optional().nullable(),
+      role_id: z.coerce.number().optional().nullable(),
       is_active: z.boolean().default(true),
     });
     const parsed = schema.safeParse(body);

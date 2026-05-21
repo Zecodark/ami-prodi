@@ -1,42 +1,92 @@
 @import "tailwindcss";
 
+/*
+  Tema warna SIAMI - Politeknik Negeri Semarang
+  Palet utama mengikuti biru akademik Polines.
+  Token "indigo-*" di-override agar seluruh halaman lama yang masih
+  memakai class indigo otomatis ikut tema baru tanpa perlu refactor.
+*/
 @theme {
-  --color-primary-50: #eff6ff;
-  --color-primary-100: #dbeafe;
-  --color-primary-200: #bfdbfe;
-  --color-primary-300: #93c5fd;
-  --color-primary-400: #60a5fa;
-  --color-primary-500: #3b82f6;
-  --color-primary-600: #2563eb;
-  --color-primary-700: #1d4ed8;
-  --color-primary-800: #1e40af;
-  --color-primary-900: #1e3a8a;
-  --color-primary-950: #172554;
-  
-  --color-brand-blue: #004d99; /* Example academic blue */
-  --color-brand-blue-hover: #003366;
-  --color-brand-blue-light: #e6f0ff;
+  /* Brand utama (biru akademik Polines) */
+  --color-brand-50:  #eef4ff;
+  --color-brand-100: #d9e7ff;
+  --color-brand-200: #b8d2ff;
+  --color-brand-300: #8bb4f6;
+  --color-brand-400: #5b8be0;
+  --color-brand-500: #2563cd;
+  --color-brand-600: #1456a8;
+  --color-brand-700: #0e4490;
+  --color-brand-800: #0a2f6f;
+  --color-brand-900: #06214f;
+  --color-brand-950: #03132d;
+
+  /* Re-map indigo agar UI lama otomatis terkena tema biru akademik */
+  --color-indigo-50:  #eef4ff;
+  --color-indigo-100: #d9e7ff;
+  --color-indigo-200: #b8d2ff;
+  --color-indigo-300: #8bb4f6;
+  --color-indigo-400: #5b8be0;
+  --color-indigo-500: #2563cd;
+  --color-indigo-600: #1456a8;
+  --color-indigo-700: #0e4490;
+  --color-indigo-800: #0a2f6f;
+  --color-indigo-900: #06214f;
+  --color-indigo-950: #03132d;
+
+  /* Aksen / tone tambahan tema (digunakan login & sidebar) */
+  --color-siami-navy:        #0a2f6f;
+  --color-siami-navy-strong: #06214f;
+  --color-siami-navy-soft:   #1456a8;
+  --color-siami-accent:      #2563cd;
+  --color-siami-bg:          #f4f7fc;
+  --color-siami-card:        #ffffff;
+  --color-siami-border:      #d9e3f3;
+
+  /* Token primary tetap dipertahankan untuk kompatibilitas */
+  --color-primary-50:  #eef4ff;
+  --color-primary-100: #d9e7ff;
+  --color-primary-200: #b8d2ff;
+  --color-primary-300: #8bb4f6;
+  --color-primary-400: #5b8be0;
+  --color-primary-500: #2563cd;
+  --color-primary-600: #1456a8;
+  --color-primary-700: #0e4490;
+  --color-primary-800: #0a2f6f;
+  --color-primary-900: #06214f;
+  --color-primary-950: #03132d;
 }
 
 :root {
-  --background: #f8fafc;
+  --background: #f4f7fc;
   --foreground: #0f172a;
   --card: #ffffff;
   --card-foreground: #0f172a;
-  --border: #e2e8f0;
-  --input: #e2e8f0;
-  --ring: #3b82f6;
-  --radius: 0.5rem;
+  --border: #d9e3f3;
+  --input: #d9e3f3;
+  --ring: #1456a8;
+  --radius: 0.75rem;
+
+  /* Variabel siap pakai untuk komponen non-Tailwind (login dll) */
+  --siami-navy: #0a2f6f;
+  --siami-navy-strong: #06214f;
+  --siami-navy-soft: #1456a8;
+  --siami-accent: #2563cd;
+  --siami-accent-light: #5b8be0;
+  --siami-bg: #f4f7fc;
+  --siami-card: #ffffff;
+  --siami-border: #d9e3f3;
+  --siami-text: #0f172a;
+  --siami-muted: #64748b;
 }
 
 .dark {
-  --background: #0f172a;
-  --foreground: #f8fafc;
-  --card: #1e293b;
-  --card-foreground: #f8fafc;
-  --border: #334155;
-  --input: #334155;
-  --ring: #3b82f6;
+  --background: #06214f;
+  --foreground: #f1f5fb;
+  --card: #0a2f6f;
+  --card-foreground: #f1f5fb;
+  --border: #1456a8;
+  --input: #1456a8;
+  --ring: #5b8be0;
 }
 
 * {
@@ -60,8 +110,8 @@ body {
 /* Custom scrollbar */
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(156, 163, 175, 0.5); border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(107, 114, 128, 0.8); }
+::-webkit-scrollbar-thumb { background: rgba(20, 86, 168, 0.35); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(20, 86, 168, 0.6); }
 
 /* Animation Utils */
 @keyframes slide-in-right {
@@ -74,10 +124,11 @@ body {
   to { opacity: 1; }
 }
 
-.animate-fade-in {
-  animation: fade-in 0.3s ease-out;
+@keyframes float-soft {
+  0%, 100% { transform: translateY(0px); }
+  50%      { transform: translateY(-8px); }
 }
 
-.animate-slide-in-right {
-  animation: slide-in-right 0.3s ease-out;
-}
+.animate-fade-in { animation: fade-in 0.3s ease-out; }
+.animate-slide-in-right { animation: slide-in-right 0.3s ease-out; }
+.animate-float-soft { animation: float-soft 6s ease-in-out infinite; }

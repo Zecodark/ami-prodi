@@ -10,8 +10,9 @@ const serialize = (data: unknown) =>
   JSON.parse(JSON.stringify(data, (_, v) => (typeof v === 'bigint' ? v.toString() : v)));
 
 const createSchema = z.object({
-  pemeriksaan_unsur_id: z.coerce.bigint(),
-  periode_id: z.coerce.bigint(),
+  pemeriksaan_unsur_id: z.coerce.number(),
+  periode_id: z.coerce.number(),
+  is_draft: z.preprocess((v) => v === 'true' || v === true, z.boolean().default(false)),
   judul_dokumen: z.string().min(1).optional().or(z.literal('')),
   ketersediaan_standar: z.enum(['ada', 'tidak_ada']).default('tidak_ada'),
   dokumen: z.enum(['ada', 'tidak_ada']).default('tidak_ada'),
@@ -63,10 +64,10 @@ export async function GET(request: NextRequest) {
     const { searchParams } = request.nextUrl;
     const where: Record<string, unknown> = {};
 
-    if (searchParams.get('periode_id')) where.periode_id = BigInt(searchParams.get('periode_id')!);
+    if (searchParams.get('periode_id')) where.periode_id = Number(searchParams.get('periode_id')!);
     if (searchParams.get('status')) where.status = searchParams.get('status');
     if (searchParams.get('pemeriksaan_unsur_id'))
-      where.pemeriksaan_unsur_id = BigInt(searchParams.get('pemeriksaan_unsur_id')!);
+      where.pemeriksaan_unsur_id = Number(searchParams.get('pemeriksaan_unsur_id')!);
 
     if (user.roleName.toLowerCase() === 'dosen') {
       const dosen = await prisma.dosen.findUnique({ where: { user_id: user.userId } });
@@ -74,12 +75,18 @@ export async function GET(request: NextRequest) {
       // Dosen hanya bisa melihat isian dari prodinya sendiri
       where.prodi_id = dosen.prodi_id;
       // Jika ingin filter dosen tertentu
-      if (searchParams.get('dosen_id')) where.dosen_id = BigInt(searchParams.get('dosen_id')!);
+      if (searchParams.get('dosen_id')) where.dosen_id = Number(searchParams.get('dosen_id')!);
     } else {
-      // Kaprodi
-      if (searchParams.get('dosen_id')) where.dosen_id = BigInt(searchParams.get('dosen_id')!);
-      if (searchParams.get('prodi_id')) where.prodi_id = BigInt(searchParams.get('prodi_id')!);
-      // note: Kaprodi will probably need to filter by their own prodi in the frontend if needed
+      // Kaprodi — hanya bisa lihat isian dari prodi-nya sendiri
+      const kaprodiDosen = await prisma.dosen.findUnique({
+        where: { user_id: user.userId },
+        select: { prodi_id: true },
+      });
+      if (kaprodiDosen?.prodi_id) {
+        where.prodi_id = kaprodiDosen.prodi_id;
+      }
+      if (searchParams.get('dosen_id')) where.dosen_id = Number(searchParams.get('dosen_id')!);
+      if (searchParams.get('prodi_id')) where.prodi_id = Number(searchParams.get('prodi_id')!);
     }
 
     const data = await prisma.isianAmi.findMany({
@@ -125,7 +132,17 @@ export async function POST(request: NextRequest) {
     if (!unsur.deskripsi_area.kode_ami.kriteria.instrumen.is_active)
       return R.forbidden('Instrumen AMI tidak aktif');
 
-    // Cek attempt
+    // Cek apakah sudah ada draft untuk unsur ini
+    const existingDraft = await prisma.isianAmi.findFirst({
+      where: {
+        pemeriksaan_unsur_id: parsed.data.pemeriksaan_unsur_id,
+        dosen_id: dosen.id,
+        periode_id: parsed.data.periode_id,
+        status: 'draft',
+      },
+    });
+
+    // Cek attempt (hanya untuk non-draft baru)
     const existing = await prisma.isianAmi.findFirst({
       where: {
         pemeriksaan_unsur_id: parsed.data.pemeriksaan_unsur_id,
@@ -134,10 +151,10 @@ export async function POST(request: NextRequest) {
       },
       orderBy: { attempt: 'desc' },
     });
-    const attempt = existing ? existing.attempt + 1 : 1;
+    const attempt = existing ? (existingDraft ? existing.attempt : existing.attempt + 1) : 1;
 
     // Upload file bukti
-    let buktiFIleData: { original_name: string; file_name: string; file_path: string; mime_type?: string; file_size?: bigint } | null = null;
+    let buktiFIleData: { original_name: string; file_name: string; file_path: string; mime_type?: string; file_size?: number } | null = null;
     const file = formData.get('bukti_file') as File | null;
     if (file && file.size > 0) {
       const bytes = await file.arrayBuffer();
@@ -154,42 +171,60 @@ export async function POST(request: NextRequest) {
         file_name,
         file_path,
         mime_type: file.type || undefined,
-        file_size: BigInt(file.size),
+        file_size: Number(file.size),
       };
     }
 
-    const data = await prisma.isianAmi.create({
-      data: {
-        pemeriksaan_unsur_id: parsed.data.pemeriksaan_unsur_id,
-        periode_id: parsed.data.periode_id,
-        dosen_id: dosen.id,
-        prodi_id: dosen.prodi_id,
-        judul_dokumen: parsed.data.judul_dokumen || null,
-        ketersediaan_standar: parsed.data.ketersediaan_standar,
-        dokumen: parsed.data.dokumen,
-        pencapaian_standar_spt_pt: parsed.data.pencapaian_standar_spt_pt,
-        pencapaian_standar_sn_dikti: parsed.data.pencapaian_standar_sn_dikti,
-        daya_saing_lokal: parsed.data.daya_saing_lokal,
-        daya_saing_nasional: parsed.data.daya_saing_nasional,
-        daya_saing_internasional: parsed.data.daya_saing_internasional,
-        bukti_link: parsed.data.bukti_link || null,
-        tahun_pelaksanaan: parsed.data.tahun_pelaksanaan || null,
-        capaian: parsed.data.capaian || null,
-        keterangan: parsed.data.keterangan || null,
-        status: 'proses',
-        attempt,
-        submitted_at: new Date(),
-        bukti_files: buktiFIleData
-          ? {
-              create: {
-                ...buktiFIleData,
-                uploaded_by: user.userId,
-              },
-            }
-          : undefined,
-      },
-      include: isianInclude,
-    });
-    return R.created(serialize(data), 'Isian AMI berhasil disubmit');
+    const isianPayload = {
+      judul_dokumen: parsed.data.judul_dokumen || null,
+      ketersediaan_standar: parsed.data.ketersediaan_standar,
+      dokumen: parsed.data.dokumen,
+      pencapaian_standar_spt_pt: parsed.data.pencapaian_standar_spt_pt,
+      pencapaian_standar_sn_dikti: parsed.data.pencapaian_standar_sn_dikti,
+      daya_saing_lokal: parsed.data.daya_saing_lokal,
+      daya_saing_nasional: parsed.data.daya_saing_nasional,
+      daya_saing_internasional: parsed.data.daya_saing_internasional,
+      bukti_link: parsed.data.bukti_link || null,
+      tahun_pelaksanaan: parsed.data.tahun_pelaksanaan || null,
+      capaian: parsed.data.capaian || null,
+      keterangan: parsed.data.keterangan || null,
+      status: parsed.data.is_draft ? 'draft' as const : 'proses' as const,
+      submitted_at: parsed.data.is_draft ? null : new Date(),
+    };
+
+    let data;
+    if (existingDraft) {
+      // Update draft yang sudah ada
+      data = await prisma.isianAmi.update({
+        where: { id: existingDraft.id },
+        data: {
+          ...isianPayload,
+          bukti_files: buktiFIleData
+            ? { create: { ...buktiFIleData, uploaded_by: user.userId } }
+            : undefined,
+        },
+        include: isianInclude,
+      });
+      const msg = parsed.data.is_draft ? 'Draft berhasil diperbarui' : 'Isian berhasil disubmit';
+      return R.ok(serialize(data), msg);
+    } else {
+      // Buat baru
+      data = await prisma.isianAmi.create({
+        data: {
+          pemeriksaan_unsur_id: parsed.data.pemeriksaan_unsur_id,
+          periode_id: parsed.data.periode_id,
+          dosen_id: dosen.id,
+          prodi_id: dosen.prodi_id,
+          ...isianPayload,
+          attempt,
+          bukti_files: buktiFIleData
+            ? { create: { ...buktiFIleData, uploaded_by: user.userId } }
+            : undefined,
+        },
+        include: isianInclude,
+      });
+      const msg = parsed.data.is_draft ? 'Draft berhasil disimpan' : 'Isian AMI berhasil disubmit';
+      return R.created(serialize(data), msg);
+    }
   } catch (e) { return R.serverError(e); }
 }

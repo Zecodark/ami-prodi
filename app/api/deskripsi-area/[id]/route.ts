@@ -31,7 +31,7 @@ export async function PUT(request: NextRequest, { params }: Ctx) {
     if (parsed.data.urutan !== undefined) updateData.urutan = parsed.data.urutan;
 
     const data = await prisma.deskripsiArea.update({
-      where: { id: BigInt(id) },
+      where: { id: Number(id) },
       data: updateData,
     });
     return R.ok(serialize(data), 'Deskripsi area berhasil diperbarui');
@@ -47,7 +47,7 @@ export async function DELETE(request: NextRequest, { params }: Ctx) {
     if (error) return error;
 
     const { id } = await params;
-    await prisma.deskripsiArea.delete({ where: { id: BigInt(id) } });
+    await prisma.deskripsiArea.delete({ where: { id: Number(id) } });
     return R.ok(null, 'Deskripsi area berhasil dihapus');
   } catch (e: any) {
     if (e.code === 'P2025') return R.notFound();

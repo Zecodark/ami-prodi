@@ -43,7 +43,12 @@ export async function GET(request: NextRequest) {
       },
     });
     if (!data) return R.notFound('User tidak ditemukan');
-    return R.ok(serialize(data));
+
+    // Sertakan flat field 'role' (string) dan 'prodi' supaya frontend gampang
+    const result: any = serialize(data);
+    result.role = data.role?.nama_role ?? null;
+    result.prodi = data.dosen?.prodi ?? null;
+    return R.ok(result);
   } catch (e) {
     return R.serverError(e);
   }

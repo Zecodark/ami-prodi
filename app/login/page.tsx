@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -30,11 +31,9 @@ export default function LoginPage() {
         return;
       }
 
-      // Simpan token ke localStorage
       localStorage.setItem('ami_token', data.data.token);
       localStorage.setItem('ami_user', JSON.stringify(data.data.user));
 
-      // Redirect berdasarkan role
       const role = data.data.user.role?.toLowerCase();
       if (role === 'admin') {
         router.push('/admin');
@@ -51,390 +50,411 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="login-wrapper">
-      {/* Background decorative blobs */}
-      <div className="blob blob-1" />
-      <div className="blob blob-2" />
-      <div className="blob blob-3" />
-
+    <div className="login-page">
       <div className="login-card">
-        {/* Logo / Brand */}
-        <div className="login-brand">
-          <div className="brand-icon">
-            <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect width="32" height="32" rx="10" fill="url(#grad)" />
-              <path d="M8 22L14 10L20 18L23 14L26 22" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-              <circle cx="8" cy="22" r="1.5" fill="white" />
-              <defs>
-                <linearGradient id="grad" x1="0" y1="0" x2="32" y2="32">
-                  <stop offset="0%" stopColor="#6366f1" />
-                  <stop offset="100%" stopColor="#8b5cf6" />
-                </linearGradient>
-              </defs>
-            </svg>
-          </div>
-          <div>
-            <h1 className="brand-title">AMI Prodi</h1>
-            <p className="brand-subtitle">Audit Mutu Internal</p>
+        {/* ====== LEFT PANEL (BIRU + BLOB) ====== */}
+        <div className="login-left">
+          <div className="blob-corner" aria-hidden />
+          <div className="blob-bottom" aria-hidden />
+
+          <div className="left-content">
+            <div className="logo-circle">
+              <Image
+                src="/logo-polines.png"
+                alt="Logo Politeknik Negeri Semarang"
+                width={88}
+                height={88}
+                priority
+                className="logo-img"
+              />
+            </div>
+
+            <h2 className="welcome-title">Selamat Datang</h2>
+            <p className="welcome-sub">
+              Di AMI Prodi D3 Teknik Informatika Dan D4 Teknologi Rekayasa Komputer
+              <br />
+              Politeknik Negeri Semarang
+            </p>
           </div>
         </div>
 
-        <div className="login-header">
-          <h2 className="login-title">Selamat Datang</h2>
-          <p className="login-desc">Masuk ke sistem untuk melanjutkan</p>
-        </div>
+        {/* ====== RIGHT PANEL (FORM) ====== */}
+        <div className="login-right">
+          <h1 className="form-title">Masuk</h1>
+          <p className="form-sub">
+            Masukkan Username Dan
+            <br />
+            Password Yang Valid
+          </p>
 
-        {error && (
-          <div className="alert-error" role="alert">
-            <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-            </svg>
-            <span>{error}</span>
-          </div>
-        )}
+          {error && (
+            <div className="alert-error" role="alert">
+              <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                <path
+                  fillRule="evenodd"
+                  d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              <span>{error}</span>
+            </div>
+          )}
 
-        <form onSubmit={handleSubmit} className="login-form">
-          <div className="form-group">
-            <label htmlFor="email" className="form-label">Email</label>
-            <div className="input-wrapper">
-              <span className="input-icon">
-                <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-              </span>
+          <form onSubmit={handleSubmit} className="login-form">
+            <div className="field">
+              <label htmlFor="email" className="field-label">
+                Username
+              </label>
               <input
                 id="email"
                 type="email"
-                className="form-input"
-                placeholder="nama@kampus.ac.id"
+                className="field-input"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 autoComplete="email"
+                placeholder="nama@polines.ac.id"
               />
             </div>
-          </div>
 
-          <div className="form-group">
-            <label htmlFor="password" className="form-label">Password</label>
-            <div className="input-wrapper">
-              <span className="input-icon">
-                <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-              </span>
-              <input
-                id="password"
-                type={showPassword ? 'text' : 'password'}
-                className="form-input"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                autoComplete="current-password"
-              />
-              <button
-                type="button"
-                className="input-toggle"
-                onClick={() => setShowPassword(!showPassword)}
-                aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
-              >
-                {showPassword ? (
-                  <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                  </svg>
-                ) : (
-                  <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                  </svg>
-                )}
-              </button>
+            <div className="field">
+              <label htmlFor="password" className="field-label">
+                Password
+              </label>
+              <div className="field-pass-wrap">
+                <input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  className="field-input"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  autoComplete="current-password"
+                  placeholder="••••••••"
+                />
+                <button
+                  type="button"
+                  className="field-pass-toggle"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
+                >
+                  {showPassword ? (
+                    <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                    </svg>
+                  ) : (
+                    <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                  )}
+                </button>
+              </div>
             </div>
-          </div>
 
-          <button
-            id="btn-login"
-            type="submit"
-            className="btn-submit"
-            disabled={loading}
-          >
-            {loading ? (
-              <>
-                <span className="spinner" />
-                <span>Memproses...</span>
-              </>
-            ) : (
-              <>
+            <button id="btn-login" type="submit" className="btn-login" disabled={loading}>
+              {loading ? (
+                <>
+                  <span className="spinner" />
+                  <span>Memproses...</span>
+                </>
+              ) : (
                 <span>Masuk</span>
-                <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                </svg>
-              </>
-            )}
-          </button>
-        </form>
+              )}
+            </button>
+          </form>
 
-        <p className="login-footer">
-          Sistem AMI Prodi &copy; {new Date().getFullYear()}
-        </p>
+          <p className="footer-note">
+            Sistem AMI Politeknik Negeri Semarang &copy; {new Date().getFullYear()}
+          </p>
+        </div>
       </div>
 
       <style jsx>{`
-        .login-wrapper {
+        .login-page {
           min-height: 100vh;
+          width: 100%;
+          background: #ffffff;
           display: flex;
           align-items: center;
           justify-content: center;
-          background: #f8fafc;
-          position: relative;
-          overflow: hidden;
-          padding: 1rem;
-        }
-
-        .blob {
-          position: absolute;
-          border-radius: 50%;
-          filter: blur(80px);
-          opacity: 0.15;
-          pointer-events: none;
-        }
-
-        .blob-1 {
-          width: 500px;
-          height: 500px;
-          background: #6366f1;
-          top: -150px;
-          left: -100px;
-          animation: float 8s ease-in-out infinite;
-        }
-
-        .blob-2 {
-          width: 400px;
-          height: 400px;
-          background: #8b5cf6;
-          bottom: -100px;
-          right: -80px;
-          animation: float 10s ease-in-out infinite reverse;
-        }
-
-        .blob-3 {
-          width: 300px;
-          height: 300px;
-          background: #06b6d4;
-          top: 50%;
-          left: 60%;
-          animation: float 12s ease-in-out infinite;
-        }
-
-        @keyframes float {
-          0%, 100% { transform: translateY(0px) rotate(0deg); }
-          50% { transform: translateY(-30px) rotate(10deg); }
+          padding: 2.5rem 1.5rem;
         }
 
         .login-card {
-          background: #ffffff;
-          backdrop-filter: blur(20px);
-          border: 1px solid #e2e8f0;
-          border-radius: 24px;
-          padding: 2.5rem;
           width: 100%;
-          max-width: 420px;
+          max-width: 1080px;
+          background: #ffffff;
+          border-radius: 28px;
+          box-shadow: 0 30px 60px -25px rgba(10, 47, 111, 0.25),
+            0 10px 25px -10px rgba(10, 47, 111, 0.18);
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          overflow: hidden;
+          min-height: 520px;
           position: relative;
-          z-index: 1;
-          box-shadow: 0 25px 50px rgba(0, 0, 0, 0.1);
         }
 
-        .login-brand {
+        /* ============ LEFT PANEL ============ */
+        .login-left {
+          position: relative;
+          background: var(--siami-navy);
+          color: #ffffff;
+          overflow: hidden;
+          border-top-right-radius: 50% 100%;
+          border-bottom-right-radius: 28% 60%;
+        }
+
+        /* aksen lingkaran kuning -> kanan atas */
+        .blob-corner {
+          position: absolute;
+          top: -40px;
+          right: -50px;
+          width: 160px;
+          height: 160px;
+          border-radius: 50%;
+          background: linear-gradient(135deg, #fff5b8 0%, #ffe066 60%, #ffc83d 100%);
+          opacity: 0.35;
+          filter: blur(2px);
+        }
+
+        /* aksen biru-light -> kiri bawah */
+        .blob-bottom {
+          position: absolute;
+          bottom: -40px;
+          left: 30%;
+          width: 130px;
+          height: 130px;
+          border-radius: 50%;
+          background: radial-gradient(circle at 30% 30%, #5b8be0, #1456a8 80%);
+          opacity: 0.85;
+        }
+
+        .left-content {
+          position: relative;
+          z-index: 2;
+          height: 100%;
+          padding: 3rem 3rem;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          align-items: flex-start;
+        }
+
+        .logo-circle {
+          width: auto;
+          height: auto;
+          border-radius: 0;
+          background: transparent;
           display: flex;
           align-items: center;
-          gap: 0.75rem;
-          margin-bottom: 2rem;
-        }
-
-        .brand-icon {
-          flex-shrink: 0;
-        }
-
-        .brand-title {
-          font-size: 1.25rem;
-          font-weight: 700;
-          color: #0f172a;
-          margin: 0;
-          line-height: 1.2;
-        }
-
-        .brand-subtitle {
-          font-size: 0.75rem;
-          color: #64748b;
-          margin: 0;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-        }
-
-        .login-header {
+          justify-content: center;
+          box-shadow: none;
           margin-bottom: 1.75rem;
+          padding: 0;
         }
 
-        .login-title {
-          font-size: 1.75rem;
-          font-weight: 700;
-          color: #0f172a;
-          margin: 0 0 0.375rem;
-          letter-spacing: -0.025em;
+        .logo-img {
+          width: 120px;
+          height: 120px;
+          object-fit: contain;
         }
 
-        .login-desc {
-          color: #64748b;
-          font-size: 0.875rem;
+        .welcome-title {
+          font-size: 2rem;
+          font-weight: 800;
+          margin: 0 0 0.5rem;
+          letter-spacing: -0.5px;
+          color: #ffffff;
+        }
+
+        .welcome-sub {
+          font-size: 0.95rem;
+          line-height: 1.55;
+          color: #d6e1f5;
           margin: 0;
+          font-weight: 600;
+        }
+
+        /* ============ RIGHT PANEL ============ */
+        .login-right {
+          padding: 3.25rem 3.25rem 3rem;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+        }
+
+        .form-title {
+          font-size: 2rem;
+          font-weight: 800;
+          color: var(--siami-navy);
+          margin: 0 0 0.35rem;
+          letter-spacing: -0.5px;
+        }
+
+        .form-sub {
+          font-size: 0.95rem;
+          color: #475569;
+          line-height: 1.5;
+          font-weight: 600;
+          margin: 0 0 1.75rem;
         }
 
         .alert-error {
           display: flex;
           align-items: center;
           gap: 0.5rem;
-          background: rgba(239, 68, 68, 0.12);
-          border: 1px solid rgba(239, 68, 68, 0.25);
-          color: #f87171;
-          padding: 0.75rem 1rem;
+          background: #fef2f2;
+          border: 1px solid #fecaca;
+          color: #b91c1c;
+          padding: 0.65rem 0.85rem;
           border-radius: 10px;
-          font-size: 0.875rem;
-          margin-bottom: 1.25rem;
-          animation: shake 0.3s ease;
-        }
-
-        @keyframes shake {
-          0%, 100% { transform: translateX(0); }
-          25% { transform: translateX(-4px); }
-          75% { transform: translateX(4px); }
+          font-size: 0.85rem;
+          margin-bottom: 1rem;
         }
 
         .login-form {
           display: flex;
           flex-direction: column;
-          gap: 1.25rem;
+          gap: 1.1rem;
         }
 
-        .form-group {
+        .field {
           display: flex;
           flex-direction: column;
-          gap: 0.5rem;
+          gap: 0.4rem;
         }
 
-        .form-label {
-          font-size: 0.875rem;
+        .field-label {
+          font-size: 0.78rem;
+          color: #64748b;
           font-weight: 500;
-          color: #334155;
+          letter-spacing: 0.02em;
         }
 
-        .input-wrapper {
-          position: relative;
-          display: flex;
-          align-items: center;
-        }
-
-        .input-icon {
-          position: absolute;
-          left: 0.875rem;
-          color: #94a3b8;
-          display: flex;
-          align-items: center;
-          pointer-events: none;
-        }
-
-        .form-input {
+        .field-input {
           width: 100%;
+          height: 46px;
           background: #ffffff;
-          border: 1px solid #cbd5e1;
+          border: 1.5px solid #c9d6ec;
           border-radius: 10px;
-          padding: 0.75rem 2.75rem 0.75rem 2.75rem;
-          color: #0f172a;
-          font-size: 0.9375rem;
+          padding: 0 2.5rem 0 1rem;
+          font-size: 0.95rem;
+          color: var(--siami-navy);
           outline: none;
-          transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+          transition: border-color 0.18s, box-shadow 0.18s;
         }
 
-        .form-input::placeholder {
+        .field-input:focus {
+          border-color: var(--siami-accent);
+          box-shadow: 0 0 0 4px rgba(37, 99, 205, 0.15);
+        }
+
+        .field-input::placeholder {
           color: #94a3b8;
         }
 
-        .form-input:focus {
-          border-color: rgba(99, 102, 241, 0.6);
-          background: #ffffff;
-          box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+        .field-pass-wrap {
+          position: relative;
         }
 
-        .input-toggle {
+        .field-pass-toggle {
           position: absolute;
-          right: 0.875rem;
-          color: #94a3b8;
+          right: 0.85rem;
+          top: 50%;
+          transform: translateY(-50%);
           background: none;
           border: none;
+          color: #64748b;
           cursor: pointer;
           display: flex;
           align-items: center;
           padding: 0;
-          transition: color 0.2s;
         }
 
-        .input-toggle:hover {
-          color: #334155;
+        .field-pass-toggle:hover {
+          color: var(--siami-navy);
         }
 
-        .btn-submit {
+        .btn-login {
+          margin-top: 0.6rem;
+          height: 46px;
+          background: var(--siami-navy);
+          color: #ffffff;
+          border: none;
+          border-radius: 10px;
+          font-size: 0.95rem;
+          font-weight: 700;
+          cursor: pointer;
+          letter-spacing: 0.02em;
           display: flex;
           align-items: center;
           justify-content: center;
           gap: 0.5rem;
-          background: linear-gradient(135deg, #6366f1, #8b5cf6);
-          color: white;
-          border: none;
-          border-radius: 10px;
-          padding: 0.875rem 1.5rem;
-          font-size: 0.9375rem;
-          font-weight: 600;
-          cursor: pointer;
-          margin-top: 0.5rem;
-          transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
-          box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+          box-shadow: 0 10px 20px -10px rgba(10, 47, 111, 0.55);
+          transition: background 0.18s, transform 0.12s, box-shadow 0.18s;
         }
 
-        .btn-submit:hover:not(:disabled) {
-          opacity: 0.9;
+        .btn-login:hover:not(:disabled) {
+          background: var(--siami-navy-strong);
           transform: translateY(-1px);
-          box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
+          box-shadow: 0 14px 26px -12px rgba(10, 47, 111, 0.7);
         }
 
-        .btn-submit:active:not(:disabled) {
+        .btn-login:active:not(:disabled) {
           transform: translateY(0);
         }
 
-        .btn-submit:disabled {
-          opacity: 0.6;
+        .btn-login:disabled {
+          opacity: 0.7;
           cursor: not-allowed;
         }
 
         .spinner {
           width: 16px;
           height: 16px;
-          border: 2px solid rgba(255,255,255,0.3);
-          border-top-color: white;
+          border: 2px solid rgba(255, 255, 255, 0.35);
+          border-top-color: #ffffff;
           border-radius: 50%;
           animation: spin 0.7s linear infinite;
-          flex-shrink: 0;
         }
 
         @keyframes spin {
-          to { transform: rotate(360deg); }
+          to {
+            transform: rotate(360deg);
+          }
         }
 
-        .login-footer {
-          text-align: center;
-          color: #94a3b8;
-          font-size: 0.75rem;
-          margin-top: 2rem;
+        .footer-note {
+          margin-top: 1.5rem;
           margin-bottom: 0;
+          text-align: center;
+          font-size: 0.72rem;
+          color: #94a3b8;
+        }
+
+        /* Responsive: stack pada layar kecil */
+        @media (max-width: 880px) {
+          .login-card {
+            grid-template-columns: 1fr;
+            min-height: auto;
+          }
+
+          .login-left {
+            border-radius: 0;
+            padding: 0;
+            min-height: 220px;
+          }
+
+          .left-content {
+            padding: 2.25rem 2rem;
+            align-items: center;
+            text-align: center;
+          }
+
+          .login-right {
+            padding: 2.25rem 1.75rem;
+          }
         }
       `}</style>
     </div>

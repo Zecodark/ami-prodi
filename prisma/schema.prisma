@@ -15,7 +15,7 @@ datasource db {
 // 1. ROLES
 // =========================================================
 model Role {
-  id         BigInt   @id @default(autoincrement())
+  id         Int      @id @default(autoincrement())
   nama_role  String   @unique @db.VarChar(50)
   deskripsi  String?  @db.VarChar(100)
   created_at DateTime @default(now()) @db.Timestamp(0)
@@ -30,10 +30,10 @@ model Role {
 // 2. USERS
 // =========================================================
 model User {
-  id            BigInt    @id @default(autoincrement())
+  id            Int       @id @default(autoincrement())
   email         String    @unique @db.VarChar(50)
   password      String    @db.VarChar(255)
-  role_id       BigInt?
+  role_id       Int?
   is_active     Boolean   @default(true)
   last_login_at DateTime? @db.Timestamp(0)
   created_at    DateTime  @default(now()) @db.Timestamp(0)
@@ -55,7 +55,7 @@ model User {
 // 3. JURUSANS
 // =========================================================
 model Jurusan {
-  id           BigInt   @id @default(autoincrement())
+  id           Int      @id @default(autoincrement())
   nama_jurusan String   @unique @db.VarChar(30)
   created_at   DateTime @default(now()) @db.Timestamp(0)
   updated_at   DateTime @default(now()) @updatedAt @db.Timestamp(0)
@@ -69,8 +69,8 @@ model Jurusan {
 // 4. PRODIS
 // =========================================================
 model Prodi {
-  id         BigInt   @id @default(autoincrement())
-  jurusan_id BigInt?
+  id         Int      @id @default(autoincrement())
+  jurusan_id Int?
   nama_prodi String   @db.VarChar(50)
   jenjang    String?  @db.VarChar(20)
   created_at DateTime @default(now()) @db.Timestamp(0)
@@ -89,9 +89,9 @@ model Prodi {
 // 5. DOSENS
 // =========================================================
 model Dosen {
-  id                 BigInt   @id @default(autoincrement())
-  user_id            BigInt?  @unique
-  prodi_id           BigInt?
+  id                 Int      @id @default(autoincrement())
+  user_id            Int?     @unique
+  prodi_id           Int?
   nip                String   @unique @db.VarChar(20)
   nama_lengkap       String   @db.VarChar(50)
   status_kepegawaian String   @db.VarChar(50)
@@ -114,7 +114,7 @@ model Dosen {
 // 6. PERIODES
 // =========================================================
 model Periode {
-  id              BigInt    @id @default(autoincrement())
+  id              Int       @id @default(autoincrement())
   tahun           String    @unique @db.VarChar(10)
   is_active       Boolean   @default(false)
   tanggal_mulai   DateTime? @db.Date
@@ -133,12 +133,12 @@ model Periode {
 // 7. INSTRUMENS
 // =========================================================
 model Instrumen {
-  id             BigInt   @id @default(autoincrement())
-  periode_id     BigInt?
+  id             Int      @id @default(autoincrement())
+  periode_id     Int?
   nama_instrumen String   @db.VarChar(50)
   deskripsi      String?  @db.Text
   is_active      Boolean  @default(true)
-  created_by     BigInt?
+  created_by     Int?
   created_at     DateTime @default(now()) @db.Timestamp(0)
   updated_at     DateTime @default(now()) @updatedAt @db.Timestamp(0)
 
@@ -156,8 +156,8 @@ model Instrumen {
 // 8. KRITERIA STANDAR
 // =========================================================
 model KriteriaStandar {
-  id            BigInt   @id @default(autoincrement())
-  instrumen_id  BigInt
+  id            Int      @id @default(autoincrement())
+  instrumen_id  Int
   kode_kriteria String   @db.VarChar(50)
   nama_kriteria String   @db.VarChar(50)
   deskripsi     String?  @db.Text
@@ -178,8 +178,8 @@ model KriteriaStandar {
 // 9. KODE AMI
 // =========================================================
 model KodeAmi {
-  id          BigInt   @id @default(autoincrement())
-  kriteria_id BigInt
+  id          Int      @id @default(autoincrement())
+  kriteria_id Int
   kode_ami    String   @db.VarChar(50)
   urutan      Int      @default(1) @db.UnsignedInt
   created_at  DateTime @default(now()) @db.Timestamp(0)
@@ -199,7 +199,7 @@ model KodeAmi {
 // 10. JENJANG STANDAR
 // =========================================================
 model JenjangStandar {
-  id           BigInt   @id @default(autoincrement())
+  id           Int      @id @default(autoincrement())
   kode_jenjang String   @unique @db.VarChar(10)
   nama_jenjang String   @db.VarChar(50)
   urutan       Int      @default(1) @db.UnsignedInt
@@ -215,9 +215,9 @@ model JenjangStandar {
 // 11. KODE AMI BUTIR STANDAR
 // =========================================================
 model KodeAmiButirStandar {
-  id          BigInt   @id @default(autoincrement())
-  kode_ami_id BigInt
-  jenjang_id  BigInt
+  id          Int      @id @default(autoincrement())
+  kode_ami_id Int
+  jenjang_id  Int
   no_butir    String?  @db.VarChar(50)
   created_at  DateTime @default(now()) @db.Timestamp(0)
   updated_at  DateTime @default(now()) @updatedAt @db.Timestamp(0)
@@ -235,8 +235,8 @@ model KodeAmiButirStandar {
 // 12. DESKRIPSI AREA
 // =========================================================
 model DeskripsiArea {
-  id                  BigInt   @id @default(autoincrement())
-  kode_ami_id         BigInt
+  id                  Int      @id @default(autoincrement())
+  kode_ami_id         Int
   deskripsi_area_audit String  @db.Text
   target_standar      String?  @db.Text
   urutan              Int      @default(1) @db.UnsignedInt
@@ -255,8 +255,8 @@ model DeskripsiArea {
 // 13. PEMERIKSAAN UNSUR
 // =========================================================
 model PemeriksaanUnsur {
-  id                BigInt   @id @default(autoincrement())
-  deskripsi_area_id BigInt
+  id                Int      @id @default(autoincrement())
+  deskripsi_area_id Int
   isi_unsur         String   @db.Text
   urutan            Int      @default(1) @db.UnsignedInt
   created_at        DateTime @default(now()) @db.Timestamp(0)
@@ -284,17 +284,18 @@ enum DokumenStatus {
 }
 
 enum IsianStatus {
+  draft
   proses
   valid
   revisi
 }
 
 model IsianAmi {
-  id                          BigInt              @id @default(autoincrement())
-  pemeriksaan_unsur_id        BigInt
-  periode_id                  BigInt
-  dosen_id                    BigInt
-  prodi_id                    BigInt?
+  id                          Int                 @id @default(autoincrement())
+  pemeriksaan_unsur_id        Int
+  periode_id                  Int
+  dosen_id                    Int
+  prodi_id                    Int?
 
   judul_dokumen               String?             @db.VarChar(100)
   ketersediaan_standar        KetersediaanStandar @default(tidak_ada)
@@ -315,7 +316,7 @@ model IsianAmi {
   status                      IsianStatus         @default(proses)
   catatan_kaprodi             String?             @db.Text
 
-  reviewed_by                 BigInt?
+  reviewed_by                 Int?
   reviewed_at                 DateTime?           @db.Timestamp(0)
 
   attempt                     Int                 @default(1) @db.UnsignedInt
@@ -348,15 +349,15 @@ model IsianAmi {
 // 15. ISIAN BUKTI FILES
 // =========================================================
 model IsianBuktiFile {
-  id            BigInt   @id @default(autoincrement())
-  isian_id      BigInt
+  id            Int      @id @default(autoincrement())
+  isian_id      Int
   original_name String   @db.VarChar(50)
   file_name     String   @db.VarChar(50)
   file_path     String   @db.VarChar(100)
   mime_type     String?  @db.VarChar(50)
-  file_size     BigInt?
+  file_size     Int?
 
-  uploaded_by   BigInt?
+  uploaded_by   Int?
   created_at    DateTime @default(now()) @db.Timestamp(0)
 
   isian       IsianAmi @relation(fields: [isian_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
@@ -371,9 +372,9 @@ model IsianBuktiFile {
 // 16. ISIAN REVIEW LOGS
 // =========================================================
 model IsianReviewLog {
-  id              BigInt      @id @default(autoincrement())
-  isian_id        BigInt
-  reviewer_id     BigInt?
+  id              Int         @id @default(autoincrement())
+  isian_id        Int
+  reviewer_id     Int?
 
   status_sebelum  IsianStatus?
   status_sesudah  IsianStatus

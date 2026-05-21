@@ -8,7 +8,7 @@ const serialize = (data: unknown) =>
   JSON.parse(JSON.stringify(data, (_, v) => (typeof v === 'bigint' ? v.toString() : v)));
 
 const schema = z.object({
-  kode_ami_id: z.coerce.bigint(),
+  kode_ami_id: z.coerce.number(),
   deskripsi_area_audit: z.string().min(1, 'Deskripsi area audit wajib diisi'),
   target_standar: z.string().optional().nullable(),
   urutan: z.coerce.number().int().positive().default(1),
@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     if (error) return error;
 
     const kodeAmiId = request.nextUrl.searchParams.get('kode_ami_id');
-    const where = kodeAmiId ? { kode_ami_id: BigInt(kodeAmiId) } : {};
+    const where = kodeAmiId ? { kode_ami_id: Number(kodeAmiId) } : {};
 
     const data = await prisma.deskripsiArea.findMany({
       where,

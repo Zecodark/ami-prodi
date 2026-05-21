@@ -57,13 +57,22 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
     if (!parsed.success) return R.badRequest('Validasi gagal', parsed.error.flatten());
 
     const { id } = await params;
-    const isian = await prisma.isianAmi.findUnique({ where: { id: BigInt(id) } });
+    const isian = await prisma.isianAmi.findUnique({ where: { id: Number(id) } });
     if (!isian) return R.notFound();
+
+    // Pastikan kaprodi hanya bisa review isian dari prodi-nya sendiri
+    const kaprodiDosen = await prisma.dosen.findUnique({
+      where: { user_id: user.userId },
+      select: { prodi_id: true },
+    });
+    if (kaprodiDosen?.prodi_id && isian.prodi_id && kaprodiDosen.prodi_id !== isian.prodi_id) {
+      return R.forbidden('Anda hanya bisa mereview isian dari prodi Anda sendiri');
+    }
 
     // Update isian dan buat review log dalam transaction
     const data = await prisma.$transaction(async (tx) => {
       const updated = await tx.isianAmi.update({
-        where: { id: BigInt(id) },
+        where: { id: Number(id) },
         data: {
           status: parsed.data.status,
           catatan_kaprodi: parsed.data.catatan_kaprodi ?? null,
@@ -74,7 +83,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
       });
       await tx.isianReviewLog.create({
         data: {
-          isian_id: BigInt(id),
+          isian_id: Number(id),
           reviewer_id: user.userId,
           status_sebelum: isian.status,
           status_sesudah: parsed.data.status,

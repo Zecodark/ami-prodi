@@ -3,9 +3,9 @@ import { NextRequest } from 'next/server';
 import * as R from './response';
 
 export interface AuthUser {
-  userId: bigint;
+  userId: number;
   email: string;
-  roleId: bigint | null;
+  roleId: number | null;
   roleName: string;
 }
 
@@ -42,9 +42,9 @@ export const authenticate = (
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
     return {
-      userId: BigInt(decoded.userId),
+      userId: Number(decoded.userId),
       email: decoded.email,
-      roleId: decoded.roleId ? BigInt(decoded.roleId) : null,
+      roleId: decoded.roleId ? Number(decoded.roleId) : null,
       roleName: decoded.roleName,
     };
   } catch {

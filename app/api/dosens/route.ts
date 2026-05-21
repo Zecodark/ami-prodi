@@ -8,8 +8,8 @@ const serialize = (data: unknown) =>
   JSON.parse(JSON.stringify(data, (_, v) => (typeof v === 'bigint' ? v.toString() : v)));
 
 const createSchema = z.object({
-  user_id: z.coerce.bigint().optional().nullable(),
-  prodi_id: z.coerce.bigint().optional().nullable(),
+  user_id: z.coerce.number().optional().nullable(),
+  prodi_id: z.coerce.number().optional().nullable(),
   nip: z.string().min(1, 'NIP wajib diisi'),
   nama_lengkap: z.string().min(1, 'Nama lengkap wajib diisi'),
   status_kepegawaian: z.string().min(1, 'Status kepegawaian wajib diisi'),
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
     const prodiId = request.nextUrl.searchParams.get('prodi_id');
     const isActive = request.nextUrl.searchParams.get('is_active');
     const where: any = {};
-    if (prodiId) where.prodi_id = BigInt(prodiId);
+    if (prodiId) where.prodi_id = Number(prodiId);
     if (isActive !== null) where.is_active = isActive === 'true';
 
     const data = await prisma.dosen.findMany({

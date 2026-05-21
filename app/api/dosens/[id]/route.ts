@@ -8,8 +8,8 @@ const serialize = (data: unknown) =>
   JSON.parse(JSON.stringify(data, (_, v) => (typeof v === 'bigint' ? v.toString() : v)));
 
 const updateSchema = z.object({
-  user_id: z.coerce.bigint().optional().nullable(),
-  prodi_id: z.coerce.bigint().optional().nullable(),
+  user_id: z.coerce.number().optional().nullable(),
+  prodi_id: z.coerce.number().optional().nullable(),
   nip: z.string().min(1).optional(),
   nama_lengkap: z.string().min(1).optional(),
   status_kepegawaian: z.string().min(1).optional(),
@@ -34,7 +34,7 @@ export async function GET(request: NextRequest, { params }: Ctx) {
 
     const { id } = await params;
     const data = await prisma.dosen.findUnique({
-      where: { id: BigInt(id) }, select: dosenSelect,
+      where: { id: Number(id) }, select: dosenSelect,
     });
     if (!data) return R.notFound();
     return R.ok(serialize(data));
@@ -52,7 +52,7 @@ export async function PUT(request: NextRequest, { params }: Ctx) {
     if (!parsed.success) return R.badRequest('Validasi gagal', parsed.error.flatten());
 
     const data = await prisma.dosen.update({
-      where: { id: BigInt(id) },
+      where: { id: Number(id) },
       data: parsed.data,
       select: dosenSelect,
     });
@@ -70,7 +70,7 @@ export async function DELETE(request: NextRequest, { params }: Ctx) {
     if (error) return error;
 
     const { id } = await params;
-    await prisma.dosen.delete({ where: { id: BigInt(id) } });
+    await prisma.dosen.delete({ where: { id: Number(id) } });
     return R.ok(null, 'Dosen berhasil dihapus');
   } catch (e: any) {
     if (e.code === 'P2025') return R.notFound();

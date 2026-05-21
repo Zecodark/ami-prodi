@@ -656,35 +656,23 @@ async function main() {
   // =========================================================
   // 2. Jurusan & Prodi
   // =========================================================
-  const jurusanTI = await prisma.jurusan.create({
-    data: { nama_jurusan: 'Teknik Informatika' },
-  });
-
   const jurusanTE = await prisma.jurusan.create({
     data: { nama_jurusan: 'Teknik Elektro' },
   });
 
   const prodiD3TI = await prisma.prodi.create({
     data: {
-      jurusan_id: jurusanTI.id,
+      jurusan_id: jurusanTE.id,
       nama_prodi: 'Teknik Informatika',
       jenjang: 'D3',
     },
   });
 
-  const prodiD4TRPL = await prisma.prodi.create({
-    data: {
-      jurusan_id: jurusanTI.id,
-      nama_prodi: 'Teknologi Rekayasa Perangkat Lunak',
-      jenjang: 'D4',
-    },
-  });
-
-  const prodiD3TE = await prisma.prodi.create({
+  const prodiD4TRK = await prisma.prodi.create({
     data: {
       jurusan_id: jurusanTE.id,
-      nama_prodi: 'Teknik Elektronika',
-      jenjang: 'D3',
+      nama_prodi: 'Teknologi Rekayasa Komputer',
+      jenjang: 'D4',
     },
   });
 
@@ -706,7 +694,16 @@ async function main() {
 
   const kaprodiUser = await prisma.user.create({
     data: {
-      email: 'kaprodi.trpl@polines.ac.id',
+      email: 'kaprodi.ti@polines.ac.id',
+      password: hashedPassword,
+      role_id: roleKaprodi.id,
+      is_active: true,
+    },
+  });
+
+  const kaprodiUser2 = await prisma.user.create({
+    data: {
+      email: 'kaprodi.trk@polines.ac.id',
       password: hashedPassword,
       role_id: roleKaprodi.id,
       is_active: true,
@@ -715,7 +712,7 @@ async function main() {
 
   const dosenUser1 = await prisma.user.create({
     data: {
-      email: 'budi.santoso@polines.ac.id',
+      email: 'idhawati.hestiningsih@polines.ac.id',
       password: hashedPassword,
       role_id: roleDosen.id,
       is_active: true,
@@ -724,7 +721,7 @@ async function main() {
 
   const dosenUser2 = await prisma.user.create({
     data: {
-      email: 'siti.aminah@polines.ac.id',
+      email: 'muttabik.fathul@polines.ac.id',
       password: hashedPassword,
       role_id: roleDosen.id,
       is_active: true,
@@ -733,7 +730,16 @@ async function main() {
 
   const dosenUser3 = await prisma.user.create({
     data: {
-      email: 'ahmad.rizky@polines.ac.id',
+      email: 'sukamto@polines.ac.id',
+      password: hashedPassword,
+      role_id: roleDosen.id,
+      is_active: true,
+    },
+  });
+
+  const dosenUser4 = await prisma.user.create({
+    data: {
+      email: 'wiktasari@polines.ac.id',
       password: hashedPassword,
       role_id: roleDosen.id,
       is_active: true,
@@ -744,16 +750,18 @@ async function main() {
 
   // =========================================================
   // 4. Dosen Profiles
+  // Catatan: User Admin TIDAK terhubung ke profil Dosen.
+  // Kaprodi punya profil Dosen untuk linkage prodi (tapi tidak mengisi AMI).
   // =========================================================
   const dosen1 = await prisma.dosen.create({
     data: {
       user_id: dosenUser1.id,
-      prodi_id: prodiD4TRPL.id,
-      nip: '198001012005011001',
-      nama_lengkap: 'Budi Santoso, M.Kom.',
+      prodi_id: prodiD3TI.id,
+      nip: '196910071995122001',
+      nama_lengkap: 'IDHAWATI HESTININGSIH , S.Kom., M. Kom.',
       status_kepegawaian: 'PNS',
-      no_hp: '081234567890',
-      alamat: 'Jl. Majapahit No. 74, Semarang',
+      no_hp: '081234567001',
+      alamat: 'Semarang',
       is_active: true,
     },
   });
@@ -762,11 +770,11 @@ async function main() {
     data: {
       user_id: dosenUser2.id,
       prodi_id: prodiD3TI.id,
-      nip: '198502022010122002',
-      nama_lengkap: 'Siti Aminah, M.T.',
+      nip: '199001012019031002',
+      nama_lengkap: 'MUTTABIK FATHUL LATHIEF S.Kom., M.Eng.',
       status_kepegawaian: 'PNS',
-      no_hp: '081298765432',
-      alamat: 'Jl. Prof. Sudarto No. 13, Semarang',
+      no_hp: '081234567002',
+      alamat: 'Semarang',
       is_active: true,
     },
   });
@@ -774,25 +782,52 @@ async function main() {
   const dosen3 = await prisma.dosen.create({
     data: {
       user_id: dosenUser3.id,
-      prodi_id: prodiD4TRPL.id,
-      nip: '199001032015041003',
-      nama_lengkap: 'Ahmad Rizky, S.Kom., M.Cs.',
-      status_kepegawaian: 'Kontrak',
-      no_hp: '082312345678',
-      alamat: 'Jl. Pandanaran No. 5, Semarang',
+      prodi_id: prodiD3TI.id,
+      nip: '197105052000031003',
+      nama_lengkap: 'SUKAMTO , S.Kom., M.T.',
+      status_kepegawaian: 'PNS',
+      no_hp: '081234567003',
+      alamat: 'Semarang',
+      is_active: true,
+    },
+  });
+
+  const dosen4 = await prisma.dosen.create({
+    data: {
+      user_id: dosenUser4.id,
+      prodi_id: prodiD4TRK.id,
+      nip: '197506012003122004',
+      nama_lengkap: 'WIKTASARI , S.T., M.Kom.',
+      status_kepegawaian: 'PNS',
+      no_hp: '081234567004',
+      alamat: 'Semarang',
+      is_active: true,
+    },
+  });
+
+  // Kaprodi juga punya profil Dosen (untuk linkage prodi), tapi tidak mengisi AMI
+  await prisma.dosen.create({
+    data: {
+      user_id: kaprodiUser.id,
+      prodi_id: prodiD3TI.id,
+      nip: '196805101995121001',
+      nama_lengkap: 'Dr. Budi Santoso, M.Kom.',
+      status_kepegawaian: 'PNS',
+      no_hp: '081312345678',
+      alamat: 'Semarang',
       is_active: true,
     },
   });
 
   await prisma.dosen.create({
     data: {
-      user_id: kaprodiUser.id,
-      prodi_id: prodiD4TRPL.id,
-      nip: '197805142003121004',
-      nama_lengkap: 'Dr. Hendra Wijaya, M.Kom.',
+      user_id: kaprodiUser2.id,
+      prodi_id: prodiD4TRK.id,
+      nip: '197203151998031002',
+      nama_lengkap: 'Dr. Andi Prasetyo, M.T.',
       status_kepegawaian: 'PNS',
-      no_hp: '081312345678',
-      alamat: 'Jl. Siliwangi No. 8, Semarang',
+      no_hp: '081312345679',
+      alamat: 'Semarang',
       is_active: true,
     },
   });
@@ -891,7 +926,7 @@ async function main() {
       });
       kodeAmiMap.set(kodeAmiKey, kodeAmi);
 
-      const butirData: Array<{ kode_ami_id: bigint; jenjang_id: bigint; no_butir: string }> = [];
+      const butirData: Array<{ kode_ami_id: any; jenjang_id: any; no_butir: string }> = [];
 
       if (item.s2) {
         butirData.push({ kode_ami_id: kodeAmi.id, jenjang_id: jenjangByCode.S2_MGTR.id, no_butir: item.s2 });
@@ -951,8 +986,9 @@ async function main() {
     {
       key: '1.1',
       dosen: dosen1,
-      prodi: prodiD4TRPL,
-      judul: 'Renstra Polines dan VMTS Prodi TRPL 2025',
+      prodi: prodiD3TI,
+      kaprodi: kaprodiUser,
+      judul: 'Renstra Polines dan VMTS Prodi Teknik Informatika 2025',
       status: 'valid' as const,
       ada: true,
       spt: true,
@@ -965,8 +1001,9 @@ async function main() {
     {
       key: '1.4',
       dosen: dosen1,
-      prodi: prodiD4TRPL,
-      judul: 'Dokumen Visi Keilmuan Prodi TRPL',
+      prodi: prodiD3TI,
+      kaprodi: kaprodiUser,
+      judul: 'Dokumen Visi Keilmuan Prodi Teknik Informatika',
       status: 'proses' as const,
       ada: true,
       spt: true,
@@ -979,7 +1016,8 @@ async function main() {
     {
       key: '4.1',
       dosen: dosen3,
-      prodi: prodiD4TRPL,
+      prodi: prodiD3TI,
+      kaprodi: kaprodiUser,
       judul: 'Statuta Polines dan Dokumen Tata Pamong',
       status: 'proses' as const,
       ada: true,
@@ -994,6 +1032,7 @@ async function main() {
       key: '12.2',
       dosen: dosen2,
       prodi: prodiD3TI,
+      kaprodi: kaprodiUser,
       judul: 'Dokumen SOP Pengajuan Beasiswa dan Magang',
       status: 'revisi' as const,
       ada: true,
@@ -1006,9 +1045,10 @@ async function main() {
     },
     {
       key: '22.2',
-      dosen: dosen1,
-      prodi: prodiD4TRPL,
-      judul: 'Dokumen Kurikulum Prodi TRPL',
+      dosen: dosen4,
+      prodi: prodiD4TRK,
+      kaprodi: kaprodiUser2,
+      judul: 'Dokumen Kurikulum Prodi Teknologi Rekayasa Komputer',
       status: 'valid' as const,
       ada: true,
       spt: true,
@@ -1047,7 +1087,7 @@ async function main() {
         keterangan: item.catatan ?? 'Contoh data isian AMI.',
         status: item.status,
         catatan_kaprodi: item.status === 'revisi' || item.status === 'valid' ? item.catatan : null,
-        reviewed_by: item.status === 'revisi' || item.status === 'valid' ? kaprodiUser.id : null,
+        reviewed_by: item.status === 'revisi' || item.status === 'valid' ? item.kaprodi.id : null,
         reviewed_at: item.status === 'revisi' || item.status === 'valid' ? new Date() : null,
         attempt: 1,
         submitted_at: new Date(),
@@ -1070,7 +1110,7 @@ async function main() {
       await prisma.isianReviewLog.create({
         data: {
           isian_id: isian.id,
-          reviewer_id: kaprodiUser.id,
+          reviewer_id: item.kaprodi.id,
           status_sebelum: 'proses',
           status_sesudah: item.status,
           catatan: item.catatan ?? 'Review selesai.',
@@ -1084,11 +1124,13 @@ async function main() {
   console.log('\n🎉 Seed selesai!');
   console.log('===========================================');
   console.log('Akun tersedia:');
-  console.log('  Admin   : admin@polines.ac.id / password123');
-  console.log('  Kaprodi : kaprodi.trpl@polines.ac.id / password123');
-  console.log('  Dosen 1 : budi.santoso@polines.ac.id / password123');
-  console.log('  Dosen 2 : siti.aminah@polines.ac.id / password123');
-  console.log('  Dosen 3 : ahmad.rizky@polines.ac.id / password123');
+  console.log('  Admin      : admin@polines.ac.id / password123');
+  console.log('  Kaprodi TI : kaprodi.ti@polines.ac.id / password123  (Dr. Budi Santoso, M.Kom. - Teknik Informatika)');
+  console.log('  Kaprodi TRK: kaprodi.trk@polines.ac.id / password123  (Dr. Andi Prasetyo, M.T. - Teknologi Rekayasa Komputer)');
+  console.log('  Dosen 1    : idhawati.hestiningsih@polines.ac.id / password123  (IDHAWATI HESTININGSIH - Teknik Informatika)');
+  console.log('  Dosen 2    : muttabik.fathul@polines.ac.id / password123  (MUTTABIK FATHUL LATHIEF - Teknik Informatika)');
+  console.log('  Dosen 3    : sukamto@polines.ac.id / password123  (SUKAMTO - Teknik Informatika)');
+  console.log('  Dosen 4    : wiktasari@polines.ac.id / password123  (WIKTASARI - Teknologi Rekayasa Komputer)');
   console.log('===========================================');
 }
 

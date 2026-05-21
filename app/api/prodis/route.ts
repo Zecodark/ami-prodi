@@ -8,7 +8,7 @@ const serialize = (data: unknown) =>
   JSON.parse(JSON.stringify(data, (_, v) => (typeof v === 'bigint' ? v.toString() : v)));
 
 const schema = z.object({
-  jurusan_id: z.coerce.bigint().optional().nullable(),
+  jurusan_id: z.coerce.number().optional().nullable(),
   nama_prodi: z.string().min(1, 'Nama prodi wajib diisi'),
   jenjang: z.string().optional().nullable(),
 });
@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     if (error) return error;
 
     const jurusanId = request.nextUrl.searchParams.get('jurusan_id');
-    const where = jurusanId ? { jurusan_id: BigInt(jurusanId) } : {};
+    const where = jurusanId ? { jurusan_id: Number(jurusanId) } : {};
 
     const data = await prisma.prodi.findMany({
       where,

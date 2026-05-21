@@ -23,7 +23,7 @@ export async function GET(request: NextRequest, { params }: Ctx) {
 
     const { id } = await params;
     const data = await prisma.periode.findUnique({
-      where: { id: BigInt(id) },
+      where: { id: Number(id) },
       include: {
         _count: { select: { instrumens: true, isians: true } },
       },
@@ -53,14 +53,14 @@ export async function PUT(request: NextRequest, { params }: Ctx) {
     if (parsed.data.is_active === true) {
       // Set all others to false in a transaction
       const [_, data] = await prisma.$transaction([
-        prisma.periode.updateMany({ where: { id: { not: BigInt(id) } }, data: { is_active: false } }),
-        prisma.periode.update({ where: { id: BigInt(id) }, data: { ...updateData, is_active: true } })
+        prisma.periode.updateMany({ where: { id: { not: Number(id) } }, data: { is_active: false } }),
+        prisma.periode.update({ where: { id: Number(id) }, data: { ...updateData, is_active: true } })
       ]);
       return R.ok(serialize(data), 'Periode berhasil diaktifkan dan diperbarui');
     } else {
       if (parsed.data.is_active === false) updateData.is_active = false;
       const data = await prisma.periode.update({
-        where: { id: BigInt(id) },
+        where: { id: Number(id) },
         data: updateData,
       });
       return R.ok(serialize(data), 'Periode berhasil diperbarui');
@@ -77,7 +77,7 @@ export async function DELETE(request: NextRequest, { params }: Ctx) {
     if (error) return error;
 
     const { id } = await params;
-    await prisma.periode.delete({ where: { id: BigInt(id) } });
+    await prisma.periode.delete({ where: { id: Number(id) } });
     return R.ok(null, 'Periode berhasil dihapus');
   } catch (e: any) {
     if (e.code === 'P2025') return R.notFound();

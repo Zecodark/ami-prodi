@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
     const where = instrumenId
       ? {
           deskripsi_area: {
-            kode_ami: { kriteria: { instrumen_id: BigInt(instrumenId) } },
+            kode_ami: { kriteria: { instrumen_id: Number(instrumenId) } },
           },
         }
       : {};

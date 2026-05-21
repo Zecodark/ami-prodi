@@ -70,7 +70,7 @@ export async function GET(request: NextRequest, { params }: Ctx) {
     if (error) return error;
 
     const { id } = await params;
-    const data = await prisma.isianAmi.findUnique({ where: { id: BigInt(id) }, include: isianInclude });
+    const data = await prisma.isianAmi.findUnique({ where: { id: Number(id) }, include: isianInclude });
     if (!data) return R.notFound();
 
     // Dosen hanya bisa lihat miliknya
@@ -91,7 +91,7 @@ export async function PUT(request: NextRequest, { params }: Ctx) {
     if (!dosen) return R.forbidden('Profil dosen tidak ditemukan');
 
     const { id } = await params;
-    const isian = await prisma.isianAmi.findUnique({ where: { id: BigInt(id) } });
+    const isian = await prisma.isianAmi.findUnique({ where: { id: Number(id) } });
     if (!isian) return R.notFound();
     if (isian.dosen_id !== dosen.id) return R.forbidden();
     if (isian.status === 'valid') return R.badRequest('Isian yang sudah valid tidak dapat diedit');
@@ -119,12 +119,12 @@ export async function PUT(request: NextRequest, { params }: Ctx) {
       await writeFile(path.join(uploadDir, file_name), buffer);
       await prisma.isianBuktiFile.create({
         data: {
-          isian_id: BigInt(id),
+          isian_id: Number(id),
           original_name: file.name.slice(0, 50),
           file_name,
           file_path,
           mime_type: file.type || null,
-          file_size: BigInt(file.size),
+          file_size: Number(file.size),
           uploaded_by: user.userId,
         },
       });
@@ -134,7 +134,7 @@ export async function PUT(request: NextRequest, { params }: Ctx) {
     if (parsed.data.bukti_link === '') updateData.bukti_link = null;
 
     const data = await prisma.isianAmi.update({
-      where: { id: BigInt(id) },
+      where: { id: Number(id) },
       data: updateData,
       include: isianInclude,
     });
@@ -149,7 +149,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
     if (error) return error;
 
     const { id } = await params;
-    const isian = await prisma.isianAmi.findUnique({ where: { id: BigInt(id) } });
+    const isian = await prisma.isianAmi.findUnique({ where: { id: Number(id) } });
     if (!isian) return R.notFound();
 
     const body = await request.json();
@@ -161,7 +161,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
     // Update isian dan buat review log dalam transaction
     const data = await prisma.$transaction(async (tx) => {
       const updated = await tx.isianAmi.update({
-        where: { id: BigInt(id) },
+        where: { id: Number(id) },
         data: {
           status,
           catatan_kaprodi: catatan_kaprodi ?? null,
@@ -172,7 +172,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
       });
       await tx.isianReviewLog.create({
         data: {
-          isian_id: BigInt(id),
+          isian_id: Number(id),
           reviewer_id: user.userId,
           status_sebelum: isian.status,
           status_sesudah: status,

@@ -9,8 +9,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "AMI Prodi – Sistem Audit Mutu Internal",
-  description: "Sistem informasi Audit Mutu Internal Program Studi",
+  title: "SIAMI | AMI Prodi - Politeknik Negeri Semarang",
+  description: "Sistem Informasi Audit Mutu Internal Program Studi - Politeknik Negeri Semarang",
 };
 
 export default function RootLayout({

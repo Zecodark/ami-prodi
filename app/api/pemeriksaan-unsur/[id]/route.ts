@@ -29,7 +29,7 @@ export async function PUT(request: NextRequest, { params }: Ctx) {
     if (parsed.data.urutan !== undefined) updateData.urutan = parsed.data.urutan;
 
     const data = await prisma.pemeriksaanUnsur.update({
-      where: { id: BigInt(id) },
+      where: { id: Number(id) },
       data: updateData,
     });
     return R.ok(serialize(data), 'Pemeriksaan unsur berhasil diperbarui');
@@ -45,7 +45,7 @@ export async function DELETE(request: NextRequest, { params }: Ctx) {
     if (error) return error;
 
     const { id } = await params;
-    await prisma.pemeriksaanUnsur.delete({ where: { id: BigInt(id) } });
+    await prisma.pemeriksaanUnsur.delete({ where: { id: Number(id) } });
     return R.ok(null, 'Pemeriksaan unsur berhasil dihapus');
   } catch (e: any) {
     if (e.code === 'P2025') return R.notFound();

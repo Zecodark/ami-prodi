@@ -14,7 +14,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
     if (error) return error;
     
     const { id } = await params;
-    const targetId = BigInt(id);
+    const targetId = Number(id);
     const exists = await prisma.periode.findUnique({ where: { id: targetId } });
     if (!exists) return R.notFound();
 

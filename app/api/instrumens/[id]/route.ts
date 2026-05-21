@@ -8,7 +8,7 @@ const serialize = (data: unknown) =>
   JSON.parse(JSON.stringify(data, (_, v) => (typeof v === 'bigint' ? v.toString() : v)));
 
 const schema = z.object({
-  periode_id: z.coerce.bigint().optional().nullable(),
+  periode_id: z.coerce.number().optional().nullable(),
   nama_instrumen: z.string().min(1, 'Nama instrumen wajib diisi').optional(),
   deskripsi: z.string().optional().nullable(),
   is_active: z.boolean().optional(),
@@ -23,7 +23,7 @@ export async function GET(request: NextRequest, { params }: Ctx) {
 
     const { id } = await params;
     const data = await prisma.instrumen.findUnique({
-      where: { id: BigInt(id) },
+      where: { id: Number(id) },
       include: {
         periode: { select: { id: true, tahun: true, is_active: true } },
         kriteria_standars: {
@@ -62,7 +62,7 @@ export async function PUT(request: NextRequest, { params }: Ctx) {
     if (parsed.data.is_active !== undefined) updateData.is_active = parsed.data.is_active;
 
     const data = await prisma.instrumen.update({
-      where: { id: BigInt(id) },
+      where: { id: Number(id) },
       data: updateData,
       include: { periode: true },
     });
@@ -79,7 +79,7 @@ export async function DELETE(request: NextRequest, { params }: Ctx) {
     if (error) return error;
 
     const { id } = await params;
-    await prisma.instrumen.delete({ where: { id: BigInt(id) } });
+    await prisma.instrumen.delete({ where: { id: Number(id) } });
     return R.ok(null, 'Instrumen berhasil dihapus');
   } catch (e: any) {
     if (e.code === 'P2025') return R.notFound();

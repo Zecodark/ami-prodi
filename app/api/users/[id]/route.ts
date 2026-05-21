@@ -22,7 +22,7 @@ export async function GET(request: NextRequest, { params }: Ctx) {
     const { error } = guard(request, 'admin');
     if (error) return error;
     const { id } = await params;
-    const data = await prisma.user.findUnique({ where: { id: BigInt(id) }, select });
+    const data = await prisma.user.findUnique({ where: { id: Number(id) }, select });
     if (!data) return R.notFound();
     return R.ok(serialize(data));
   } catch (e) { return R.serverError(e); }
@@ -41,7 +41,7 @@ export async function PUT(request: NextRequest, { params }: Ctx) {
     const schema = z.object({
       email: z.string().email().optional(),
       password: z.string().min(6).optional(),
-      role_id: z.coerce.bigint().nullable().optional(),
+      role_id: z.coerce.number().nullable().optional(),
       is_active: z.boolean().optional(),
     });
     const parsed = schema.safeParse(body);
@@ -53,7 +53,7 @@ export async function PUT(request: NextRequest, { params }: Ctx) {
     if (parsed.data.role_id !== undefined) updateData.role_id = parsed.data.role_id;
     if (parsed.data.is_active !== undefined) updateData.is_active = parsed.data.is_active;
 
-    const data = await prisma.user.update({ where: { id: BigInt(id) }, data: updateData, select });
+    const data = await prisma.user.update({ where: { id: Number(id) }, data: updateData, select });
     return R.ok(serialize(data), 'User berhasil diperbarui');
   } catch (e: any) {
     if (e.code === 'P2025') return R.notFound();
@@ -68,7 +68,7 @@ export async function DELETE(request: NextRequest, { params }: Ctx) {
     const { error } = guard(request, 'admin');
     if (error) return error;
     const { id } = await params;
-    await prisma.user.delete({ where: { id: BigInt(id) } });
+    await prisma.user.delete({ where: { id: Number(id) } });
     return R.ok(null, 'User berhasil dihapus');
   } catch (e: any) {
     if (e.code === 'P2025') return R.notFound();

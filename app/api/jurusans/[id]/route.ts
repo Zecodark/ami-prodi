@@ -22,7 +22,7 @@ export async function PUT(request: NextRequest, { params }: Ctx) {
     if (!parsed.success) return R.badRequest('Validasi gagal', parsed.error.flatten());
 
     const data = await prisma.jurusan.update({
-      where: { id: BigInt(id) }, data: parsed.data,
+      where: { id: Number(id) }, data: parsed.data,
     });
     return R.ok(serialize(data), 'Jurusan berhasil diperbarui');
   } catch (e: any) {
@@ -37,7 +37,7 @@ export async function DELETE(request: NextRequest, { params }: Ctx) {
     if (error) return error;
     
     const { id } = await params;
-    await prisma.jurusan.delete({ where: { id: BigInt(id) } });
+    await prisma.jurusan.delete({ where: { id: Number(id) } });
     return R.ok(null, 'Jurusan berhasil dihapus');
   } catch (e: any) {
     if (e.code === 'P2025') return R.notFound();

@@ -1,6 +1,6 @@
 
 CREATE TABLE `roles` (
-    `id` BIGINT NOT NULL AUTO_INCREMENT,
+    `id` INT(10) NOT NULL AUTO_INCREMENT,
     `nama_role` VARCHAR(10) NOT NULL,
     `deskripsi` VARCHAR(50) NULL,
     `created_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
@@ -12,10 +12,10 @@ CREATE TABLE `roles` (
 
 
 CREATE TABLE `users` (
-    `id` BIGINT NOT NULL AUTO_INCREMENT,
+    `id` INT(10) NOT NULL AUTO_INCREMENT,
     `email` VARCHAR(50) NOT NULL,
     `password` VARCHAR(255) NOT NULL,
-    `role_id` BIGINT NULL,
+    `role_id` INT(10) NULL,
     `is_active` BOOLEAN NOT NULL DEFAULT true,
     `last_login_at` TIMESTAMP(0) NULL,
     `created_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
@@ -28,7 +28,7 @@ CREATE TABLE `users` (
 
 
 CREATE TABLE `jurusans` (
-    `id` BIGINT NOT NULL AUTO_INCREMENT,
+    `id` INT(10) NOT NULL AUTO_INCREMENT,
     `nama_jurusan` VARCHAR(30) NOT NULL,
     `created_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
     `updated_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
@@ -39,8 +39,8 @@ CREATE TABLE `jurusans` (
 
 
 CREATE TABLE `prodis` (
-    `id` BIGINT NOT NULL AUTO_INCREMENT,
-    `jurusan_id` BIGINT NULL,
+    `id` INT(10) NOT NULL AUTO_INCREMENT,
+    `jurusan_id` INT(10) NULL,
     `nama_prodi` VARCHAR(50) NOT NULL,
     `jenjang` VARCHAR(20) NULL,
     `created_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
@@ -53,9 +53,9 @@ CREATE TABLE `prodis` (
 
 
 CREATE TABLE `dosens` (
-    `id` BIGINT NOT NULL AUTO_INCREMENT,
-    `user_id` BIGINT NULL,
-    `prodi_id` BIGINT NULL,
+    `id` INT(10) NOT NULL AUTO_INCREMENT,
+    `user_id` INT(10) NULL,
+    `prodi_id` INT(10) NULL,
     `nip` VARCHAR(20) NOT NULL,
     `nama_lengkap` VARCHAR(50) NOT NULL,
     `status_kepegawaian` VARCHAR(50) NOT NULL,
@@ -73,7 +73,7 @@ CREATE TABLE `dosens` (
 
 
 CREATE TABLE `periodes` (
-    `id` BIGINT NOT NULL AUTO_INCREMENT,
+    `id` INT(10) NOT NULL AUTO_INCREMENT,
     `tahun` VARCHAR(10) NOT NULL,
     `is_active` BOOLEAN NOT NULL DEFAULT false,
     `tanggal_mulai` DATE NULL,
@@ -88,12 +88,12 @@ CREATE TABLE `periodes` (
 
 
 CREATE TABLE `instrumens` (
-    `id` BIGINT NOT NULL AUTO_INCREMENT,
-    `periode_id` BIGINT NULL,
+    `id` INT(10) NOT NULL AUTO_INCREMENT,
+    `periode_id` INT(10) NULL,
     `nama_instrumen` VARCHAR(50) NOT NULL,
     `deskripsi` TEXT NULL,
     `is_active` BOOLEAN NOT NULL DEFAULT true,
-    `created_by` BIGINT NULL,
+    `created_by` INT(10) NULL,
     `created_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
     `updated_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
 
@@ -105,8 +105,8 @@ CREATE TABLE `instrumens` (
 
 
 CREATE TABLE `kriteria_standars` (
-    `id` BIGINT NOT NULL AUTO_INCREMENT,
-    `instrumen_id` BIGINT NOT NULL,
+    `id` INT(10) NOT NULL AUTO_INCREMENT,
+    `instrumen_id` INT(10) NOT NULL,
     `kode_kriteria` VARCHAR(50) NOT NULL,
     `nama_kriteria` VARCHAR(50) NOT NULL,
     `deskripsi` TEXT NULL,
@@ -122,8 +122,8 @@ CREATE TABLE `kriteria_standars` (
 
 
 CREATE TABLE `kode_amis` (
-    `id` BIGINT NOT NULL AUTO_INCREMENT,
-    `kriteria_id` BIGINT NOT NULL,
+    `id` INT(10) NOT NULL AUTO_INCREMENT,
+    `kriteria_id` INT(10) NOT NULL,
     `kode_ami` VARCHAR(50) NOT NULL,
     `urutan` INTEGER UNSIGNED NOT NULL DEFAULT 1,
     `created_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
@@ -137,7 +137,7 @@ CREATE TABLE `kode_amis` (
 
 
 CREATE TABLE `jenjang_standars` (
-    `id` BIGINT NOT NULL AUTO_INCREMENT,
+    `id` INT(10) NOT NULL AUTO_INCREMENT,
     `kode_jenjang` VARCHAR(10) NOT NULL,
     `nama_jenjang` VARCHAR(50) NOT NULL,
     `urutan` INTEGER UNSIGNED NOT NULL DEFAULT 1,
@@ -150,9 +150,9 @@ CREATE TABLE `jenjang_standars` (
 
 
 CREATE TABLE `kode_ami_butir_standars` (
-    `id` BIGINT NOT NULL AUTO_INCREMENT,
-    `kode_ami_id` BIGINT NOT NULL,
-    `jenjang_id` BIGINT NOT NULL,
+    `id` INT(10) NOT NULL AUTO_INCREMENT,
+    `kode_ami_id` INT(10) NOT NULL,
+    `jenjang_id` INT(10) NOT NULL,
     `no_butir` VARCHAR(50) NULL,
     `created_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
     `updated_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
@@ -165,8 +165,8 @@ CREATE TABLE `kode_ami_butir_standars` (
 
 
 CREATE TABLE `deskripsi_areas` (
-    `id` BIGINT NOT NULL AUTO_INCREMENT,
-    `kode_ami_id` BIGINT NOT NULL,
+    `id` INT(10) NOT NULL AUTO_INCREMENT,
+    `kode_ami_id` INT(10) NOT NULL,
     `deskripsi_area_audit` TEXT NOT NULL,
     `target_standar` TEXT NULL,
     `urutan` INTEGER UNSIGNED NOT NULL DEFAULT 1,
@@ -180,8 +180,8 @@ CREATE TABLE `deskripsi_areas` (
 
 
 CREATE TABLE `pemeriksaan_unsurs` (
-    `id` BIGINT NOT NULL AUTO_INCREMENT,
-    `deskripsi_area_id` BIGINT NOT NULL,
+    `id` INT(10) NOT NULL AUTO_INCREMENT,
+    `deskripsi_area_id` INT(10) NOT NULL,
     `isi_unsur` TEXT NOT NULL,
     `urutan` INTEGER UNSIGNED NOT NULL DEFAULT 1,
     `created_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
@@ -194,11 +194,11 @@ CREATE TABLE `pemeriksaan_unsurs` (
 
 
 CREATE TABLE `isian_ami` (
-    `id` BIGINT NOT NULL AUTO_INCREMENT,
-    `pemeriksaan_unsur_id` BIGINT NOT NULL,
-    `periode_id` BIGINT NOT NULL,
-    `dosen_id` BIGINT NOT NULL,
-    `prodi_id` BIGINT NULL,
+    `id` INT(10) NOT NULL AUTO_INCREMENT,
+    `pemeriksaan_unsur_id` INT(10) NOT NULL,
+    `periode_id` INT(10) NOT NULL,
+    `dosen_id` INT(10) NOT NULL,
+    `prodi_id` INT(10) NULL,
     `judul_dokumen` VARCHAR(100) NULL,
     `ketersediaan_standar` ENUM('ada', 'tidak_ada') NOT NULL DEFAULT 'tidak_ada',
     `dokumen` ENUM('ada', 'tidak_ada') NOT NULL DEFAULT 'tidak_ada',
@@ -211,9 +211,9 @@ CREATE TABLE `isian_ami` (
     `tahun_pelaksanaan` CHAR(4) NULL,
     `capaian` TEXT NULL,
     `keterangan` TEXT NULL,
-    `status` ENUM('proses', 'valid', 'revisi') NOT NULL DEFAULT 'proses',
+    `status` ENUM('draft', 'proses', 'valid', 'revisi') NOT NULL DEFAULT 'proses',
     `catatan_kaprodi` TEXT NULL,
-    `reviewed_by` BIGINT NULL,
+    `reviewed_by` INT(10) NULL,
     `reviewed_at` TIMESTAMP(0) NULL,
     `attempt` INTEGER UNSIGNED NOT NULL DEFAULT 1,
     `submitted_at` TIMESTAMP(0) NULL,
@@ -233,14 +233,14 @@ CREATE TABLE `isian_ami` (
 
 
 CREATE TABLE `isian_bukti_files` (
-    `id` BIGINT NOT NULL AUTO_INCREMENT,
-    `isian_id` BIGINT NOT NULL,
+    `id` INT(10) NOT NULL AUTO_INCREMENT,
+    `isian_id` INT(10) NOT NULL,
     `original_name` VARCHAR(50) NOT NULL,
     `file_name` VARCHAR(50) NOT NULL,
     `file_path` VARCHAR(100) NOT NULL,
     `mime_type` VARCHAR(50) NULL,
-    `file_size` BIGINT NULL,
-    `uploaded_by` BIGINT NULL,
+    `file_size` INT(10) NULL,
+    `uploaded_by` INT(10) NULL,
     `created_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
 
     INDEX `isian_bukti_files_isian_id_idx`(`isian_id`),
@@ -250,11 +250,11 @@ CREATE TABLE `isian_bukti_files` (
 
 
 CREATE TABLE `isian_review_logs` (
-    `id` BIGINT NOT NULL AUTO_INCREMENT,
-    `isian_id` BIGINT NOT NULL,
-    `reviewer_id` BIGINT NULL,
-    `status_sebelum` ENUM('proses', 'valid', 'revisi') NULL,
-    `status_sesudah` ENUM('proses', 'valid', 'revisi') NOT NULL,
+    `id` INT(10) NOT NULL AUTO_INCREMENT,
+    `isian_id` INT(10) NOT NULL,
+    `reviewer_id` INT(10) NULL,
+    `status_sebelum` ENUM('draft', 'proses', 'valid', 'revisi') NULL,
+    `status_sesudah` ENUM('draft', 'proses', 'valid', 'revisi') NOT NULL,
     `catatan` TEXT NULL,
     `created_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
 

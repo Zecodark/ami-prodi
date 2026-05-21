@@ -8,7 +8,7 @@ const serialize = (data: unknown) =>
   JSON.parse(JSON.stringify(data, (_, v) => (typeof v === 'bigint' ? v.toString() : v)));
 
 const schema = z.object({
-  jurusan_id: z.coerce.bigint().optional().nullable(),
+  jurusan_id: z.coerce.number().optional().nullable(),
   nama_prodi: z.string().min(1, 'Nama prodi wajib diisi'),
   jenjang: z.string().optional().nullable(),
 });
@@ -22,7 +22,7 @@ export async function GET(request: NextRequest, { params }: Ctx) {
 
     const { id } = await params;
     const data = await prisma.prodi.findUnique({
-      where: { id: BigInt(id) },
+      where: { id: Number(id) },
       include: { jurusan: true },
     });
     if (!data) return R.notFound();
@@ -41,7 +41,7 @@ export async function PUT(request: NextRequest, { params }: Ctx) {
     if (!parsed.success) return R.badRequest('Validasi gagal', parsed.error.flatten());
     
     const data = await prisma.prodi.update({
-      where: { id: BigInt(id) },
+      where: { id: Number(id) },
       data: { 
         nama_prodi: parsed.data.nama_prodi, 
         jurusan_id: parsed.data.jurusan_id ?? null,
@@ -62,7 +62,7 @@ export async function DELETE(request: NextRequest, { params }: Ctx) {
     if (error) return error;
     
     const { id } = await params;
-    await prisma.prodi.delete({ where: { id: BigInt(id) } });
+    await prisma.prodi.delete({ where: { id: Number(id) } });
     return R.ok(null, 'Prodi berhasil dihapus');
   } catch (e: any) {
     if (e.code === 'P2025') return R.notFound();
