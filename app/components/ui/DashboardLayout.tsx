@@ -129,8 +129,12 @@ export default function DashboardLayout({ children, menuItems, role }: Dashboard
         {/* Nav */}
         <nav className="px-3 flex-1 overflow-y-auto space-y-1 pb-4">
           {menuItems.map((item) => {
-            const isActive =
-              pathname === item.href || pathname.startsWith(`${item.href}/`);
+            // For root paths like /kaprodi or /admin, only exact match
+            const isRootMenu = item.href.split('/').filter(Boolean).length <= 1 ||
+              menuItems.some((other) => other.href !== item.href && other.href.startsWith(`${item.href}/`));
+            const isActive = isRootMenu
+              ? pathname === item.href
+              : pathname === item.href || pathname.startsWith(`${item.href}/`);
             return (
               <Link
                 key={item.href}

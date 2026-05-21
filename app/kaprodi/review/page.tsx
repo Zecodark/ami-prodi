@@ -7,6 +7,8 @@ import {
   ChevronRight,
   Clock,
   FileText,
+  CheckCircle2,
+  Circle,
 } from 'lucide-react';
 
 interface Periode {
@@ -68,6 +70,12 @@ interface IsianItem {
   };
 }
 
+interface UnsurStatusData {
+  status: 'valid' | 'revisi' | 'proses' | 'kosong';
+  counts: { valid: number; revisi: number; proses: number; total: number };
+  latest_dosen_nama: string | null;
+}
+
 export default function KaprodiReviewPage() {
   const router = useRouter();
   const [periodes, setPeriodes] = useState<Periode[]>([]);
@@ -89,6 +97,9 @@ export default function KaprodiReviewPage() {
   const [isians, setIsians] = useState<IsianItem[]>([]);
   const [loadingIsians, setLoadingIsians] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Unsur status map from by-unsur API
+  const [unsurStatusMap, setUnsurStatusMap] = useState<Record<string, UnsurStatusData>>({});
 
   // Fetch periodes
   useEffect(() => {
@@ -159,6 +170,30 @@ export default function KaprodiReviewPage() {
     fetchKriterias();
   }, [selectedInstrumen]);
 
+  // Fetch unsur status (by-unsur API)
+  useEffect(() => {
+    if (!selectedPeriode) return;
+    const fetchUnsurStatus = async () => {
+      try {
+        const token = localStorage.getItem('ami_token');
+        const res = await fetch(`/api/isians/by-unsur?periode_id=${selectedPeriode}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const result = await res.json();
+        // R.ok wraps as { success, message, data }
+        // The by-unsur API passes { data: map, periode_id, prodi_id } to R.ok
+        // So final structure: result.data = { data: { unsurId: statusObj }, periode_id, prodi_id }
+        const statusData = result.data?.data || result.data || {};
+        console.log('[by-unsur] raw result:', result);
+        console.log('[by-unsur] statusData keys:', Object.keys(statusData));
+        setUnsurStatusMap(statusData);
+      } catch (error) {
+        console.error('Failed to fetch unsur status:', error);
+      }
+    };
+    fetchUnsurStatus();
+  }, [selectedPeriode]);
+
   // Fetch isians when unsur is selected
   useEffect(() => {
     if (!selectedUnsurId || !selectedPeriode) return;
@@ -171,7 +206,27 @@ export default function KaprodiReviewPage() {
           { headers: { Authorization: `Bearer ${token}` } }
         );
         const data = await res.json();
-        setIsians(data.data || []);
+        const isianList = data.data || [];
+        setIsians(isianList);
+
+        // Update unsurStatusMap locally based on fetched isians
+        if (isianList.length > 0) {
+          const validCount = isianList.filter((i: any) => i.status === 'valid').length;
+          const prosesCount = isianList.filter((i: any) => i.status === 'proses' || i.status === 'revisi').length;
+          let status: 'valid' | 'proses' | 'revisi' | 'kosong' = 'kosong';
+          if (validCount > 0) status = 'valid';
+          else if (prosesCount > 0) status = 'proses';
+
+          const latestIsian = isianList[0];
+          setUnsurStatusMap((prev) => ({
+            ...prev,
+            [selectedUnsurId]: {
+              status,
+              counts: { valid: validCount, revisi: 0, proses: prosesCount, total: isianList.length },
+              latest_dosen_nama: latestIsian?.dosen?.nama_lengkap || null,
+            },
+          }));
+        }
       } catch (error) {
         console.error('Failed to fetch isians:', error);
       } finally {
@@ -191,6 +246,92 @@ export default function KaprodiReviewPage() {
 
   const validIsians = isians.filter((i) => i.status === 'valid');
   const pengajuanIsians = isians.filter((i) => i.status !== 'valid' && i.status !== 'draft');
+
+  // Helper: get status counts for a kode AMI (sum all unsurs under it)
+  const getKodeAmiCounts = (kodeAmi: KodeAmi) => {
+    let valid = 0;
+    let proses = 0;
+    let kosong = 0;
+    let total = 0;
+
+    kodeAmi.deskripsi_areas.forEach((area) => {
+      area.pemeriksaan_unsurs.forEach((unsur) => {
+        total++;
+        const st = unsurStatusMap[unsur.id];
+        if (!st || st.status === 'kosong') kosong++;
+        else if (st.status === 'valid') valid++;
+        else proses++; // proses or revisi = menunggu review
+      });
+    });
+
+    return { valid, proses, kosong, total };
+  };
+
+  // Helper: get status counts for a kriteria (sum all kode AMIs)
+  const getKriteriaCounts = (kriteria: KriteriaData) => {
+    let valid = 0;
+    let proses = 0;
+    let kosong = 0;
+    let total = 0;
+
+    kriteria.kode_amis.forEach((kodeAmi) => {
+      const c = getKodeAmiCounts(kodeAmi);
+      valid += c.valid;
+      proses += c.proses;
+      kosong += c.kosong;
+      total += c.total;
+    });
+
+    return { valid, proses, kosong, total };
+  };
+
+  // Helper: get unsur dot color class
+  const getUnsurDotColor = (unsurId: string) => {
+    const st = unsurStatusMap[unsurId];
+    if (!st || st.status === 'kosong') return 'bg-gray-300';
+    if (st.status === 'valid') return 'bg-green-500';
+    return 'bg-amber-400'; // proses or revisi
+  };
+
+  // Helper: get unsur status label
+  const getUnsurStatusLabel = (unsurId: string) => {
+    const st = unsurStatusMap[unsurId];
+    if (!st || st.status === 'kosong') {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-gray-200 bg-gray-50 text-gray-500 text-[10px] font-medium">
+          <Circle size={9} /> Belum Diisi
+        </span>
+      );
+    }
+    if (st.status === 'valid') {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-green-200 bg-green-50 text-green-700 text-[10px] font-medium">
+          <CheckCircle2 size={9} /> Valid
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-amber-200 bg-amber-50 text-amber-700 text-[10px] font-medium">
+        <Clock size={9} /> Menunggu Review
+      </span>
+    );
+  };
+
+  // Status count badges component
+  const StatusBadges = ({ valid, proses, kosong, total }: { valid: number; proses: number; kosong: number; total: number }) => (
+    <div className="flex items-center gap-1.5 text-[10px] flex-wrap">
+      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full border border-green-200 bg-green-50 text-green-700 font-medium">
+        <CheckCircle2 size={10} /> {valid}
+      </span>
+      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full border border-amber-200 bg-amber-50 text-amber-700 font-medium">
+        <Clock size={10} /> {proses}
+      </span>
+      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full border border-gray-200 bg-gray-50 text-gray-500 font-medium">
+        <Circle size={10} /> {kosong}
+      </span>
+      <span className="text-gray-400 font-medium">/ {total}</span>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -232,55 +373,94 @@ export default function KaprodiReviewPage() {
                 ) : kriterias.length === 0 ? (
                   <div className="p-4 text-center text-gray-500 text-sm">Tidak ada kriteria</div>
                 ) : (
-                  kriterias.map((kriteria) => (
-                    <div key={kriteria.id} className="border-b border-gray-200 last:border-b-0">
-                      {/* Kriteria Header */}
-                      <button
-                        onClick={() =>
-                          setExpandedKriteria(
-                            expandedKriteria === kriteria.id ? '' : kriteria.id
-                          )
-                        }
-                        className="w-full flex items-center gap-2 px-4 py-3 text-left hover:bg-gray-50 transition"
-                      >
-                        <span className="flex-shrink-0 w-8 h-8 bg-blue-700 text-white rounded-full flex items-center justify-center text-xs font-bold">
-                          {kriteria.kode_kriteria}
-                        </span>
-                        <span className="text-sm font-medium text-gray-800 flex-1 italic">
-                          {kriteria.nama_kriteria}
-                        </span>
-                        <ChevronDown
-                          size={16}
-                          className={`text-gray-400 transition-transform ${
-                            expandedKriteria === kriteria.id ? 'rotate-180' : ''
-                          }`}
-                        />
-                      </button>
+                  kriterias.map((kriteria) => {
+                    const kriteriaCounts = getKriteriaCounts(kriteria);
+                    // Determine dot color for kriteria
+                    const kriteriaDot = kriteriaCounts.valid > 0 && kriteriaCounts.proses === 0 && kriteriaCounts.kosong === 0
+                      ? 'bg-green-500'
+                      : kriteriaCounts.proses > 0
+                        ? 'bg-amber-400'
+                        : 'bg-gray-300';
+                    return (
+                      <div key={kriteria.id} className="border-b border-gray-200 last:border-b-0">
+                        {/* Kriteria Header */}
+                        <button
+                          onClick={() =>
+                            setExpandedKriteria(
+                              expandedKriteria === kriteria.id ? '' : kriteria.id
+                            )
+                          }
+                          className="w-full flex items-center gap-2 px-4 py-3 text-left hover:bg-gray-50 transition"
+                        >
+                          <ChevronDown
+                            size={14}
+                            className={`text-gray-400 transition-transform flex-shrink-0 ${
+                              expandedKriteria === kriteria.id ? 'rotate-0' : '-rotate-90'
+                            }`}
+                          />
+                          <span className={`flex-shrink-0 w-3.5 h-3.5 rounded-full ${kriteriaDot}`} />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-xs font-bold text-gray-800">
+                                [{kriteria.kode_kriteria}] {kriteria.nama_kriteria}
+                              </span>
+                              <StatusBadges {...kriteriaCounts} />
+                            </div>
+                          </div>
+                        </button>
 
-                      {/* Kode AMI Items */}
-                      {expandedKriteria === kriteria.id && (
-                        <div className="pb-2 px-3 space-y-1">
-                          {kriteria.kode_amis.map((kodeAmi) => {
-                            const isSelected =
-                              selectedKodeAmi?.kodeAmi.id === kodeAmi.id;
-                            return (
-                              <button
-                                key={kodeAmi.id}
-                                onClick={() => handleSelectKodeAmi(kriteria, kodeAmi)}
-                                className={`w-full text-left px-3 py-2 rounded-md text-xs transition border ${
-                                  isSelected
-                                    ? 'bg-blue-600 text-white border-blue-600'
-                                    : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-blue-50 hover:border-blue-200'
-                                }`}
-                              >
-                                <span className="font-semibold">{kodeAmi.kode_ami}</span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  ))
+                        {/* Kode AMI Items */}
+                        {expandedKriteria === kriteria.id && (
+                          <div className="pb-2 pl-8 pr-3 space-y-1">
+                            {kriteria.kode_amis.map((kodeAmi) => {
+                              const isSelected = selectedKodeAmi?.kodeAmi.id === kodeAmi.id;
+                              const kodeAmiCounts = getKodeAmiCounts(kodeAmi);
+                              // Determine dot color for kode AMI based on its unsurs
+                              const kodeAmiDot = kodeAmiCounts.valid > 0 && kodeAmiCounts.proses === 0 && kodeAmiCounts.kosong === 0
+                                ? 'bg-green-500'
+                                : kodeAmiCounts.proses > 0
+                                  ? 'bg-amber-400'
+                                  : 'bg-gray-300';
+                              return (
+                                <button
+                                  key={kodeAmi.id}
+                                  onClick={() => handleSelectKodeAmi(kriteria, kodeAmi)}
+                                  className={`w-full text-left px-3 py-2.5 rounded-md text-xs transition border ${
+                                    isSelected
+                                      ? 'bg-blue-600 text-white border-blue-600'
+                                      : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-blue-50 hover:border-blue-200'
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <span className={`flex-shrink-0 w-3 h-3 rounded-full ${isSelected ? 'bg-white' : kodeAmiDot}`} />
+                                    <span className="font-semibold flex-1">{kodeAmi.kode_ami}</span>
+                                  </div>
+                                  <div className={`mt-1.5 ml-5 ${isSelected ? '' : ''}`}>
+                                    {isSelected ? (
+                                      <div className="flex items-center gap-1.5 text-[10px] flex-wrap">
+                                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full border border-white/30 bg-white/10 text-white font-medium">
+                                          <CheckCircle2 size={10} /> {kodeAmiCounts.valid}
+                                        </span>
+                                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full border border-white/30 bg-white/10 text-white font-medium">
+                                          <Clock size={10} /> {kodeAmiCounts.proses}
+                                        </span>
+                                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full border border-white/30 bg-white/10 text-white font-medium">
+                                          <Circle size={10} /> {kodeAmiCounts.kosong}
+                                        </span>
+                                        <span className="text-white/70 font-medium">/ {kodeAmiCounts.total}</span>
+                                      </div>
+                                    ) : (
+                                      <StatusBadges {...kodeAmiCounts} />
+                                    )}
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
                 )}
               </div>
             </div>
@@ -325,21 +505,42 @@ export default function KaprodiReviewPage() {
                   {/* Right: Unsur Isian AMI */}
                   <div className="lg:col-span-2 bg-white rounded-lg shadow-sm border border-gray-200 p-5">
                     <h3 className="text-sm font-bold text-gray-700 mb-3">Unsur Isian AMI</h3>
-                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                    <div className="space-y-3 max-h-60 overflow-y-auto">
                       {selectedKodeAmi.kodeAmi.deskripsi_areas.flatMap((area) =>
-                        area.pemeriksaan_unsurs.map((unsur) => (
-                          <button
-                            key={unsur.id}
-                            onClick={() => setSelectedUnsurId(unsur.id)}
-                            className={`w-full text-left px-3 py-2 rounded text-xs border transition ${
-                              unsur.id === selectedUnsurId
-                                ? 'bg-blue-600 text-white border-blue-600'
-                                : 'bg-blue-50 text-blue-800 border-blue-200 hover:bg-blue-100'
-                            }`}
-                          >
-                            {unsur.isi_unsur}
-                          </button>
-                        ))
+                        area.pemeriksaan_unsurs.map((unsur) => {
+                          const isActive = unsur.id === selectedUnsurId;
+                          const st = unsurStatusMap[unsur.id];
+                          return (
+                            <button
+                              key={unsur.id}
+                              onClick={() => setSelectedUnsurId(unsur.id)}
+                              className={`w-full text-left px-3 py-2.5 rounded-lg text-xs border transition ${
+                                isActive
+                                  ? 'bg-blue-600 text-white border-blue-600'
+                                  : 'bg-white border-gray-200 hover:bg-blue-50 hover:border-blue-200'
+                              }`}
+                            >
+                              <div className="flex items-start gap-2">
+                                <span className={`flex-shrink-0 w-3 h-3 rounded-full mt-0.5 ${isActive ? 'bg-white' : getUnsurDotColor(unsur.id)}`} />
+                                <div className="flex-1 min-w-0">
+                                  <p className={`font-medium leading-tight ${isActive ? 'text-white' : 'text-gray-800'}`}>
+                                    {unsur.isi_unsur}
+                                  </p>
+                                  {!isActive && (
+                                    <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
+                                      {getUnsurStatusLabel(unsur.id)}
+                                      {st && st.latest_dosen_nama && (
+                                        <span className="text-[10px] text-gray-400">
+                                          {st.counts.total} isian dari prodi • terakhir oleh <span className="font-semibold text-gray-600">{st.latest_dosen_nama}</span>
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </button>
+                          );
+                        })
                       )}
                     </div>
                   </div>
