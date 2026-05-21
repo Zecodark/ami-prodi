@@ -351,10 +351,10 @@ model IsianAmi {
 model IsianBuktiFile {
   id            Int      @id @default(autoincrement())
   isian_id      Int
-  original_name String   @db.VarChar(50)
-  file_name     String   @db.VarChar(50)
-  file_path     String   @db.VarChar(100)
-  mime_type     String?  @db.VarChar(50)
+  original_name String   @db.VarChar(255)
+  file_name     String   @db.VarChar(255)
+  file_path     String   @db.VarChar(500)
+  mime_type     String?  @db.VarChar(100)
   file_size     Int?
 
   uploaded_by   Int?
