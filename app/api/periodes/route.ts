@@ -8,7 +8,7 @@ const serialize = (data: unknown) =>
   JSON.parse(JSON.stringify(data, (_, v) => (typeof v === 'bigint' ? v.toString() : v)));
 
 const createSchema = z.object({
-  tahun: z.string().min(4, 'Format tahun: 2024/2025'),
+  tahun: z.string().min(4, 'Format tahun: 2024/2025').max(10, 'Tahun maksimal 10 karakter'),
   is_active: z.boolean().default(false),
   tanggal_mulai: z.string().optional().nullable(),
   tanggal_selesai: z.string().optional().nullable(),
@@ -44,10 +44,27 @@ export async function POST(request: NextRequest) {
     if (!parsed.success) return R.badRequest('Validasi gagal', parsed.error.flatten());
 
     const { tahun, is_active, tanggal_mulai, tanggal_selesai } = parsed.data;
+
+    if (is_active) {
+      // Nonaktifkan semua periode lain dulu, lalu buat yang baru
+      const [_, data] = await prisma.$transaction([
+        prisma.periode.updateMany({ data: { is_active: false } }),
+        prisma.periode.create({
+          data: {
+            tahun,
+            is_active: true,
+            tanggal_mulai: tanggal_mulai ? new Date(tanggal_mulai) : null,
+            tanggal_selesai: tanggal_selesai ? new Date(tanggal_selesai) : null,
+          },
+        }),
+      ]);
+      return R.created(serialize(data), 'Periode berhasil dibuat dan diaktifkan');
+    }
+
     const data = await prisma.periode.create({
       data: {
         tahun,
-        is_active,
+        is_active: false,
         tanggal_mulai: tanggal_mulai ? new Date(tanggal_mulai) : null,
         tanggal_selesai: tanggal_selesai ? new Date(tanggal_selesai) : null,
       },

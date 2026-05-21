@@ -80,14 +80,17 @@ export default function PeriodePage() {
     }
   };
 
-  const handleSetActive = async (id: string, tahun: string) => {
-    if (!confirm(`Jadikan ${tahun} sebagai periode AKTIF? Periode aktif sebelumnya akan dinonaktifkan.`)) return;
+  const handleToggleActive = async (id: string, tahun: string, currentlyActive: boolean) => {
+    const message = currentlyActive
+      ? `Nonaktifkan periode ${tahun}? Tidak akan ada periode aktif.`
+      : `Jadikan ${tahun} sebagai periode AKTIF? Periode aktif sebelumnya akan dinonaktifkan.`;
+    if (!confirm(message)) return;
     try {
       const token = localStorage.getItem('ami_token');
       const res = await fetch(`/api/periodes/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ is_active: true })
+        body: JSON.stringify({ is_active: !currentlyActive })
       });
       if (res.ok) {
         fetchData();
@@ -179,17 +182,17 @@ export default function PeriodePage() {
                     <td className="py-3 px-4 text-slate-600">{p.tanggal_mulai ? new Date(p.tanggal_mulai).toLocaleDateString('id-ID') : '-'}</td>
                     <td className="py-3 px-4 text-slate-600">{p.tanggal_selesai ? new Date(p.tanggal_selesai).toLocaleDateString('id-ID') : '-'}</td>
                     <td className="py-3 px-4 text-center">
-                      {p.is_active ? (
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-indigo-100 text-indigo-700 border border-indigo-200 shadow-sm">
-                          <CheckCircle2 size={14} /> SEDANG AKTIF
+                      <button
+                        onClick={() => handleToggleActive(p.id, p.tahun, p.is_active)}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${p.is_active ? 'bg-indigo-600' : 'bg-slate-300'}`}
+                        title={p.is_active ? 'Klik untuk menonaktifkan' : 'Klik untuk mengaktifkan'}
+                      >
+                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${p.is_active ? 'translate-x-6' : 'translate-x-1'}`} />
+                      </button>
+                      {p.is_active && (
+                        <span className="ml-2 inline-flex items-center gap-1 text-xs font-bold text-indigo-700">
+                          <CheckCircle2 size={12} /> AKTIF
                         </span>
-                      ) : (
-                        <button 
-                          onClick={() => handleSetActive(p.id, p.tahun)}
-                          className="px-3 py-1 bg-slate-100 text-slate-600 text-xs font-medium rounded-full hover:bg-slate-200 transition-colors border border-slate-200"
-                        >
-                          Set Aktif
-                        </button>
                       )}
                     </td>
                     <td className="py-3 px-4 text-right">
