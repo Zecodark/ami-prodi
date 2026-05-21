@@ -19,6 +19,7 @@ import {
 interface Periode {
   id: string;
   tahun: string;
+  is_active?: boolean;
 }
 
 interface Instrumen {
@@ -413,96 +414,30 @@ export default function KaprodiReviewPage() {
     return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
   };
 
+  // Get active periode name
+  const activePeriode = periodes.find((p: any) => p.is_active);
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-3xl font-bold text-gray-900 mb-6">Review Instrumen AMI</h1>
-
-        {/* Filters */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {/* Periode */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Periode</label>
-              <select
-                value={selectedPeriode}
-                onChange={(e) => setSelectedPeriode(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-              >
-                <option value="">Pilih Periode</option>
-                {periodes.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.tahun}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Instrumen */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Instrumen</label>
-              <select
-                value={selectedInstrumen}
-                onChange={(e) => setSelectedInstrumen(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-              >
-                <option value="">Pilih Instrumen</option>
-                {instrumens.map((i) => (
-                  <option key={i.id} value={i.id}>
-                    {i.nama_instrumen}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Filter Type */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Pilih Berdasarkan</label>
-              <select
-                value={filterType}
-                onChange={(e) => setFilterType(e.target.value as 'dosen' | 'prodi')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-              >
-                <option value="prodi">Prodi</option>
-                <option value="dosen">Dosen</option>
-              </select>
-            </div>
-
-            {/* Dosen or Prodi */}
-            {filterType === 'dosen' ? (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Dosen</label>
-                <select
-                  value={selectedDosen}
-                  onChange={(e) => setSelectedDosen(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                >
-                  <option value="">Semua Dosen</option>
-                  {dosens.map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.nama_lengkap}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            ) : (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Prodi</label>
-                <select
-                  value={selectedProdi}
-                  onChange={(e) => setSelectedProdi(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                >
-                  <option value="">Semua Prodi</option>
-                  {prodis.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.nama_prodi} ({p.jenjang})
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
+        {/* Header with title and active period */}
+        <div className="flex items-start justify-between mb-6">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Verifikasi Dokumen AMI</h1>
+            <p className="text-gray-600 mt-1">Periksa Kriteria dan Unsur dokumen AMI</p>
           </div>
+          {activePeriode && (
+            <div className="flex items-center gap-3 bg-gradient-to-r from-blue-600 to-indigo-700 text-white px-5 py-3 rounded-xl shadow-lg">
+              <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                <Clock size={20} className="text-white" />
+              </div>
+              <div>
+                <p className="text-xs font-medium text-blue-100">Periode Aktif:</p>
+                <p className="text-sm font-bold">{activePeriode.tahun}</p>
+              </div>
+              <ChevronRight size={18} className="text-blue-200 ml-1" />
+            </div>
+          )}
         </div>
 
         {/* Main Content */}
