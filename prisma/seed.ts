@@ -759,7 +759,7 @@ async function main() {
       prodi_id: prodiD3TI.id,
       nip: '196910071995122001',
       nama_lengkap: 'IDHAWATI HESTININGSIH , S.Kom., M. Kom.',
-      status_kepegawaian: 'PNS',
+      status_kepegawaian: 'Dosen Tetap',
       no_hp: '081234567001',
       alamat: 'Semarang',
       is_active: true,
@@ -772,7 +772,7 @@ async function main() {
       prodi_id: prodiD3TI.id,
       nip: '199001012019031002',
       nama_lengkap: 'MUTTABIK FATHUL LATHIEF S.Kom., M.Eng.',
-      status_kepegawaian: 'PNS',
+      status_kepegawaian: 'Dosen Tetap',
       no_hp: '081234567002',
       alamat: 'Semarang',
       is_active: true,
@@ -785,7 +785,7 @@ async function main() {
       prodi_id: prodiD3TI.id,
       nip: '197105052000031003',
       nama_lengkap: 'SUKAMTO , S.Kom., M.T.',
-      status_kepegawaian: 'PNS',
+      status_kepegawaian: 'Dosen Tetap',
       no_hp: '081234567003',
       alamat: 'Semarang',
       is_active: true,
@@ -798,35 +798,8 @@ async function main() {
       prodi_id: prodiD4TRK.id,
       nip: '197506012003122004',
       nama_lengkap: 'WIKTASARI , S.T., M.Kom.',
-      status_kepegawaian: 'PNS',
+      status_kepegawaian: 'Dosen Tetap',
       no_hp: '081234567004',
-      alamat: 'Semarang',
-      is_active: true,
-    },
-  });
-
-  // Kaprodi juga punya profil Dosen (untuk linkage prodi), tapi tidak mengisi AMI
-  await prisma.dosen.create({
-    data: {
-      user_id: kaprodiUser.id,
-      prodi_id: prodiD3TI.id,
-      nip: '196805101995121001',
-      nama_lengkap: 'Dr. Budi Santoso, M.Kom.',
-      status_kepegawaian: 'PNS',
-      no_hp: '081312345678',
-      alamat: 'Semarang',
-      is_active: true,
-    },
-  });
-
-  await prisma.dosen.create({
-    data: {
-      user_id: kaprodiUser2.id,
-      prodi_id: prodiD4TRK.id,
-      nip: '197203151998031002',
-      nama_lengkap: 'Dr. Andi Prasetyo, M.T.',
-      status_kepegawaian: 'PNS',
-      no_hp: '081312345679',
       alamat: 'Semarang',
       is_active: true,
     },
