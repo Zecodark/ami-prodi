@@ -182,18 +182,18 @@ export default function PeriodePage() {
                     <td className="py-3 px-4 text-slate-600">{p.tanggal_mulai ? new Date(p.tanggal_mulai).toLocaleDateString('id-ID') : '-'}</td>
                     <td className="py-3 px-4 text-slate-600">{p.tanggal_selesai ? new Date(p.tanggal_selesai).toLocaleDateString('id-ID') : '-'}</td>
                     <td className="py-3 px-4 text-center">
-                      <button
-                        onClick={() => handleToggleActive(p.id, p.tahun, p.is_active)}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${p.is_active ? 'bg-indigo-600' : 'bg-slate-300'}`}
-                        title={p.is_active ? 'Klik untuk menonaktifkan' : 'Klik untuk mengaktifkan'}
-                      >
-                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${p.is_active ? 'translate-x-6' : 'translate-x-1'}`} />
-                      </button>
-                      {p.is_active && (
-                        <span className="ml-2 inline-flex items-center gap-1 text-xs font-bold text-indigo-700">
-                          <CheckCircle2 size={12} /> AKTIF
+                      <div className="flex items-center justify-center gap-2">
+                        <button
+                          onClick={() => handleToggleActive(p.id, p.tahun, p.is_active)}
+                          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${p.is_active ? 'bg-indigo-600' : 'bg-slate-300'}`}
+                          title={p.is_active ? 'Klik untuk menonaktifkan' : 'Klik untuk mengaktifkan'}
+                        >
+                          <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${p.is_active ? 'translate-x-[18px]' : 'translate-x-[3px]'}`} />
+                        </button>
+                        <span className={`text-xs font-semibold ${p.is_active ? 'text-indigo-700' : 'text-slate-400'}`}>
+                          {p.is_active ? 'Aktif' : 'Nonaktif'}
                         </span>
-                      )}
+                      </div>
                     </td>
                     <td className="py-3 px-4 text-right">
                       <div className="flex justify-end gap-2">
