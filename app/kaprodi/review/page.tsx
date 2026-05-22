@@ -170,23 +170,49 @@ export default function KaprodiReviewPage() {
     fetchKriterias();
   }, [selectedInstrumen]);
 
-  // Fetch unsur status (by-unsur API)
+  // Fetch unsur status - use isians summary to build status map
   useEffect(() => {
     if (!selectedPeriode) return;
     const fetchUnsurStatus = async () => {
       try {
         const token = localStorage.getItem('ami_token');
-        const res = await fetch(`/api/isians/by-unsur?periode_id=${selectedPeriode}`, {
+        // Fetch all isians for this periode (kaprodi sees only their prodi)
+        const res = await fetch(`/api/isians?periode_id=${selectedPeriode}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const result = await res.json();
-        // R.ok wraps as { success, message, data }
-        // The by-unsur API passes { data: map, periode_id, prodi_id } to R.ok
-        // So final structure: result.data = { data: { unsurId: statusObj }, periode_id, prodi_id }
-        const statusData = result.data?.data || result.data || {};
-        console.log('[by-unsur] raw result:', result);
-        console.log('[by-unsur] statusData keys:', Object.keys(statusData));
-        setUnsurStatusMap(statusData);
+        const allIsians: any[] = result.data || [];
+
+        // Build status map grouped by pemeriksaan_unsur_id
+        const map: Record<string, UnsurStatusData> = {};
+        for (const isian of allIsians) {
+          const unsurId = isian.pemeriksaan_unsur?.id?.toString() ||
+            isian.pemeriksaan_unsur_id?.toString();
+          if (!unsurId) continue;
+
+          if (!map[unsurId]) {
+            map[unsurId] = {
+              status: 'kosong',
+              counts: { valid: 0, revisi: 0, proses: 0, total: 0 },
+              latest_dosen_nama: null,
+            };
+          }
+
+          const entry = map[unsurId];
+          entry.counts.total++;
+          if (isian.status === 'valid') entry.counts.valid++;
+          else if (isian.status === 'revisi') entry.counts.revisi++;
+          else if (isian.status === 'proses') entry.counts.proses++;
+
+          // Determine overall status
+          if (entry.counts.valid > 0) entry.status = 'valid';
+          else if (entry.counts.proses > 0 || entry.counts.revisi > 0) entry.status = 'proses';
+
+          // Track latest dosen
+          entry.latest_dosen_nama = isian.dosen?.nama_lengkap || entry.latest_dosen_nama;
+        }
+
+        setUnsurStatusMap(map);
       } catch (error) {
         console.error('Failed to fetch unsur status:', error);
       }

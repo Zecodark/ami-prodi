@@ -257,7 +257,7 @@ export default function KaprodiDashboard() {
                         Disubmit: {timeAgo(isian.submitted_at)}
                       </p>
                       <Link
-                        href={`/kaprodi/review?isian_id=${isian.id}`}
+                        href={`/kaprodi/review/${isian.id}`}
                         className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-[#1456a8] hover:text-[#0a2f6f]"
                       >
                         Review Sekarang <ArrowRight size={12} />
