@@ -132,6 +132,19 @@ export async function POST(request: NextRequest) {
     if (!unsur.deskripsi_area.kode_ami.kriteria.instrumen.is_active)
       return R.forbidden('Instrumen AMI tidak aktif');
 
+    // Cek apakah sudah ada dokumen yang valid untuk unsur ini di prodi yang sama
+    const validIsian = await prisma.isianAmi.findFirst({
+      where: {
+        pemeriksaan_unsur_id: parsed.data.pemeriksaan_unsur_id,
+        periode_id: parsed.data.periode_id,
+        prodi_id: dosen.prodi_id,
+        status: 'valid',
+      },
+    });
+    if (validIsian) {
+      return R.badRequest('Dokumen untuk unsur ini sudah divalidasi dan tidak dapat diubah atau diisi lagi.');
+    }
+
     // Cek apakah sudah ada draft untuk unsur ini
     const existingDraft = await prisma.isianAmi.findFirst({
       where: {

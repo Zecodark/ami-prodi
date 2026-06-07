@@ -54,6 +54,7 @@ interface FormData {
   capaian: string;
   keterangan: string;
   bukti_file: File | null;
+  existing_files?: Array<{ id: string; file_name: string; original_name: string; file_path: string }>;
 }
 
 // =====================================================================
@@ -265,7 +266,7 @@ export default function IsiAmiPage() {
     const tree: TreeNode[] = kriteria.map((k) => {
       const kodeAmis = (k.kode_amis || []).map((ami: any) => {
         const deskripsiAreas = (ami.deskripsi_areas || []).map((area: any) => ({
-          id: area.id?.toString() || Math.random().toString(),
+          id: area.id ? `area-${area.id}` : `area-rnd-${Math.random()}`,
           deskripsi_area_audit: area.deskripsi_area_audit,
           type: 'area' as const,
           expanded: true,
@@ -277,7 +278,7 @@ export default function IsiAmiPage() {
         }));
 
         return {
-          id: ami.id?.toString() || Math.random().toString(),
+          id: ami.id ? `ami-${ami.id}` : `ami-rnd-${Math.random()}`,
           kode_ami: ami.kode_ami,
           type: 'ami' as const,
           expanded: true,
@@ -286,7 +287,7 @@ export default function IsiAmiPage() {
       });
 
       return {
-        id: k.id?.toString() || Math.random().toString(),
+        id: k.id ? `kriteria-${k.id}` : `kriteria-rnd-${Math.random()}`,
         kode_kriteria: k.kode_kriteria,
         nama_kriteria: k.nama_kriteria,
         type: 'kriteria' as const,
@@ -343,39 +344,47 @@ export default function IsiAmiPage() {
     setSelectedUnsur(id);
     resetForm(id);
 
-    // Coba load draft yang sudah ada untuk unsur ini
+    const isUnsurValid = statusMap[id]?.status === 'valid';
+
+    // Coba load isian yang sudah ada (valid atau draft)
     try {
       const token = localStorage.getItem('ami_token');
+      const fetchStatus = isUnsurValid ? 'valid' : 'draft';
       const res = await fetch(
-        `/api/isians?pemeriksaan_unsur_id=${id}&status=draft`,
+        `/api/isians?pemeriksaan_unsur_id=${id}&status=${fetchStatus}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       const json = await res.json();
-      const drafts = json.data ?? [];
-      if (drafts.length > 0) {
-        // Ambil draft terbaru
-        const draft = drafts[0];
+      const items = json.data ?? [];
+      if (items.length > 0) {
+        // Ambil data terbaru
+        const item = items[0];
         setFormData({
           pemeriksaan_unsur_id: id,
-          judul_dokumen: draft.judul_dokumen ?? '',
-          ketersediaan_standar: draft.ketersediaan_standar ?? 'tidak_ada',
-          dokumen: draft.dokumen ?? 'tidak_ada',
-          pencapaian_standar_spt_pt: draft.pencapaian_standar_spt_pt ?? false,
-          pencapaian_standar_sn_dikti: draft.pencapaian_standar_sn_dikti ?? false,
-          daya_saing_lokal: draft.daya_saing_lokal ?? false,
-          daya_saing_nasional: draft.daya_saing_nasional ?? false,
-          daya_saing_internasional: draft.daya_saing_internasional ?? false,
-          bukti_link: draft.bukti_link ?? '',
-          tahun_pelaksanaan: draft.tahun_pelaksanaan ?? '',
-          capaian: draft.capaian ?? '',
-          keterangan: draft.keterangan ?? '',
+          judul_dokumen: item.judul_dokumen ?? '',
+          ketersediaan_standar: item.ketersediaan_standar ?? 'tidak_ada',
+          dokumen: item.dokumen ?? 'tidak_ada',
+          pencapaian_standar_spt_pt: item.pencapaian_standar_spt_pt ?? false,
+          pencapaian_standar_sn_dikti: item.pencapaian_standar_sn_dikti ?? false,
+          daya_saing_lokal: item.daya_saing_lokal ?? false,
+          daya_saing_nasional: item.daya_saing_nasional ?? false,
+          daya_saing_internasional: item.daya_saing_internasional ?? false,
+          bukti_link: item.bukti_link ?? '',
+          tahun_pelaksanaan: item.tahun_pelaksanaan ?? '',
+          capaian: item.capaian ?? '',
+          keterangan: item.keterangan ?? '',
           bukti_file: null,
+          existing_files: item.bukti_files ?? [],
         });
-        setSuccessMsg('Draft sebelumnya dimuat otomatis.');
-        setTimeout(() => setSuccessMsg(''), 3000);
+        if (isUnsurValid) {
+          setSuccessMsg('Menampilkan data isian yang sudah divalidasi Kaprodi.');
+        } else {
+          setSuccessMsg('Draft sebelumnya dimuat otomatis.');
+          setTimeout(() => setSuccessMsg(''), 3000);
+        }
       }
     } catch {
-      // Gagal load draft tidak fatal, form tetap kosong
+      // Gagal load tidak fatal
     }
   };
 
@@ -399,6 +408,7 @@ export default function IsiAmiPage() {
       capaian: '',
       keterangan: '',
       bukti_file: null,
+      existing_files: [],
     }));
   };
 
@@ -826,7 +836,15 @@ export default function IsiAmiPage() {
             </div>
           )}
 
+          {(() => {
+            const isUnsurValid = selectedUnsur ? statusMap[selectedUnsur]?.status === 'valid' : false;
+            
+            const inputClasses = "w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 disabled:bg-slate-50 disabled:text-slate-800 disabled:border-transparent disabled:opacity-100 disabled:shadow-none";
+            const selectClasses = "w-full appearance-none border border-slate-300 rounded-lg pl-3 pr-10 py-2.5 text-sm bg-white outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 cursor-pointer hover:border-indigo-400 transition-colors disabled:bg-slate-50 disabled:text-slate-800 disabled:border-transparent disabled:opacity-100 disabled:cursor-default disabled:appearance-none disabled:shadow-none disabled:hover:border-transparent";
+
+            return (
           <form className="space-y-5">
+            <fieldset disabled={isUnsurValid} className="space-y-5">
             {/* Row 1 */}
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
@@ -839,7 +857,7 @@ export default function IsiAmiPage() {
                   value={formData.judul_dokumen}
                   onChange={handleInputChange}
                   placeholder="Nama dokumen atau bukti"
-                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                  className={inputClasses}
                 />
               </div>
               <div>
@@ -854,7 +872,7 @@ export default function IsiAmiPage() {
                   placeholder="2024"
                   min="1900"
                   max="2099"
-                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                  className={inputClasses}
                 />
               </div>
             </div>
@@ -870,15 +888,17 @@ export default function IsiAmiPage() {
                     name="ketersediaan_standar"
                     value={formData.ketersediaan_standar}
                     onChange={handleInputChange}
-                    className="w-full appearance-none border border-slate-300 rounded-lg pl-3 pr-10 py-2.5 text-sm bg-white outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 cursor-pointer hover:border-indigo-400 transition-colors"
+                    className={selectClasses}
                   >
                     <option value="ada">Ada</option>
                     <option value="tidak_ada">Tidak Ada</option>
                   </select>
-                  <ChevronDown
-                    size={18}
-                    className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
-                  />
+                  {!isUnsurValid && (
+                    <ChevronDown
+                      size={18}
+                      className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
+                    />
+                  )}
                 </div>
               </div>
               <div>
@@ -890,15 +910,17 @@ export default function IsiAmiPage() {
                     name="dokumen"
                     value={formData.dokumen}
                     onChange={handleInputChange}
-                    className="w-full appearance-none border border-slate-300 rounded-lg pl-3 pr-10 py-2.5 text-sm bg-white outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 cursor-pointer hover:border-indigo-400 transition-colors"
+                    className={selectClasses}
                   >
                     <option value="ada">Ada</option>
                     <option value="tidak_ada">Tidak Ada</option>
                   </select>
-                  <ChevronDown
-                    size={18}
-                    className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
-                  />
+                  {!isUnsurValid && (
+                    <ChevronDown
+                      size={18}
+                      className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
+                    />
+                  )}
                 </div>
               </div>
             </div>
@@ -978,38 +1000,69 @@ export default function IsiAmiPage() {
                 value={formData.bukti_link}
                 onChange={handleInputChange}
                 placeholder="https://..."
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                className={inputClasses}
               />
             </div>
 
-            {/* File Upload */}
+            {/* File Upload / Existing Files */}
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
-                Upload File Bukti
+                {isUnsurValid ? 'Dokumen Bukti' : 'Upload File Bukti'}
               </label>
-              <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center hover:border-indigo-400 transition-colors cursor-pointer relative">
-                <input
-                  type="file"
-                  onChange={handleFileChange}
-                  className="absolute inset-0 opacity-0 cursor-pointer"
-                />
-                <div className="flex flex-col items-center gap-2">
-                  <FileUp size={24} className="text-slate-400" />
-                  <div>
-                    <p className="text-sm font-medium text-slate-700">
-                      Klik atau drag file di sini
-                    </p>
-                    <p className="text-xs text-slate-500 mt-1">
-                      Format: PDF, JPG, PNG (Max 10MB)
-                    </p>
-                  </div>
+
+              {isUnsurValid ? (
+                <div className="space-y-2">
+                  {formData.existing_files && formData.existing_files.length > 0 ? (
+                    formData.existing_files.map((file: any) => (
+                      <a
+                        key={file.id}
+                        href={file.file_path}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 bg-white hover:border-indigo-300 hover:shadow-sm transition-all"
+                      >
+                        <div className="w-8 h-8 rounded bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0">
+                          <FileText size={16} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="text-sm font-medium text-slate-700 truncate">
+                            {file.original_name}
+                          </div>
+                          <div className="text-xs text-slate-500 mt-0.5">Buka dokumen</div>
+                        </div>
+                      </a>
+                    ))
+                  ) : (
+                    <div className="text-sm text-slate-500 italic p-3 rounded-lg bg-slate-50 border border-transparent">
+                      Tidak ada dokumen yang diunggah.
+                    </div>
+                  )}
                 </div>
-                {formData.bukti_file && (
-                  <p className="text-xs text-emerald-600 font-medium mt-2">
-                    ✓ {formData.bukti_file.name}
-                  </p>
-                )}
-              </div>
+              ) : (
+                <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center hover:border-indigo-400 transition-colors cursor-pointer relative bg-white">
+                  <input
+                    type="file"
+                    onChange={handleFileChange}
+                    className="absolute inset-0 opacity-0 cursor-pointer"
+                  />
+                  <div className="flex flex-col items-center gap-2">
+                    <FileUp size={24} className="text-slate-400" />
+                    <div>
+                      <p className="text-sm font-medium text-slate-700">
+                        Klik atau drag file di sini
+                      </p>
+                      <p className="text-xs text-slate-500 mt-1">
+                        Format: PDF, JPG, PNG (Max 10MB)
+                      </p>
+                    </div>
+                  </div>
+                  {formData.bukti_file && (
+                    <p className="text-xs text-emerald-600 font-medium mt-2">
+                      ✓ {formData.bukti_file.name}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Capaian */}
@@ -1023,7 +1076,7 @@ export default function IsiAmiPage() {
                 onChange={handleInputChange}
                 placeholder="Jelaskan capaian yang sudah dicapai..."
                 rows={3}
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 resize-none"
+                className={`${inputClasses} resize-none`}
               />
             </div>
 
@@ -1038,7 +1091,7 @@ export default function IsiAmiPage() {
                 onChange={handleInputChange}
                 placeholder="Catatan atau penjelasan lainnya..."
                 rows={3}
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 resize-none"
+                className={`${inputClasses} resize-none`}
               />
             </div>
 
@@ -1055,6 +1108,7 @@ export default function IsiAmiPage() {
             )}
 
             {/* Buttons */}
+            {!isUnsurValid && (
             <div className="flex gap-3 pt-4 border-t border-slate-200">
               <button
                 type="button"
@@ -1075,7 +1129,11 @@ export default function IsiAmiPage() {
                 Kirim untuk Review
               </button>
             </div>
+            )}
+            </fieldset>
           </form>
+            );
+          })()}
         </div>
       )}
     </div>

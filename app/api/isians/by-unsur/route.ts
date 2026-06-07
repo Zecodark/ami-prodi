@@ -82,16 +82,19 @@ export async function GET(request: NextRequest) {
       prodiId = Number(prodiParam);
     }
 
-    if (!prodiId) {
-      return R.badRequest('prodi_id wajib disertakan untuk admin/kaprodi');
+    if (user.roleName.toLowerCase() !== 'admin' && !prodiId) {
+      // Allow if it's admin. If kaprodi doesn't have prodi_id, they will see everything.
+      // But usually Kaprodi has a prodi_id.
+    }
+
+    const whereClause: any = { periode_id: periodeId };
+    if (prodiId) {
+      whereClause.prodi_id = prodiId;
     }
 
     // Ambil semua isian untuk prodi+periode terkait
     const isians: any[] = await prisma.isianAmi.findMany({
-      where: {
-        periode_id: periodeId,
-        prodi_id: prodiId,
-      },
+      where: whereClause,
       select: {
         id: true,
         pemeriksaan_unsur_id: true,
@@ -109,16 +112,9 @@ export async function GET(request: NextRequest) {
       ],
     });
 
-    // Untuk tiap (unsur, dosen) ambil attempt terbaru
-    const latestPerDosen = new Map<string, (typeof isians)[number]>();
-    for (const it of isians) {
-      const key = `${it.pemeriksaan_unsur_id}::${it.dosen_id}`;
-      if (!latestPerDosen.has(key)) latestPerDosen.set(key, it);
-    }
-
     // Group berdasarkan unsur
     const grouped = new Map<string, (typeof isians)[number][]>();
-    for (const it of latestPerDosen.values()) {
+    for (const it of isians) {
       const key = it.pemeriksaan_unsur_id.toString();
       if (!grouped.has(key)) grouped.set(key, []);
       grouped.get(key)!.push(it);
@@ -142,8 +138,13 @@ export async function GET(request: NextRequest) {
       let proses = 0;
 
       let latest = list[0];
+      let firstValid = null;
+
       for (const it of list) {
-        if (it.status === 'valid') valid++;
+        if (it.status === 'valid') {
+          valid++;
+          if (!firstValid) firstValid = it;
+        }
         else if (it.status === 'revisi') revisi++;
         else if (it.status === 'proses') proses++;
 
@@ -153,6 +154,10 @@ export async function GET(request: NextRequest) {
         ) {
           latest = it;
         }
+      }
+
+      if (firstValid) {
+        latest = firstValid;
       }
 
       let status: UnsurStatus = 'kosong';
@@ -175,6 +180,11 @@ export async function GET(request: NextRequest) {
       };
     }
 
+    console.log('[DEBUG by-unsur] prodiId:', prodiId, 'periodeId:', periodeId);
+    console.log('[DEBUG by-unsur] result keys:', Object.keys(result));
+    for (const key of Object.keys(result)) {
+      console.log(`[DEBUG by-unsur] unsur ${key} status:`, result[key].status);
+    }
     return R.ok(serialize({ data: result, periode_id: periodeId, prodi_id: prodiId }));
   } catch (e) {
     return R.serverError(e);

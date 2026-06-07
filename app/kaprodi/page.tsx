@@ -30,7 +30,7 @@ interface DashboardData {
 
   total_unsur: number;
   unsur_terisi: number;
-  unsur_belum_terisi: number;
+  unsur_belum_valid: number;
   unsur_perlu_revisi: number;
   unsur_valid: number;
   unsur_proses: number;
@@ -115,15 +115,7 @@ export default function KaprodiDashboard() {
 
       {/* ====== Hero "Periode Aktif" ====== */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#0a2f6f] via-[#0e4490] to-[#1456a8] text-white p-7 shadow-lg">
-        {/* striped accent */}
-        <div
-          aria-hidden
-          className="absolute inset-0 opacity-15 pointer-events-none"
-          style={{
-            backgroundImage:
-              'repeating-linear-gradient(90deg, rgba(255,255,255,0.18) 0 1.5px, transparent 1.5px 18px)',
-          }}
-        />
+
         <div className="relative z-10">
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 border border-white/20 text-xs font-semibold backdrop-blur-sm">
             <Calendar size={13} /> Periode Aktif
@@ -156,7 +148,7 @@ export default function KaprodiDashboard() {
             />
           </div>
           <p className="mt-3 text-xs text-slate-500 max-w-[18rem]">
-            Total seluruh unsur pemeriksaan yang sudah terisi.
+            Total seluruh unsur pemeriksaan yang sudah valid.
           </p>
         </div>
 
@@ -168,13 +160,13 @@ export default function KaprodiDashboard() {
             icon={<FileText size={20} className="text-[#1456a8]" />}
           />
           <KpiCard
-            label="Total Isian Belum Terisi"
-            value={data.unsur_belum_terisi}
+            label="Total Isian Belum Valid"
+            value={data.unsur_belum_valid}
             icon={<Inbox size={20} className="text-slate-500" />}
           />
           <KpiCard
-            label="Total Isian Terisi"
-            value={data.unsur_terisi}
+            label="Total Isian Valid"
+            value={data.unsur_valid}
             icon={<CheckCircle size={20} className="text-emerald-500" />}
           />
           <KpiCard
@@ -189,29 +181,12 @@ export default function KaprodiDashboard() {
       <div className="bg-white rounded-2xl border border-[#cfdbf2] shadow-sm p-6">
         <h3 className="text-lg font-bold text-[#0a2f6f] mb-4">Status Isian</h3>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatusBlock
-            label="Total Isian Masuk"
-            value={data.isians.masuk}
-            tone="navy"
-          />
-          <StatusBlock
-            label="Total Isian Valid"
-            value={data.isians.valid}
-            tone="navy"
-            accentDot="emerald"
-          />
+        <div className="grid grid-cols-1 gap-4">
           <StatusBlock
             label="Total Isian Menunggu Review"
             value={data.isians.proses}
             tone="navy"
             accentDot="amber"
-          />
-          <StatusBlock
-            label="Total Isian Perlu Revisi"
-            value={data.isians.revisi}
-            tone="navy"
-            accentDot="rose"
           />
         </div>
       </div>
@@ -343,15 +318,7 @@ function StatusBlock({
           : 'bg-slate-700'
       }`}
     >
-      {/* striped accent */}
-      <div
-        aria-hidden
-        className="absolute inset-0 opacity-15 pointer-events-none"
-        style={{
-          backgroundImage:
-            'repeating-linear-gradient(90deg, rgba(255,255,255,0.18) 0 1.5px, transparent 1.5px 14px)',
-        }}
-      />
+
       <div className="relative z-10 flex items-start justify-between gap-2">
         <div className="text-[11px] uppercase tracking-wider font-semibold text-blue-100/90 truncate">
           {label}

@@ -122,8 +122,7 @@ export default function DosenDashboard() {
     );
   }
 
-  const filled = stat.valid + stat.proses + stat.revisi;
-  const progress = stat.total > 0 ? Math.round((filled / stat.total) * 100) : 0;
+  const progress = stat.total > 0 ? Math.round((stat.valid / stat.total) * 100) : 0;
 
   return (
     <div className="space-y-6">
@@ -139,14 +138,6 @@ export default function DosenDashboard() {
 
       {/* ====== Hero "Periode Aktif" ====== */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#0a2f6f] via-[#0e4490] to-[#1456a8] text-white p-7 shadow-lg">
-        <div
-          aria-hidden
-          className="absolute inset-0 opacity-15 pointer-events-none"
-          style={{
-            backgroundImage:
-              'repeating-linear-gradient(90deg, rgba(255,255,255,0.18) 0 1.5px, transparent 1.5px 18px)',
-          }}
-        />
         <div className="relative z-10">
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 border border-white/20 text-xs font-semibold backdrop-blur-sm">
             <Calendar size={13} /> Periode Aktif
@@ -179,7 +170,7 @@ export default function DosenDashboard() {
             />
           </div>
           <p className="mt-3 text-xs text-slate-500 max-w-[18rem]">
-            Total seluruh unsur pemeriksaan yang sudah terisi.
+            Total seluruh unsur pemeriksaan yang sudah valid.
           </p>
         </div>
 
@@ -191,13 +182,13 @@ export default function DosenDashboard() {
             icon={<FileText size={20} className="text-[#1456a8]" />}
           />
           <KpiCard
-            label="Total Isian Belum Terisi"
-            value={stat.kosong}
+            label="Total Isian Belum Valid"
+            value={Math.max(0, stat.total - stat.valid)}
             icon={<Inbox size={20} className="text-slate-500" />}
           />
           <KpiCard
-            label="Total Isian Terisi"
-            value={filled}
+            label="Total Isian Valid"
+            value={stat.valid}
             icon={<CheckCircle size={20} className="text-emerald-500" />}
           />
           <KpiCard
@@ -211,11 +202,8 @@ export default function DosenDashboard() {
       {/* ====== Status Isian (4 dark blue cards) ====== */}
       <div className="bg-white rounded-2xl border border-[#cfdbf2] shadow-sm p-6">
         <h3 className="text-lg font-bold text-[#0a2f6f] mb-4">Status Isian</h3>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatusBlock label="Total Isian Masuk" value={filled} />
-          <StatusBlock label="Total Isian Valid" value={stat.valid} accentDot="emerald" />
+        <div className="grid grid-cols-1 gap-4">
           <StatusBlock label="Total Isian Menunggu Review" value={stat.proses} accentDot="amber" />
-          <StatusBlock label="Total Isian Perlu Revisi" value={stat.revisi} accentDot="rose" />
         </div>
       </div>
 
@@ -304,14 +292,6 @@ function StatusBlock({
   };
   return (
     <div className="relative overflow-hidden rounded-xl p-4 text-white shadow-md bg-gradient-to-br from-[#0e4490] to-[#1456a8]">
-      <div
-        aria-hidden
-        className="absolute inset-0 opacity-15 pointer-events-none"
-        style={{
-          backgroundImage:
-            'repeating-linear-gradient(90deg, rgba(255,255,255,0.18) 0 1.5px, transparent 1.5px 14px)',
-        }}
-      />
       <div className="relative z-10 flex items-start justify-between gap-2">
         <div className="text-[11px] uppercase tracking-wider font-semibold text-blue-100/90 truncate">
           {label}

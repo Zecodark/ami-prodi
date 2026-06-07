@@ -9,7 +9,7 @@ const serialize = (data: unknown) =>
 
 const reviewSchema = z.object({
   status: z.enum(['valid', 'revisi']),
-  catatan_kaprodi: z.string().optional(),
+  catatan_kaprodi: z.string().nullable().optional(),
 });
 
 const isianInclude = {

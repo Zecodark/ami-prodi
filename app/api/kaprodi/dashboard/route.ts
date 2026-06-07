@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
           dosen_count: 0,
           total_unsur: 0,
           unsur_terisi: 0,
-          unsur_belum_terisi: 0,
+          unsur_belum_valid: 0,
           unsur_perlu_revisi: 0,
           progress: 0,
           isians: { masuk: 0, proses: 0, valid: 0, revisi: 0 },
@@ -156,8 +156,8 @@ export async function GET(request: NextRequest) {
     }
 
     const unsurTerisi = unsurValid + unsurProses + unsurRevisi;
-    const unsurBelumTerisi = Math.max(0, totalUnsur - unsurTerisi);
-    const progress = totalUnsur > 0 ? Math.round((unsurTerisi / totalUnsur) * 100) : 0;
+    const unsurBelumValid = Math.max(0, totalUnsur - unsurValid);
+    const progress = totalUnsur > 0 ? Math.round((unsurValid / totalUnsur) * 100) : 0;
 
     // Daftar isian terbaru yang menunggu review
     const recentIsians = await prisma.isianAmi.findMany({
@@ -195,7 +195,7 @@ export async function GET(request: NextRequest) {
 
         total_unsur: totalUnsur,
         unsur_terisi: unsurTerisi,
-        unsur_belum_terisi: unsurBelumTerisi,
+        unsur_belum_valid: unsurBelumValid,
         unsur_perlu_revisi: unsurRevisi,
         unsur_valid: unsurValid,
         unsur_proses: unsurProses,
