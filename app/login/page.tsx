@@ -54,8 +54,14 @@ export default function LoginPage() {
       <div className="login-card">
         {/* ====== LEFT PANEL (BIRU + BLOB) ====== */}
         <div className="login-left">
-          <div className="blob-corner" aria-hidden />
-          <div className="blob-bottom" aria-hidden />
+          {/* Efek Layer Perspektif */}
+          <div className="login-layer layer-1" aria-hidden />
+          <div className="login-layer layer-2" aria-hidden />
+
+          <div className="login-left-bg">
+            <div className="blob-corner" aria-hidden />
+            <div className="blob-bottom" aria-hidden />
+          </div>
 
           <div className="left-content">
             <div className="logo-circle">
@@ -198,11 +204,39 @@ export default function LoginPage() {
         /* ============ LEFT PANEL ============ */
         .login-left {
           position: relative;
-          background: var(--siami-navy);
           color: #ffffff;
+          z-index: 1;
+        }
+
+        .login-layer {
+          position: absolute;
+          top: 0; bottom: 0; left: 0;
+          z-index: -2;
+        }
+
+        .layer-1 {
+          right: -40px;
+          background: rgba(10, 47, 111, 0.06);
+          border-top-right-radius: 40% 60%;
+          border-bottom-right-radius: 20% 40%;
+        }
+
+        .layer-2 {
+          right: -20px;
+          background: rgba(10, 47, 111, 0.12);
+          border-top-right-radius: 45% 80%;
+          border-bottom-right-radius: 25% 50%;
+        }
+
+        .login-left-bg {
+          position: absolute;
+          top: 0; left: 0; right: 0; bottom: 0;
+          background: linear-gradient(150deg, var(--siami-navy) 0%, #0d3880 100%);
           overflow: hidden;
           border-top-right-radius: 50% 100%;
-          border-bottom-right-radius: 28% 60%;
+          border-bottom-right-radius: 30% 60%;
+          box-shadow: 10px 0 30px rgba(10, 47, 111, 0.2);
+          z-index: -1;
         }
 
         /* aksen lingkaran kuning -> kanan atas */
@@ -441,9 +475,16 @@ export default function LoginPage() {
           }
 
           .login-left {
-            border-radius: 0;
-            padding: 0;
             min-height: 220px;
+          }
+
+          .login-left-bg {
+            border-radius: 0;
+            box-shadow: none;
+          }
+
+          .login-layer {
+            display: none; /* Sembunyikan layer perspektif di mobile */
           }
 
           .left-content {
