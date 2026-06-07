@@ -312,6 +312,8 @@ model IsianAmi {
   capaian                     String?             @db.Text
   keterangan                  String?             @db.Text
 
+  urutan_isian                Int                 @default(1) @db.UnsignedInt
+
   status                      IsianStatus         @default(proses)
   catatan_kaprodi             String?             @db.Text
 
@@ -333,7 +335,7 @@ model IsianAmi {
   bukti_files  IsianBuktiFile[]
   review_logs  IsianReviewLog[]
 
-  @@unique([pemeriksaan_unsur_id, periode_id, dosen_id, attempt])
+  @@unique([pemeriksaan_unsur_id, periode_id, prodi_id, urutan_isian])
   @@index([pemeriksaan_unsur_id])
   @@index([periode_id])
   @@index([dosen_id])

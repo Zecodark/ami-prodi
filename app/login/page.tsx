@@ -217,15 +217,15 @@ export default function LoginPage() {
         .layer-1 {
           right: -40px;
           background: rgba(10, 47, 111, 0.06);
-          border-top-right-radius: 40% 60%;
-          border-bottom-right-radius: 20% 40%;
+          border-top-right-radius: 50%;
+          border-bottom-right-radius: 50%;
         }
 
         .layer-2 {
           right: -20px;
           background: rgba(10, 47, 111, 0.12);
-          border-top-right-radius: 45% 80%;
-          border-bottom-right-radius: 25% 50%;
+          border-top-right-radius: 50%;
+          border-bottom-right-radius: 50%;
         }
 
         .login-left-bg {
@@ -233,8 +233,8 @@ export default function LoginPage() {
           top: 0; left: 0; right: 0; bottom: 0;
           background: linear-gradient(150deg, var(--siami-navy) 0%, #0d3880 100%);
           overflow: hidden;
-          border-top-right-radius: 50% 100%;
-          border-bottom-right-radius: 30% 60%;
+          border-top-right-radius: 50%;
+          border-bottom-right-radius: 50%;
           box-shadow: 10px 0 30px rgba(10, 47, 111, 0.2);
           z-index: -1;
         }

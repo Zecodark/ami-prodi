@@ -25,6 +25,7 @@ interface BuktiFile {
 
 interface IsianDetail {
   id: string;
+  urutan_isian: number;
   judul_dokumen: string;
   ketersediaan_standar: string;
   dokumen: string;
@@ -74,6 +75,7 @@ interface InstrumenRow {
   status: 'proses' | 'valid' | 'revisi';
   unsur: string;
   isian_id: string;
+  urutan_isian: number;
 }
 
 export default function KaprodiReviewPage() {
@@ -150,19 +152,11 @@ export default function KaprodiReviewPage() {
 
         const iisiansData: IsianDetail[] = data.data || [];
         
-        // Cari unsur mana saja yang sudah memiliki isian 'valid'
-        const validUnsurIds = new Set<number>();
-        iisiansData.forEach((isian) => {
-          if (isian.status === 'valid') {
-            validUnsurIds.add(isian.pemeriksaan_unsur.id);
-          }
-        });
-
         const rowsMap = new Map<string, InstrumenRow>();
 
         iisiansData.forEach((isian) => {
-          // Jika unsur ini sudah memiliki setidaknya satu isian yang valid, sembunyikan seluruh isian pada unsur ini
-          if (validUnsurIds.has(isian.pemeriksaan_unsur.id)) {
+          // Hanya sembunyikan isian yang sudah valid, jangan sembunyikan isian lain dalam unsur yang sama
+          if (isian.status === 'valid') {
             return;
           }
 
@@ -175,6 +169,7 @@ export default function KaprodiReviewPage() {
               status: isian.status,
               unsur: isian.pemeriksaan_unsur.isi_unsur,
               isian_id: isian.id,
+              urutan_isian: isian.urutan_isian,
             });
           }
         });
@@ -211,14 +206,9 @@ export default function KaprodiReviewPage() {
             const data = await res.json();
             const iisiansData: IsianDetail[] = data.data || [];
             
-            const validUnsurIds = new Set<number>();
-            iisiansData.forEach((isian) => {
-              if (isian.status === 'valid') validUnsurIds.add(isian.pemeriksaan_unsur.id);
-            });
-
             const rowsMap = new Map<string, InstrumenRow>();
             iisiansData.forEach((isian) => {
-              if (validUnsurIds.has(isian.pemeriksaan_unsur.id)) return;
+              if (isian.status === 'valid') return;
               if (!rowsMap.has(isian.id)) {
                 rowsMap.set(isian.id, {
                   no: rowsMap.size + 1,
@@ -228,6 +218,7 @@ export default function KaprodiReviewPage() {
                   status: isian.status,
                   unsur: isian.pemeriksaan_unsur.isi_unsur,
                   isian_id: isian.id,
+                  urutan_isian: isian.urutan_isian,
                 });
               }
             });
@@ -409,7 +400,7 @@ export default function KaprodiReviewPage() {
                     {row.kode_ami}
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-semibold text-gray-800 text-lg">{row.kriteria || row.area}</h3>
+                    <h3 className="font-semibold text-gray-800 text-lg">Blok Isian {row.urutan_isian} - {row.kriteria || row.area}</h3>
                     <p className="text-gray-500 text-sm mt-1">
                       {row.kriteria ? row.area : row.unsur}
                     </p>

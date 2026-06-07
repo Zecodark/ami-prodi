@@ -25,6 +25,7 @@ const createSchema = z.object({
   tahun_pelaksanaan: z.string().length(4).optional().nullable(),
   capaian: z.string().optional().nullable(),
   keterangan: z.string().optional().nullable(),
+  urutan_isian: z.coerce.number().default(1),
 });
 
 const isianInclude = {
@@ -109,7 +110,7 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const dataObj: Record<string, any> = {};
     formData.forEach((value, key) => {
-      if (key !== 'bukti_file') dataObj[key] = value;
+      if (key !== 'bukti_files' && key !== 'bukti_file') dataObj[key] = value;
     });
 
     const parsed = createSchema.safeParse(dataObj);
@@ -132,60 +133,57 @@ export async function POST(request: NextRequest) {
     if (!unsur.deskripsi_area.kode_ami.kriteria.instrumen.is_active)
       return R.forbidden('Instrumen AMI tidak aktif');
 
-    // Cek apakah sudah ada dokumen yang valid untuk unsur ini di prodi yang sama
+    // Cek apakah sudah ada dokumen yang valid untuk urutan ini di prodi yang sama
     const validIsian = await prisma.isianAmi.findFirst({
       where: {
         pemeriksaan_unsur_id: parsed.data.pemeriksaan_unsur_id,
         periode_id: parsed.data.periode_id,
         prodi_id: dosen.prodi_id,
+        urutan_isian: parsed.data.urutan_isian,
         status: 'valid',
       },
     });
     if (validIsian) {
-      return R.badRequest('Dokumen untuk unsur ini sudah divalidasi dan tidak dapat diubah atau diisi lagi.');
+      return R.badRequest('Dokumen isian ini sudah divalidasi dan tidak dapat diubah.');
     }
 
-    // Cek apakah sudah ada draft untuk unsur ini
+    // Cek apakah sudah ada draft/proses untuk isian ini
     const existingDraft = await prisma.isianAmi.findFirst({
       where: {
         pemeriksaan_unsur_id: parsed.data.pemeriksaan_unsur_id,
-        dosen_id: dosen.id,
+        prodi_id: dosen.prodi_id,
         periode_id: parsed.data.periode_id,
-        status: 'draft',
+        urutan_isian: parsed.data.urutan_isian,
       },
     });
 
-    // Cek attempt (hanya untuk non-draft baru)
-    const existing = await prisma.isianAmi.findFirst({
-      where: {
-        pemeriksaan_unsur_id: parsed.data.pemeriksaan_unsur_id,
-        dosen_id: dosen.id,
-        periode_id: parsed.data.periode_id,
-      },
-      orderBy: { attempt: 'desc' },
-    });
-    const attempt = existing ? (existingDraft ? existing.attempt : existing.attempt + 1) : 1;
+    const attempt = existingDraft ? existingDraft.attempt : 1;
 
-    // Upload file bukti
-    let buktiFIleData: { original_name: string; file_name: string; file_path: string; mime_type?: string; file_size?: number } | null = null;
-    const file = formData.get('bukti_file') as File | null;
-    if (file && file.size > 0) {
-      const bytes = await file.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-      const ext = path.extname(file.name);
-      const file_name = `bukti-${uniqueSuffix}${ext}`;
-      const uploadDir = path.join(process.cwd(), 'public/uploads/bukti');
-      await mkdir(uploadDir, { recursive: true });
-      const file_path = `/uploads/bukti/${file_name}`;
-      await writeFile(path.join(uploadDir, file_name), buffer);
-      buktiFIleData = {
-        original_name: file.name.slice(0, 50),
-        file_name,
-        file_path,
-        mime_type: file.type || undefined,
-        file_size: Number(file.size),
-      };
+    // Upload multiple files bukti
+    const buktiFilesData: Array<{ original_name: string; file_name: string; file_path: string; mime_type?: string; file_size?: number }> = [];
+    // Allow either 'bukti_files' (new standard) or 'bukti_file' (legacy fallback)
+    const files = formData.getAll('bukti_files').length > 0 ? formData.getAll('bukti_files') : formData.getAll('bukti_file');
+    
+    for (const fileVal of files) {
+      const file = fileVal as File;
+      if (file && file.size > 0) {
+        const bytes = await file.arrayBuffer();
+        const buffer = Buffer.from(bytes);
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+        const ext = path.extname(file.name);
+        const file_name = `bukti-${uniqueSuffix}${ext}`;
+        const uploadDir = path.join(process.cwd(), 'public/uploads/bukti');
+        await mkdir(uploadDir, { recursive: true });
+        const file_path = `/uploads/bukti/${file_name}`;
+        await writeFile(path.join(uploadDir, file_name), buffer);
+        buktiFilesData.push({
+          original_name: file.name.slice(0, 100),
+          file_name,
+          file_path,
+          mime_type: file.type || undefined,
+          file_size: Number(file.size),
+        });
+      }
     }
 
     const isianPayload = {
@@ -201,6 +199,7 @@ export async function POST(request: NextRequest) {
       tahun_pelaksanaan: parsed.data.tahun_pelaksanaan || null,
       capaian: parsed.data.capaian || null,
       keterangan: parsed.data.keterangan || null,
+      urutan_isian: parsed.data.urutan_isian,
       status: parsed.data.is_draft ? 'draft' as const : 'proses' as const,
       submitted_at: parsed.data.is_draft ? null : new Date(),
     };
@@ -212,8 +211,8 @@ export async function POST(request: NextRequest) {
         where: { id: existingDraft.id },
         data: {
           ...isianPayload,
-          bukti_files: buktiFIleData
-            ? { create: { ...buktiFIleData, uploaded_by: user.userId } }
+          bukti_files: buktiFilesData.length > 0
+            ? { create: buktiFilesData.map(f => ({ ...f, uploaded_by: user.userId })) }
             : undefined,
         },
         include: isianInclude,
@@ -230,8 +229,8 @@ export async function POST(request: NextRequest) {
           prodi_id: dosen.prodi_id,
           ...isianPayload,
           attempt,
-          bukti_files: buktiFIleData
-            ? { create: { ...buktiFIleData, uploaded_by: user.userId } }
+          bukti_files: buktiFilesData.length > 0
+            ? { create: buktiFilesData.map(f => ({ ...f, uploaded_by: user.userId })) }
             : undefined,
         },
         include: isianInclude,

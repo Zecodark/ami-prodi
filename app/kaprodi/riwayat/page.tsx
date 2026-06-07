@@ -122,30 +122,32 @@ export default function KaprodiRiwayatReviewPage() {
           </div>
         ) : (
           <>
-          <div className="p-4 border-b">
-            <div className="grid grid-cols-1 gap-3 items-center lg:grid-cols-12">
-              <div className="flex items-center gap-2 lg:col-span-2">
-                <label className="text-sm text-slate-600">Status</label>
+          {/* Filters Area */}
+          <div className="p-5 border-b border-slate-200 bg-slate-50/50">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-4 items-end">
+              
+              <div className="lg:col-span-2">
+                <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">Status</label>
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value as any)}
-                  className="border rounded px-2 py-1 text-sm w-full"
+                  className="w-full border-slate-300 bg-white rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm"
                 >
-                  <option value="all">Semua</option>
+                  <option value="all">Semua Status</option>
                   <option value="valid">Valid</option>
                   <option value="revisi">Revisi</option>
                 </select>
               </div>
 
-              <div className="flex items-center gap-2 lg:col-span-5">
-                <label className="text-sm text-slate-600">Dosen</label>
-                <div className="w-full">
+              <div className="lg:col-span-5">
+                <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">Dosen Pengisi</label>
+                <div className="relative">
                   <input
                     list="dosen-list"
                     value={dosenFilter}
                     onChange={(e) => setDosenFilter(e.target.value)}
-                    placeholder="Cari nama dosen..."
-                    className="border rounded px-2 py-1 text-sm w-full"
+                    placeholder="Ketik untuk mencari nama dosen..."
+                    className="w-full border-slate-300 bg-white rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm"
                   />
                   <datalist id="dosen-list">
                     {dosens.map((d) => (
@@ -155,14 +157,14 @@ export default function KaprodiRiwayatReviewPage() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 lg:col-span-3">
-                <label className="text-sm text-slate-600">Kode AMI</label>
+              <div className="lg:col-span-3">
+                <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">Kode AMI</label>
                 <select
                   value={kodeFilter}
                   onChange={(e) => setKodeFilter(e.target.value)}
-                  className="border rounded px-2 py-1 text-sm w-full"
+                  className="w-full border-slate-300 bg-white rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm"
                 >
-                  <option value="">Semua</option>
+                  <option value="">Semua Kode</option>
                   {kodeAmis.map((k) => (
                     <option key={k} value={k}>
                       {k}
@@ -171,86 +173,109 @@ export default function KaprodiRiwayatReviewPage() {
                 </select>
               </div>
 
-              <div className="lg:col-span-2 lg:justify-self-end">
+              <div className="lg:col-span-2 flex justify-end h-[42px]">
                 <button
                   onClick={() => {
                     setStatusFilter('all');
                     setDosenFilter('');
                     setKodeFilter('');
                   }}
-                  className="text-sm text-slate-600 underline"
+                  className="px-4 py-2 text-sm font-semibold text-slate-600 hover:text-blue-600 bg-white border border-slate-300 hover:border-blue-300 hover:bg-blue-50 rounded-lg shadow-sm transition-all w-full h-full flex items-center justify-center"
                 >
-                  Reset filter
+                  Reset Filter
                 </button>
               </div>
             </div>
           </div>
-          <div>
-            <div className="grid grid-cols-12 gap-4 px-4 py-3 text-xs text-slate-500 border-b border-slate-100">
-              <div className="col-span-1">Status</div>
-              <div className="col-span-2">Kode AMI</div>
-              <div className="col-span-3">Unsur</div>
-              <div className="col-span-2">Dosen</div>
-              <div className="col-span-2">Tgl Submit</div>
-              <div className="col-span-2">Tgl Review</div>
-            </div>
 
-            <ul className="divide-y divide-slate-100">
-              {visibleLogs.map((log) => (
-                <li key={log.id}>
-                  <Link
-                    href={`/kaprodi/review?isian_id=${log.id}`}
-                    className="block hover:bg-slate-50 transition-colors"
-                  >
-                    <div className="grid grid-cols-12 gap-4 p-4 items-start">
-                      <div className="col-span-1 flex items-start">
-                        <div
-                          className={`w-9 h-9 rounded-full flex items-center justify-center ${
-                            log.status_sesudah === 'valid'
-                              ? 'bg-emerald-50 text-emerald-600'
-                              : 'bg-rose-50 text-rose-600'
-                          }`}
-                        >
-                          {log.status_sesudah === 'valid' ? (
-                            <CheckCircle size={18} />
-                          ) : (
-                            <Edit3 size={18} />
-                          )}
+          <div className="overflow-x-auto">
+            <div className="min-w-[1000px]">
+              {/* Table Header */}
+              <div className="grid grid-cols-12 gap-4 px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider bg-slate-50/80 border-b border-slate-200">
+                <div className="col-span-1 text-center">Status</div>
+                <div className="col-span-2">Kode AMI</div>
+                <div className="col-span-3">Dokumen / Unsur</div>
+                <div className="col-span-2">Dosen Pengisi</div>
+                <div className="col-span-2">Tgl Submit</div>
+                <div className="col-span-2">Tgl Review</div>
+              </div>
+
+              {/* Table Body */}
+              <ul className="divide-y divide-slate-100 bg-white">
+                {visibleLogs.map((log) => (
+                  <li key={log.id} className="group">
+                    <Link
+                      href={`/kaprodi/review?isian_id=${log.id}`}
+                      className="block hover:bg-blue-50/40 transition-colors"
+                    >
+                      <div className="grid grid-cols-12 gap-4 px-6 py-4 items-center">
+                        {/* Status */}
+                        <div className="col-span-1 flex justify-center">
+                          <div
+                            className={`w-9 h-9 rounded-full flex items-center justify-center shadow-sm border ${
+                              log.status_sesudah === 'valid'
+                                ? 'bg-green-50 border-green-200 text-green-600 group-hover:bg-green-100'
+                                : 'bg-orange-50 border-orange-200 text-orange-600 group-hover:bg-orange-100'
+                            } transition-colors`}
+                            title={log.status_sesudah === 'valid' ? 'Valid' : 'Revisi'}
+                          >
+                            {log.status_sesudah === 'valid' ? (
+                              <CheckCircle size={18} className="stroke-[2.5]" />
+                            ) : (
+                              <Edit3 size={18} className="stroke-[2.5]" />
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Kode AMI */}
+                        <div className="col-span-2 text-sm text-slate-800 font-bold whitespace-nowrap">
+                          {log.kode_ami}
+                        </div>
+
+                        {/* Dokumen / Unsur */}
+                        <div className="col-span-3 text-sm text-slate-700 pr-4">
+                          <p className="truncate font-medium" title={log.judul || '(Tanpa judul)'}>
+                            {log.judul ?? <span className="italic text-slate-400">Tanpa judul</span>}
+                          </p>
+                        </div>
+
+                        {/* Dosen */}
+                        <div className="col-span-2 text-sm font-semibold text-slate-800 pr-4">
+                          <p className="truncate" title={log.dosen_nama}>
+                            {log.dosen_nama}
+                          </p>
+                        </div>
+
+                        {/* Tgl Submit */}
+                        <div className="col-span-2 text-sm text-slate-500 whitespace-nowrap font-medium">
+                          {log.submitted_at
+                            ? new Date(log.submitted_at).toLocaleString('id-ID', {
+                                day: '2-digit', month: 'short', year: 'numeric',
+                                hour: '2-digit', minute: '2-digit'
+                              })
+                            : '-'}
+                        </div>
+
+                        {/* Tgl Review & Arrow */}
+                        <div className="col-span-2 flex items-center justify-between text-sm text-slate-500 whitespace-nowrap font-medium">
+                          <span>
+                            {log.reviewed_at
+                              ? new Date(log.reviewed_at).toLocaleString('id-ID', {
+                                  day: '2-digit', month: 'short', year: 'numeric',
+                                  hour: '2-digit', minute: '2-digit'
+                                })
+                              : '-'}
+                          </span>
+                          <div className="w-8 h-8 rounded-full flex items-center justify-center group-hover:bg-blue-100 transition-colors">
+                            <ChevronRight size={18} className="text-slate-300 group-hover:text-blue-600 transition-colors" />
+                          </div>
                         </div>
                       </div>
-
-                      <div className="col-span-2 text-sm text-slate-700 font-semibold">
-                        {log.kode_ami}
-                      </div>
-
-                      <div className="col-span-3 text-sm text-slate-700 truncate">
-                        {log.judul ?? '(Tanpa judul)'}
-                      </div>
-
-                      <div className="col-span-2 text-sm text-slate-800 truncate">
-                        {log.dosen_nama}
-                      </div>
-
-                      <div className="col-span-2 text-sm text-slate-600">
-                        {log.submitted_at
-                          ? new Date(log.submitted_at).toLocaleString('id-ID')
-                          : '-'}
-                      </div>
-
-                      <div className="col-span-2 text-sm text-slate-600">
-                        {log.reviewed_at
-                          ? new Date(log.reviewed_at).toLocaleString('id-ID')
-                          : '-'}
-                      </div>
-
-                      <div className="col-span-12 flex justify-end">
-                        <ChevronRight size={16} className="text-slate-400 mt-1" />
-                      </div>
-                    </div>
-                  </Link>
-                </li>
-              ))}
-            </ul>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
           </>
         )}

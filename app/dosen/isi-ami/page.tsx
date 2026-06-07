@@ -12,6 +12,8 @@ import {
   Clock,
   Edit3,
   CircleDashed,
+  Plus,
+  X,
 } from 'lucide-react';
 
 type UnsurStatus = 'valid' | 'revisi' | 'proses' | 'kosong';
@@ -39,7 +41,10 @@ interface TreeNode {
   expanded?: boolean;
 }
 
-interface FormData {
+interface IsianForm {
+  id?: number;
+  urutan_isian: number;
+  status: UnsurStatus;
   pemeriksaan_unsur_id: string;
   judul_dokumen: string;
   ketersediaan_standar: 'ada' | 'tidak_ada';
@@ -53,7 +58,8 @@ interface FormData {
   tahun_pelaksanaan: string;
   capaian: string;
   keterangan: string;
-  bukti_file: File | null;
+  catatan_kaprodi?: string;
+  bukti_files: (File | null)[];
   existing_files?: Array<{ id: string; file_name: string; original_name: string; file_path: string }>;
 }
 
@@ -181,22 +187,7 @@ export default function IsiAmiPage() {
 
   const [statusMap, setStatusMap] = useState<UnsurStatusMap>({});
 
-  const [formData, setFormData] = useState<FormData>({
-    pemeriksaan_unsur_id: '',
-    judul_dokumen: '',
-    ketersediaan_standar: 'tidak_ada',
-    dokumen: 'tidak_ada',
-    pencapaian_standar_spt_pt: false,
-    pencapaian_standar_sn_dikti: false,
-    daya_saing_lokal: false,
-    daya_saing_nasional: false,
-    daya_saing_internasional: false,
-    bukti_link: '',
-    tahun_pelaksanaan: '',
-    capaian: '',
-    keterangan: '',
-    bukti_file: null,
-  });
+  const [isianList, setIsianList] = useState<IsianForm[]>([]);
 
   useEffect(() => {
     loadActiveInstrumen();
@@ -339,27 +330,26 @@ export default function IsiAmiPage() {
     });
   };
 
+
   const handleNodeClick = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     setSelectedUnsur(id);
     resetForm(id);
 
-    const isUnsurValid = statusMap[id]?.status === 'valid';
-
-    // Coba load isian yang sudah ada (valid atau draft)
     try {
       const token = localStorage.getItem('ami_token');
-      const fetchStatus = isUnsurValid ? 'valid' : 'draft';
       const res = await fetch(
-        `/api/isians?pemeriksaan_unsur_id=${id}&status=${fetchStatus}`,
+        `/api/isians?pemeriksaan_unsur_id=${id}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       const json = await res.json();
       const items = json.data ?? [];
+      
       if (items.length > 0) {
-        // Ambil data terbaru
-        const item = items[0];
-        setFormData({
+        const loadedList = items.map((item: any) => ({
+          id: item.id,
+          urutan_isian: item.urutan_isian ?? 1,
+          status: item.status,
           pemeriksaan_unsur_id: id,
           judul_dokumen: item.judul_dokumen ?? '',
           ketersediaan_standar: item.ketersediaan_standar ?? 'tidak_ada',
@@ -373,18 +363,17 @@ export default function IsiAmiPage() {
           tahun_pelaksanaan: item.tahun_pelaksanaan ?? '',
           capaian: item.capaian ?? '',
           keterangan: item.keterangan ?? '',
-          bukti_file: null,
+          catatan_kaprodi: item.catatan_kaprodi ?? '',
+          bukti_files: [null],
           existing_files: item.bukti_files ?? [],
-        });
-        if (isUnsurValid) {
-          setSuccessMsg('Menampilkan data isian yang sudah divalidasi Kaprodi.');
-        } else {
-          setSuccessMsg('Draft sebelumnya dimuat otomatis.');
-          setTimeout(() => setSuccessMsg(''), 3000);
-        }
+        }));
+        loadedList.sort((a: any, b: any) => a.urutan_isian - b.urutan_isian);
+        setIsianList(loadedList);
+        setSuccessMsg(`Memuat ${loadedList.length} isian.`);
+        setTimeout(() => setSuccessMsg(''), 3000);
       }
     } catch {
-      // Gagal load tidak fatal
+      // ignore
     }
   };
 
@@ -393,8 +382,10 @@ export default function IsiAmiPage() {
   };
 
   const resetForm = (newId?: string) => {
-    setFormData((prev) => ({
-      pemeriksaan_unsur_id: newId !== undefined ? newId : prev.pemeriksaan_unsur_id,
+    setIsianList([{
+      urutan_isian: 1,
+      status: 'kosong',
+      pemeriksaan_unsur_id: newId !== undefined ? newId : (selectedUnsur || ''),
       judul_dokumen: '',
       ketersediaan_standar: 'tidak_ada',
       dokumen: 'tidak_ada',
@@ -407,31 +398,94 @@ export default function IsiAmiPage() {
       tahun_pelaksanaan: '',
       capaian: '',
       keterangan: '',
-      bukti_file: null,
+      bukti_files: [null],
       existing_files: [],
-    }));
+    }]);
   };
 
   const handleInputChange = (
+    index: number,
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value, type } = e.target;
-    if (type === 'checkbox') {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: (e.target as HTMLInputElement).checked,
-      }));
-    } else {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: value,
-      }));
-    }
+    setIsianList((prev) => {
+      const newList = [...prev];
+      if (type === 'checkbox') {
+        newList[index] = { ...newList[index], [name]: (e.target as HTMLInputElement).checked };
+      } else {
+        newList[index] = { ...newList[index], [name]: value };
+      }
+      return newList;
+    });
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (isianIndex: number, fileIndex: number, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
-    setFormData((prev) => ({ ...prev, bukti_file: file }));
+    setIsianList((prev) => {
+      const newList = [...prev];
+      const newFiles = [...newList[isianIndex].bukti_files];
+      newFiles[fileIndex] = file;
+      newList[isianIndex] = { ...newList[isianIndex], bukti_files: newFiles };
+      return newList;
+    });
+  };
+
+  const addFileField = (isianIndex: number) => {
+    setIsianList((prev) => {
+      const newList = [...prev];
+      newList[isianIndex] = { 
+        ...newList[isianIndex], 
+        bukti_files: [...newList[isianIndex].bukti_files, null] 
+      };
+      return newList;
+    });
+  };
+
+  const removeFileField = (isianIndex: number, fileIndex: number) => {
+    setIsianList((prev) => {
+      const newList = [...prev];
+      const newFiles = [...newList[isianIndex].bukti_files];
+      newFiles.splice(fileIndex, 1);
+      if (newFiles.length === 0) newFiles.push(null);
+      newList[isianIndex] = { ...newList[isianIndex], bukti_files: newFiles };
+      return newList;
+    });
+  };
+
+  const addIsianBlock = () => {
+    setIsianList((prev) => {
+      const maxUrutan = prev.length > 0 ? Math.max(...prev.map(i => i.urutan_isian)) : 0;
+      return [
+        ...prev,
+        {
+          urutan_isian: maxUrutan + 1,
+          status: 'kosong',
+          pemeriksaan_unsur_id: selectedUnsur || '',
+          judul_dokumen: '',
+          ketersediaan_standar: 'tidak_ada',
+          dokumen: 'tidak_ada',
+          pencapaian_standar_spt_pt: false,
+          pencapaian_standar_sn_dikti: false,
+          daya_saing_lokal: false,
+          daya_saing_nasional: false,
+          daya_saing_internasional: false,
+          bukti_link: '',
+          tahun_pelaksanaan: '',
+          capaian: '',
+          keterangan: '',
+          bukti_files: [null],
+          existing_files: [],
+        }
+      ];
+    });
+  };
+
+  const removeIsianBlock = (index: number) => {
+    setIsianList((prev) => {
+      const newList = [...prev];
+      newList.splice(index, 1);
+      return newList;
+    });
   };
 
   const handleSubmit = async (isDraft: boolean = false) => {
@@ -455,54 +509,54 @@ export default function IsiAmiPage() {
         return;
       }
 
-      const formDataObj = new FormData();
-      formDataObj.append('pemeriksaan_unsur_id', formData.pemeriksaan_unsur_id);
-      formDataObj.append('periode_id', periode.data[0].id.toString());
-      formDataObj.append('is_draft', isDraft.toString());
-      formDataObj.append('judul_dokumen', formData.judul_dokumen);
-      formDataObj.append('ketersediaan_standar', formData.ketersediaan_standar);
-      formDataObj.append('dokumen', formData.dokumen);
-      formDataObj.append(
-        'pencapaian_standar_spt_pt',
-        formData.pencapaian_standar_spt_pt.toString()
-      );
-      formDataObj.append(
-        'pencapaian_standar_sn_dikti',
-        formData.pencapaian_standar_sn_dikti.toString()
-      );
-      formDataObj.append('daya_saing_lokal', formData.daya_saing_lokal.toString());
-      formDataObj.append('daya_saing_nasional', formData.daya_saing_nasional.toString());
-      formDataObj.append(
-        'daya_saing_internasional',
-        formData.daya_saing_internasional.toString()
-      );
-      formDataObj.append('bukti_link', formData.bukti_link);
-      formDataObj.append('tahun_pelaksanaan', formData.tahun_pelaksanaan);
-      formDataObj.append('capaian', formData.capaian);
-      formDataObj.append('keterangan', formData.keterangan);
-      if (formData.bukti_file) {
-        formDataObj.append('bukti_file', formData.bukti_file);
+      // Loop over isianList and post one by one
+      for (const form of isianList) {
+        if (form.status === 'valid') continue;
+
+        const formDataObj = new FormData();
+        formDataObj.append('pemeriksaan_unsur_id', form.pemeriksaan_unsur_id);
+        formDataObj.append('periode_id', periode.data[0].id.toString());
+        formDataObj.append('is_draft', isDraft.toString());
+        formDataObj.append('urutan_isian', form.urutan_isian.toString());
+        formDataObj.append('judul_dokumen', form.judul_dokumen);
+        formDataObj.append('ketersediaan_standar', form.ketersediaan_standar);
+        formDataObj.append('dokumen', form.dokumen);
+        formDataObj.append('pencapaian_standar_spt_pt', form.pencapaian_standar_spt_pt.toString());
+        formDataObj.append('pencapaian_standar_sn_dikti', form.pencapaian_standar_sn_dikti.toString());
+        formDataObj.append('daya_saing_lokal', form.daya_saing_lokal.toString());
+        formDataObj.append('daya_saing_nasional', form.daya_saing_nasional.toString());
+        formDataObj.append('daya_saing_internasional', form.daya_saing_internasional.toString());
+        formDataObj.append('bukti_link', form.bukti_link);
+        formDataObj.append('tahun_pelaksanaan', form.tahun_pelaksanaan);
+        formDataObj.append('capaian', form.capaian);
+        formDataObj.append('keterangan', form.keterangan);
+        for (const file of form.bukti_files) {
+          if (file) {
+            formDataObj.append('bukti_files', file);
+          }
+        }
+
+        const res = await fetch('/api/isians', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: formDataObj,
+        });
+
+        if (!res.ok) {
+          const resData = await res.json();
+          throw new Error(resData.message || 'Gagal menyimpan isian ke-' + form.urutan_isian);
+        }
       }
 
-      const res = await fetch('/api/isians', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-        body: formDataObj,
-      });
+      setSuccessMsg(isDraft ? 'Semua isian berhasil disimpan sebagai draft' : 'Semua isian berhasil dikirim untuk review');
+      
+      // Reload isians
+      handleNodeClick({ stopPropagation: () => {} } as any, selectedUnsur);
+      fetchStatusMap();
 
-      const result = await res.json();
-      if (res.ok) {
-        setSuccessMsg(isDraft ? 'Draft tersimpan' : 'Isian berhasil disubmit');
-        resetForm();
-        // Refresh status indicator
-        fetchStatusMap();
-        setTimeout(() => setSuccessMsg(''), 3000);
-      } else {
-        setErrorMsg(result.message || 'Gagal menyimpan isian');
-      }
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      setErrorMsg('Terjadi kesalahan server');
+      setErrorMsg(e.message || 'Terjadi kesalahan server saat menyimpan');
     } finally {
       setSubmitting(false);
     }
@@ -836,263 +890,326 @@ export default function IsiAmiPage() {
             </div>
           )}
 
-          {(() => {
-            const isUnsurValid = selectedUnsur ? statusMap[selectedUnsur]?.status === 'valid' : false;
-            
-            const inputClasses = "w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 disabled:bg-slate-50 disabled:text-slate-800 disabled:border-transparent disabled:opacity-100 disabled:shadow-none";
-            const selectClasses = "w-full appearance-none border border-slate-300 rounded-lg pl-3 pr-10 py-2.5 text-sm bg-white outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 cursor-pointer hover:border-indigo-400 transition-colors disabled:bg-slate-50 disabled:text-slate-800 disabled:border-transparent disabled:opacity-100 disabled:cursor-default disabled:appearance-none disabled:shadow-none disabled:hover:border-transparent";
+                    <div className="space-y-8">
+            {isianList.map((formData, index) => {
+              const isUnsurValid = formData.status === 'valid';
+              const inputClasses = "w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 disabled:bg-slate-50 disabled:text-slate-800 disabled:border-transparent disabled:opacity-100 disabled:shadow-none";
+              const selectClasses = "w-full appearance-none border border-slate-300 rounded-lg pl-3 pr-10 py-2.5 text-sm bg-white outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 cursor-pointer hover:border-indigo-400 transition-colors disabled:bg-slate-50 disabled:text-slate-800 disabled:border-transparent disabled:opacity-100 disabled:cursor-default disabled:appearance-none disabled:shadow-none disabled:hover:border-transparent";
 
-            return (
-          <form className="space-y-5">
-            <fieldset disabled={isUnsurValid} className="space-y-5">
-            {/* Row 1 */}
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Judul Dokumen
-                </label>
-                <input
-                  type="text"
-                  name="judul_dokumen"
-                  value={formData.judul_dokumen}
-                  onChange={handleInputChange}
-                  placeholder="Nama dokumen atau bukti"
-                  className={inputClasses}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Tahun Pelaksanaan
-                </label>
-                <input
-                  type="number"
-                  name="tahun_pelaksanaan"
-                  value={formData.tahun_pelaksanaan}
-                  onChange={handleInputChange}
-                  placeholder="2024"
-                  min="1900"
-                  max="2099"
-                  className={inputClasses}
-                />
-              </div>
-            </div>
-
-            {/* Ketersediaan & Dokumen */}
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Ketersediaan Standar
-                </label>
-                <div className="relative">
-                  <select
-                    name="ketersediaan_standar"
-                    value={formData.ketersediaan_standar}
-                    onChange={handleInputChange}
-                    className={selectClasses}
-                  >
-                    <option value="ada">Ada</option>
-                    <option value="tidak_ada">Tidak Ada</option>
-                  </select>
-                  {!isUnsurValid && (
-                    <ChevronDown
-                      size={18}
-                      className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
-                    />
-                  )}
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Dokumen / Bukti Fisik
-                </label>
-                <div className="relative">
-                  <select
-                    name="dokumen"
-                    value={formData.dokumen}
-                    onChange={handleInputChange}
-                    className={selectClasses}
-                  >
-                    <option value="ada">Ada</option>
-                    <option value="tidak_ada">Tidak Ada</option>
-                  </select>
-                  {!isUnsurValid && (
-                    <ChevronDown
-                      size={18}
-                      className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
-                    />
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Pencapaian Standar */}
-            <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
-              <h4 className="text-sm font-bold text-slate-700 mb-3">Pencapaian Standar</h4>
-              <div className="space-y-2">
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    name="pencapaian_standar_spt_pt"
-                    checked={formData.pencapaian_standar_spt_pt}
-                    onChange={handleInputChange}
-                    className="w-4 h-4 rounded border-slate-300 text-indigo-600"
-                  />
-                  <span className="text-sm text-slate-700">Pencapaian Standar SPT PT</span>
-                </label>
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    name="pencapaian_standar_sn_dikti"
-                    checked={formData.pencapaian_standar_sn_dikti}
-                    onChange={handleInputChange}
-                    className="w-4 h-4 rounded border-slate-300 text-indigo-600"
-                  />
-                  <span className="text-sm text-slate-700">Pencapaian Standar SN Dikti</span>
-                </label>
-              </div>
-            </div>
-
-            {/* Daya Saing */}
-            <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
-              <h4 className="text-sm font-bold text-slate-700 mb-3">Daya Saing</h4>
-              <div className="space-y-2">
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    name="daya_saing_lokal"
-                    checked={formData.daya_saing_lokal}
-                    onChange={handleInputChange}
-                    className="w-4 h-4 rounded border-slate-300 text-indigo-600"
-                  />
-                  <span className="text-sm text-slate-700">Daya Saing Lokal</span>
-                </label>
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    name="daya_saing_nasional"
-                    checked={formData.daya_saing_nasional}
-                    onChange={handleInputChange}
-                    className="w-4 h-4 rounded border-slate-300 text-indigo-600"
-                  />
-                  <span className="text-sm text-slate-700">Daya Saing Nasional</span>
-                </label>
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    name="daya_saing_internasional"
-                    checked={formData.daya_saing_internasional}
-                    onChange={handleInputChange}
-                    className="w-4 h-4 rounded border-slate-300 text-indigo-600"
-                  />
-                  <span className="text-sm text-slate-700">Daya Saing Internasional</span>
-                </label>
-              </div>
-            </div>
-
-            {/* Bukti Link */}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Link Bukti (URL)
-              </label>
-              <input
-                type="url"
-                name="bukti_link"
-                value={formData.bukti_link}
-                onChange={handleInputChange}
-                placeholder="https://..."
-                className={inputClasses}
-              />
-            </div>
-
-            {/* File Upload / Existing Files */}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                {isUnsurValid ? 'Dokumen Bukti' : 'Upload File Bukti'}
-              </label>
-
-              {isUnsurValid ? (
-                <div className="space-y-2">
-                  {formData.existing_files && formData.existing_files.length > 0 ? (
-                    formData.existing_files.map((file: any) => (
-                      <a
-                        key={file.id}
-                        href={file.file_path}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 bg-white hover:border-indigo-300 hover:shadow-sm transition-all"
-                      >
-                        <div className="w-8 h-8 rounded bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0">
-                          <FileText size={16} />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="text-sm font-medium text-slate-700 truncate">
-                            {file.original_name}
-                          </div>
-                          <div className="text-xs text-slate-500 mt-0.5">Buka dokumen</div>
-                        </div>
-                      </a>
-                    ))
-                  ) : (
-                    <div className="text-sm text-slate-500 italic p-3 rounded-lg bg-slate-50 border border-transparent">
-                      Tidak ada dokumen yang diunggah.
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center hover:border-indigo-400 transition-colors cursor-pointer relative bg-white">
-                  <input
-                    type="file"
-                    onChange={handleFileChange}
-                    className="absolute inset-0 opacity-0 cursor-pointer"
-                  />
-                  <div className="flex flex-col items-center gap-2">
-                    <FileUp size={24} className="text-slate-400" />
-                    <div>
-                      <p className="text-sm font-medium text-slate-700">
-                        Klik atau drag file di sini
-                      </p>
-                      <p className="text-xs text-slate-500 mt-1">
-                        Format: PDF, JPG, PNG (Max 10MB)
-                      </p>
+              return (
+                <div key={index} className="p-5 border border-slate-200 rounded-xl bg-white shadow-sm space-y-5 relative">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <h3 className="text-md font-bold text-slate-800 flex items-center gap-2">
+                      <span className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs">
+                        {formData.urutan_isian}
+                      </span>
+                      Blok Isian {formData.urutan_isian}
+                    </h3>
+                    <div className="flex items-center gap-3">
+                      <StatusBadge status={formData.status} />
+                      {!isUnsurValid && isianList.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeIsianBlock(index)}
+                          className="text-rose-500 hover:bg-rose-50 p-1.5 rounded-lg transition-colors text-sm font-medium flex items-center gap-1 border border-transparent hover:border-rose-200"
+                        >
+                          <X size={16} /> Hapus Blok
+                        </button>
+                      )}
                     </div>
                   </div>
-                  {formData.bukti_file && (
-                    <p className="text-xs text-emerald-600 font-medium mt-2">
-                      ✓ {formData.bukti_file.name}
-                    </p>
+
+                  {formData.catatan_kaprodi && (
+                    <div className="bg-rose-50 text-rose-700 p-4 rounded-lg border border-rose-200 text-sm">
+                      <strong className="font-semibold block mb-1">Catatan Revisi Kaprodi:</strong>
+                      {formData.catatan_kaprodi}
+                    </div>
                   )}
+
+                  <fieldset disabled={isUnsurValid} className="space-y-5">
+                    {/* Row 1 */}
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Judul Dokumen</label>
+                        <input
+                          type="text"
+                          name="judul_dokumen"
+                          value={formData.judul_dokumen}
+                          onChange={(e) => handleInputChange(index, e)}
+                          placeholder="Nama dokumen atau bukti"
+                          className={inputClasses}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Tahun Pelaksanaan</label>
+                        <input
+                          type="number"
+                          name="tahun_pelaksanaan"
+                          value={formData.tahun_pelaksanaan}
+                          onChange={(e) => handleInputChange(index, e)}
+                          placeholder="2024"
+                          min="1900"
+                          max="2099"
+                          className={inputClasses}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Ketersediaan & Dokumen */}
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Ketersediaan Standar</label>
+                        <div className="relative">
+                          <select
+                            name="ketersediaan_standar"
+                            value={formData.ketersediaan_standar}
+                            onChange={(e) => handleInputChange(index, e)}
+                            className={selectClasses}
+                          >
+                            <option value="ada">Ada</option>
+                            <option value="tidak_ada">Tidak Ada</option>
+                          </select>
+                          {!isUnsurValid && (
+                            <ChevronDown size={18} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                          )}
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Dokumen / Bukti Fisik</label>
+                        <div className="relative">
+                          <select
+                            name="dokumen"
+                            value={formData.dokumen}
+                            onChange={(e) => handleInputChange(index, e)}
+                            className={selectClasses}
+                          >
+                            <option value="ada">Ada</option>
+                            <option value="tidak_ada">Tidak Ada</option>
+                          </select>
+                          {!isUnsurValid && (
+                            <ChevronDown size={18} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Pencapaian Standar */}
+                    <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+                      <h4 className="text-sm font-bold text-slate-700 mb-3">Pencapaian Standar</h4>
+                      <div className="space-y-2">
+                        <label className="flex items-center gap-3 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            name="pencapaian_standar_spt_pt"
+                            checked={formData.pencapaian_standar_spt_pt}
+                            onChange={(e) => handleInputChange(index, e)}
+                            className="w-4 h-4 rounded border-slate-300 text-indigo-600"
+                          />
+                          <span className="text-sm text-slate-700">Pencapaian Standar SPT PT</span>
+                        </label>
+                        <label className="flex items-center gap-3 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            name="pencapaian_standar_sn_dikti"
+                            checked={formData.pencapaian_standar_sn_dikti}
+                            onChange={(e) => handleInputChange(index, e)}
+                            className="w-4 h-4 rounded border-slate-300 text-indigo-600"
+                          />
+                          <span className="text-sm text-slate-700">Pencapaian Standar SN Dikti</span>
+                        </label>
+                      </div>
+                    </div>
+
+                    {/* Daya Saing */}
+                    <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+                      <h4 className="text-sm font-bold text-slate-700 mb-3">Daya Saing</h4>
+                      <div className="space-y-2">
+                        <label className="flex items-center gap-3 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            name="daya_saing_lokal"
+                            checked={formData.daya_saing_lokal}
+                            onChange={(e) => handleInputChange(index, e)}
+                            className="w-4 h-4 rounded border-slate-300 text-indigo-600"
+                          />
+                          <span className="text-sm text-slate-700">Daya Saing Lokal</span>
+                        </label>
+                        <label className="flex items-center gap-3 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            name="daya_saing_nasional"
+                            checked={formData.daya_saing_nasional}
+                            onChange={(e) => handleInputChange(index, e)}
+                            className="w-4 h-4 rounded border-slate-300 text-indigo-600"
+                          />
+                          <span className="text-sm text-slate-700">Daya Saing Nasional</span>
+                        </label>
+                        <label className="flex items-center gap-3 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            name="daya_saing_internasional"
+                            checked={formData.daya_saing_internasional}
+                            onChange={(e) => handleInputChange(index, e)}
+                            className="w-4 h-4 rounded border-slate-300 text-indigo-600"
+                          />
+                          <span className="text-sm text-slate-700">Daya Saing Internasional</span>
+                        </label>
+                      </div>
+                    </div>
+
+                    {/* Bukti Link */}
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Link Bukti (URL)</label>
+                      <input
+                        type="url"
+                        name="bukti_link"
+                        value={formData.bukti_link}
+                        onChange={(e) => handleInputChange(index, e)}
+                        placeholder="https://..."
+                        className={inputClasses}
+                      />
+                    </div>
+
+                    {/* File Upload / Existing Files */}
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                        {isUnsurValid ? 'Dokumen Bukti' : 'Upload File Bukti'}
+                      </label>
+
+                      {isUnsurValid ? (
+                        <div className="space-y-2">
+                          {formData.existing_files && formData.existing_files.length > 0 ? (
+                            formData.existing_files.map((file: any) => (
+                              <a
+                                key={file.id}
+                                href={file.file_path}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 bg-white hover:border-indigo-300 hover:shadow-sm transition-all"
+                              >
+                                <div className="w-8 h-8 rounded bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0">
+                                  <FileText size={16} />
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <div className="text-sm font-medium text-slate-700 truncate">{file.original_name}</div>
+                                  <div className="text-xs text-slate-500 mt-0.5">Buka dokumen</div>
+                                </div>
+                              </a>
+                            ))
+                          ) : (
+                            <div className="text-sm text-slate-500 italic p-3 rounded-lg bg-slate-50 border border-transparent">
+                              Tidak ada dokumen yang diunggah.
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {formData.existing_files && formData.existing_files.length > 0 && (
+                            <div className="mb-4 space-y-2">
+                              <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Dokumen Tersimpan</div>
+                              {formData.existing_files.map((file: any) => (
+                                <a
+                                  key={file.id}
+                                  href={file.file_path}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 bg-slate-50 hover:border-indigo-300 hover:shadow-sm transition-all"
+                                >
+                                  <div className="w-8 h-8 rounded bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0">
+                                    <FileText size={16} />
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <div className="text-sm font-medium text-slate-700 truncate">{file.original_name}</div>
+                                    <div className="text-xs text-slate-500 mt-0.5">Buka dokumen</div>
+                                  </div>
+                                </a>
+                              ))}
+                            </div>
+                          )}
+
+                          <div className="space-y-3">
+                            {formData.bukti_files.map((file, fileIndex) => (
+                              <div key={fileIndex} className="flex items-center gap-3">
+                                <div className="flex-1 border-2 border-dashed border-slate-300 rounded-lg p-4 text-center hover:border-indigo-400 transition-colors cursor-pointer relative bg-white">
+                                  <input
+                                    type="file"
+                                    onChange={(e) => handleFileChange(index, fileIndex, e)}
+                                    className="absolute inset-0 opacity-0 cursor-pointer"
+                                  />
+                                  <div className="flex flex-col items-center gap-1">
+                                    <FileUp size={20} className="text-slate-400" />
+                                    <div>
+                                      <p className="text-sm font-medium text-slate-700">{file ? 'Ganti file' : 'Klik atau drag file'}</p>
+                                      {!file && <p className="text-xs text-slate-500 mt-0.5">Format: PDF, JPG, PNG (Max 10MB)</p>}
+                                    </div>
+                                  </div>
+                                  {file && <p className="text-xs text-emerald-600 font-medium mt-2">✓ {file.name}</p>}
+                                </div>
+                                {fileIndex > 0 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => removeFileField(index, fileIndex)}
+                                    className="p-3 text-rose-500 hover:bg-rose-50 rounded-lg border border-transparent hover:border-rose-200 transition-colors"
+                                    title="Hapus kolom ini"
+                                  >
+                                    <X size={20} />
+                                  </button>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => addFileField(index)}
+                            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors mt-2 border border-indigo-200 border-dashed hover:border-solid"
+                          >
+                            <Plus size={16} /> Tambah Dokumen
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Capaian */}
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Capaian</label>
+                      <textarea
+                        name="capaian"
+                        value={formData.capaian}
+                        onChange={(e) => handleInputChange(index, e)}
+                        placeholder="Jelaskan capaian yang sudah dicapai..."
+                        rows={3}
+                        className={`${inputClasses} resize-none`}
+                      />
+                    </div>
+
+                    {/* Keterangan */}
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Keterangan Tambahan</label>
+                      <textarea
+                        name="keterangan"
+                        value={formData.keterangan}
+                        onChange={(e) => handleInputChange(index, e)}
+                        placeholder="Catatan atau penjelasan lainnya..."
+                        rows={3}
+                        className={`${inputClasses} resize-none`}
+                      />
+                    </div>
+                  </fieldset>
                 </div>
-              )}
+              );
+            })}
             </div>
 
-            {/* Capaian */}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Capaian
-              </label>
-              <textarea
-                name="capaian"
-                value={formData.capaian}
-                onChange={handleInputChange}
-                placeholder="Jelaskan capaian yang sudah dicapai..."
-                rows={3}
-                className={`${inputClasses} resize-none`}
-              />
-            </div>
-
-            {/* Keterangan */}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Keterangan Tambahan
-              </label>
-              <textarea
-                name="keterangan"
-                value={formData.keterangan}
-                onChange={handleInputChange}
-                placeholder="Catatan atau penjelasan lainnya..."
-                rows={3}
-                className={`${inputClasses} resize-none`}
-              />
+            {/* Tombol Tambah Blok Isian Baru */}
+            <div className="flex justify-center border-t border-slate-200 pt-6 pb-2">
+              <button
+                type="button"
+                onClick={addIsianBlock}
+                className="flex items-center gap-2 px-6 py-2.5 bg-white border-2 border-indigo-200 text-indigo-600 font-semibold rounded-full hover:bg-indigo-50 hover:border-indigo-300 transition-colors shadow-sm"
+              >
+                <Plus size={18} /> Tambah Blok Isian
+              </button>
             </div>
 
             {/* Messages */}
@@ -1107,34 +1224,26 @@ export default function IsiAmiPage() {
               </div>
             )}
 
-            {/* Buttons */}
-            {!isUnsurValid && (
-            <div className="flex gap-3 pt-4 border-t border-slate-200">
+            {/* Global Submit Buttons */}
+            <div className="flex gap-3 pt-6 border-t border-slate-200 sticky bottom-0 bg-white/90 backdrop-blur pb-4 z-10">
               <button
                 type="button"
                 onClick={() => handleSubmit(true)}
                 disabled={submitting}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 disabled:opacity-50 transition-colors text-sm font-medium"
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-slate-600 text-white rounded-lg hover:bg-slate-700 disabled:opacity-50 transition-colors text-sm font-semibold shadow-sm"
               >
-                <Save size={16} />
-                Simpan Draft
+                <Save size={18} /> Simpan Draft Semua
               </button>
               <button
                 type="button"
                 onClick={() => handleSubmit(false)}
                 disabled={submitting}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors text-sm font-medium"
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors text-sm font-semibold shadow-sm"
               >
-                <Send size={16} />
-                Kirim untuk Review
+                <Send size={18} /> Kirim untuk Review
               </button>
             </div>
-            )}
-            </fieldset>
-          </form>
-            );
-          })()}
-        </div>
+          </div>
       )}
     </div>
   );
