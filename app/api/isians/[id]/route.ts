@@ -99,39 +99,66 @@ export async function PUT(request: NextRequest, { params }: Ctx) {
     const formData = await request.formData();
     const dataObj: Record<string, any> = {};
     formData.forEach((value, key) => {
-      if (key !== 'bukti_file') dataObj[key] = value;
+      if (!key.endsWith('[]')) {
+        dataObj[key] = value;
+      }
     });
 
     const parsed = updateSchema.safeParse(dataObj);
     if (!parsed.success) return R.badRequest('Validasi gagal', parsed.error.flatten());
 
-    // Handle file upload baru
-    const file = formData.get('bukti_file') as File | null;
-    if (file && file.size > 0) {
-      const bytes = await file.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-      const ext = path.extname(file.name);
-      const file_name = `bukti-${uniqueSuffix}${ext}`;
-      const uploadDir = path.join(process.cwd(), 'public/uploads/bukti');
-      await mkdir(uploadDir, { recursive: true });
-      const file_path = `/uploads/bukti/${file_name}`;
-      await writeFile(path.join(uploadDir, file_name), buffer);
-      await prisma.isianBuktiFile.create({
-        data: {
-          isian_id: Number(id),
-          original_name: file.name.slice(0, 50),
+    const files = formData.getAll('bukti_files[]');
+    const judulList = formData.getAll('judul_dokumen_file[]');
+    const ketList = formData.getAll('keterangan_dokumen_file[]');
+    const tahunList = formData.getAll('tahun_dokumen_file[]');
+
+    const buktiFilesData: Array<{ 
+      original_name: string; 
+      file_name: string; 
+      file_path: string; 
+      mime_type?: string; 
+      file_size?: number;
+      judul_dokumen?: string;
+      keterangan_dokumen?: string;
+      tahun_dokumen?: string;
+      uploaded_by: number;
+    }> = [];
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i] as File;
+      if (file && file.size > 0) {
+        const bytes = await file.arrayBuffer();
+        const buffer = Buffer.from(bytes);
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+        const ext = path.extname(file.name);
+        const file_name = `bukti-${uniqueSuffix}${ext}`;
+        const uploadDir = path.join(process.cwd(), 'public/uploads/bukti');
+        await mkdir(uploadDir, { recursive: true });
+        const file_path = `/uploads/bukti/${file_name}`;
+        await writeFile(path.join(uploadDir, file_name), buffer);
+        
+        buktiFilesData.push({
+          original_name: file.name.slice(0, 100),
           file_name,
           file_path,
-          mime_type: file.type || null,
+          mime_type: file.type || undefined,
           file_size: Number(file.size),
+          judul_dokumen: (judulList[i] as string) || undefined,
+          keterangan_dokumen: (ketList[i] as string) || undefined,
+          tahun_dokumen: (tahunList[i] as string) || undefined,
           uploaded_by: user.userId,
-        },
-      });
+        });
+      }
     }
 
     const updateData: Record<string, unknown> = { ...parsed.data, status: 'proses' };
     if (parsed.data.bukti_link === '') updateData.bukti_link = null;
+    
+    if (buktiFilesData.length > 0) {
+      updateData.bukti_files = {
+        create: buktiFilesData
+      };
+    }
 
     const data = await prisma.isianAmi.update({
       where: { id: Number(id) },

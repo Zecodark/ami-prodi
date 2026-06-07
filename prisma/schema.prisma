@@ -312,8 +312,6 @@ model IsianAmi {
   capaian                     String?             @db.Text
   keterangan                  String?             @db.Text
 
-  urutan_isian                Int                 @default(1) @db.UnsignedInt
-
   status                      IsianStatus         @default(proses)
   catatan_kaprodi             String?             @db.Text
 
@@ -335,7 +333,7 @@ model IsianAmi {
   bukti_files  IsianBuktiFile[]
   review_logs  IsianReviewLog[]
 
-  @@unique([pemeriksaan_unsur_id, periode_id, prodi_id, urutan_isian])
+  @@unique([pemeriksaan_unsur_id, periode_id, prodi_id])
   @@index([pemeriksaan_unsur_id])
   @@index([periode_id])
   @@index([dosen_id])
@@ -350,15 +348,19 @@ model IsianAmi {
 // 15. ISIAN BUKTI FILES
 // =========================================================
 model IsianBuktiFile {
-  id            Int      @id @default(autoincrement())
-  isian_id      Int
-  original_name String   @db.VarChar(255)
-  file_name     String   @db.VarChar(255)
-  file_path     String   @db.VarChar(500)
-  mime_type     String?  @db.VarChar(100)
-  file_size     Int?
+  id                 Int      @id @default(autoincrement())
+  isian_id           Int
+  original_name      String   @db.VarChar(255)
+  file_name          String   @db.VarChar(255)
+  file_path          String   @db.VarChar(500)
+  mime_type          String?  @db.VarChar(100)
+  file_size          Int?
 
-  uploaded_by   Int?
+  judul_dokumen      String?  @db.VarChar(255)
+  keterangan_dokumen String?  @db.Text
+  tahun_dokumen      String?  @db.VarChar(10)
+
+  uploaded_by        Int?
   created_at    DateTime @default(now()) @db.Timestamp(0)
 
   isian       IsianAmi @relation(fields: [isian_id], references: [id], onDelete: Cascade, onUpdate: Cascade)

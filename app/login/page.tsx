@@ -233,8 +233,8 @@ export default function LoginPage() {
           top: 0; left: 0; right: 0; bottom: 0;
           background: linear-gradient(150deg, var(--siami-navy) 0%, #0d3880 100%);
           overflow: hidden;
-          border-top-right-radius: 50%;
-          border-bottom-right-radius: 50%;
+          border-top-right-radius: 100vh;
+          border-bottom-right-radius: 100vh;
           box-shadow: 10px 0 30px rgba(10, 47, 111, 0.2);
           z-index: -1;
         }

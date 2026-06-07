@@ -1075,6 +1075,9 @@ async function main() {
         file_path: `/uploads/ami/bukti-ami-${item.key.replace('.', '-')}.pdf`,
         mime_type: 'application/pdf',
         file_size: 1024 * (index + 1),
+        judul_dokumen: item.judul,
+        keterangan_dokumen: item.catatan ?? 'Dokumen pelengkap isian AMI.',
+        tahun_dokumen: '2025',
         uploaded_by: item.dosen.user_id,
       },
     });

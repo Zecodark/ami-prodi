@@ -13,7 +13,7 @@ const createSchema = z.object({
   pemeriksaan_unsur_id: z.coerce.number(),
   periode_id: z.coerce.number(),
   is_draft: z.preprocess((v) => v === 'true' || v === true, z.boolean().default(false)),
-  judul_dokumen: z.string().min(1).optional().or(z.literal('')),
+  judul_dokumen: z.string().optional().nullable(), // The user wants single Isian with "judul_dokumen" for the isian itself as well
   ketersediaan_standar: z.enum(['ada', 'tidak_ada']).default('tidak_ada'),
   dokumen: z.enum(['ada', 'tidak_ada']).default('tidak_ada'),
   pencapaian_standar_spt_pt: z.preprocess((v) => v === 'true' || v === true, z.boolean().default(false)),
@@ -25,7 +25,6 @@ const createSchema = z.object({
   tahun_pelaksanaan: z.string().length(4).optional().nullable(),
   capaian: z.string().optional().nullable(),
   keterangan: z.string().optional().nullable(),
-  urutan_isian: z.coerce.number().default(1),
 });
 
 const isianInclude = {
@@ -73,12 +72,9 @@ export async function GET(request: NextRequest) {
     if (user.roleName.toLowerCase() === 'dosen') {
       const dosen = await prisma.dosen.findUnique({ where: { user_id: user.userId } });
       if (!dosen) return R.notFound('Profil dosen tidak ditemukan');
-      // Dosen hanya bisa melihat isian dari prodinya sendiri
       where.prodi_id = dosen.prodi_id;
-      // Jika ingin filter dosen tertentu
       if (searchParams.get('dosen_id')) where.dosen_id = Number(searchParams.get('dosen_id')!);
     } else {
-      // Kaprodi — hanya bisa lihat isian dari prodi-nya sendiri
       const kaprodiDosen = await prisma.dosen.findUnique({
         where: { user_id: user.userId },
         select: { prodi_id: true },
@@ -110,13 +106,15 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const dataObj: Record<string, any> = {};
     formData.forEach((value, key) => {
-      if (key !== 'bukti_files' && key !== 'bukti_file') dataObj[key] = value;
+      // Collect arrays for multiple document attachments
+      if (!key.endsWith('[]')) {
+        dataObj[key] = value;
+      }
     });
 
     const parsed = createSchema.safeParse(dataObj);
     if (!parsed.success) return R.badRequest('Validasi gagal', parsed.error.flatten());
 
-    // Cek apakah unsur ini aktif (instrumen aktif)
     const unsur = await prisma.pemeriksaanUnsur.findUnique({
       where: { id: parsed.data.pemeriksaan_unsur_id },
       include: {
@@ -133,13 +131,11 @@ export async function POST(request: NextRequest) {
     if (!unsur.deskripsi_area.kode_ami.kriteria.instrumen.is_active)
       return R.forbidden('Instrumen AMI tidak aktif');
 
-    // Cek apakah sudah ada dokumen yang valid untuk urutan ini di prodi yang sama
     const validIsian = await prisma.isianAmi.findFirst({
       where: {
         pemeriksaan_unsur_id: parsed.data.pemeriksaan_unsur_id,
         periode_id: parsed.data.periode_id,
         prodi_id: dosen.prodi_id,
-        urutan_isian: parsed.data.urutan_isian,
         status: 'valid',
       },
     });
@@ -147,25 +143,35 @@ export async function POST(request: NextRequest) {
       return R.badRequest('Dokumen isian ini sudah divalidasi dan tidak dapat diubah.');
     }
 
-    // Cek apakah sudah ada draft/proses untuk isian ini
     const existingDraft = await prisma.isianAmi.findFirst({
       where: {
         pemeriksaan_unsur_id: parsed.data.pemeriksaan_unsur_id,
         prodi_id: dosen.prodi_id,
         periode_id: parsed.data.periode_id,
-        urutan_isian: parsed.data.urutan_isian,
       },
     });
 
     const attempt = existingDraft ? existingDraft.attempt : 1;
 
-    // Upload multiple files bukti
-    const buktiFilesData: Array<{ original_name: string; file_name: string; file_path: string; mime_type?: string; file_size?: number }> = [];
-    // Allow either 'bukti_files' (new standard) or 'bukti_file' (legacy fallback)
-    const files = formData.getAll('bukti_files').length > 0 ? formData.getAll('bukti_files') : formData.getAll('bukti_file');
-    
-    for (const fileVal of files) {
-      const file = fileVal as File;
+    // Process multiple document files with metadata
+    const buktiFilesData: Array<{ 
+      original_name: string; 
+      file_name: string; 
+      file_path: string; 
+      mime_type?: string; 
+      file_size?: number;
+      judul_dokumen?: string;
+      keterangan_dokumen?: string;
+      tahun_dokumen?: string;
+    }> = [];
+
+    const files = formData.getAll('bukti_files[]');
+    const judulList = formData.getAll('judul_dokumen_file[]');
+    const ketList = formData.getAll('keterangan_dokumen_file[]');
+    const tahunList = formData.getAll('tahun_dokumen_file[]');
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i] as File;
       if (file && file.size > 0) {
         const bytes = await file.arrayBuffer();
         const buffer = Buffer.from(bytes);
@@ -176,12 +182,16 @@ export async function POST(request: NextRequest) {
         await mkdir(uploadDir, { recursive: true });
         const file_path = `/uploads/bukti/${file_name}`;
         await writeFile(path.join(uploadDir, file_name), buffer);
+        
         buktiFilesData.push({
           original_name: file.name.slice(0, 100),
           file_name,
           file_path,
           mime_type: file.type || undefined,
           file_size: Number(file.size),
+          judul_dokumen: (judulList[i] as string) || undefined,
+          keterangan_dokumen: (ketList[i] as string) || undefined,
+          tahun_dokumen: (tahunList[i] as string) || undefined,
         });
       }
     }
@@ -199,14 +209,12 @@ export async function POST(request: NextRequest) {
       tahun_pelaksanaan: parsed.data.tahun_pelaksanaan || null,
       capaian: parsed.data.capaian || null,
       keterangan: parsed.data.keterangan || null,
-      urutan_isian: parsed.data.urutan_isian,
       status: parsed.data.is_draft ? 'draft' as const : 'proses' as const,
       submitted_at: parsed.data.is_draft ? null : new Date(),
     };
 
     let data;
     if (existingDraft) {
-      // Update draft yang sudah ada
       data = await prisma.isianAmi.update({
         where: { id: existingDraft.id },
         data: {
@@ -220,7 +228,6 @@ export async function POST(request: NextRequest) {
       const msg = parsed.data.is_draft ? 'Draft berhasil diperbarui' : 'Isian berhasil disubmit';
       return R.ok(serialize(data), msg);
     } else {
-      // Buat baru
       data = await prisma.isianAmi.create({
         data: {
           pemeriksaan_unsur_id: parsed.data.pemeriksaan_unsur_id,

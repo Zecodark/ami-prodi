@@ -41,9 +41,15 @@ interface TreeNode {
   expanded?: boolean;
 }
 
+interface FileEntry {
+  file: File | null;
+  judul_dokumen: string;
+  keterangan_dokumen: string;
+  tahun_dokumen: string;
+}
+
 interface IsianForm {
   id?: number;
-  urutan_isian: number;
   status: UnsurStatus;
   pemeriksaan_unsur_id: string;
   judul_dokumen: string;
@@ -59,8 +65,8 @@ interface IsianForm {
   capaian: string;
   keterangan: string;
   catatan_kaprodi?: string;
-  bukti_files: (File | null)[];
-  existing_files?: Array<{ id: string; file_name: string; original_name: string; file_path: string }>;
+  bukti_files: FileEntry[];
+  existing_files?: Array<{ id: string; file_name: string; original_name: string; file_path: string; judul_dokumen: string | null; keterangan_dokumen: string | null; tahun_dokumen: string | null }>;
 }
 
 // =====================================================================
@@ -187,7 +193,7 @@ export default function IsiAmiPage() {
 
   const [statusMap, setStatusMap] = useState<UnsurStatusMap>({});
 
-  const [isianList, setIsianList] = useState<IsianForm[]>([]);
+  const [isianForm, setIsianForm] = useState<IsianForm | null>(null);
 
   useEffect(() => {
     loadActiveInstrumen();
@@ -331,8 +337,8 @@ export default function IsiAmiPage() {
   };
 
 
-  const handleNodeClick = async (e: React.MouseEvent, id: string) => {
-    e.stopPropagation();
+  const handleNodeClick = async (e: React.MouseEvent | any, id: string) => {
+    if(e?.stopPropagation) e.stopPropagation();
     setSelectedUnsur(id);
     resetForm(id);
 
@@ -346,9 +352,9 @@ export default function IsiAmiPage() {
       const items = json.data ?? [];
       
       if (items.length > 0) {
-        const loadedList = items.map((item: any) => ({
+        const item = items[0]; // Hanya ambil isian pertama (1 unsur 1 isian)
+        setIsianForm({
           id: item.id,
-          urutan_isian: item.urutan_isian ?? 1,
           status: item.status,
           pemeriksaan_unsur_id: id,
           judul_dokumen: item.judul_dokumen ?? '',
@@ -364,26 +370,22 @@ export default function IsiAmiPage() {
           capaian: item.capaian ?? '',
           keterangan: item.keterangan ?? '',
           catatan_kaprodi: item.catatan_kaprodi ?? '',
-          bukti_files: [null],
+          bukti_files: [{ file: null, judul_dokumen: '', keterangan_dokumen: '', tahun_dokumen: '' }],
           existing_files: item.bukti_files ?? [],
-        }));
-        loadedList.sort((a: any, b: any) => a.urutan_isian - b.urutan_isian);
-        setIsianList(loadedList);
-        setSuccessMsg(`Memuat ${loadedList.length} isian.`);
+        });
+        setSuccessMsg('Memuat isian.');
         setTimeout(() => setSuccessMsg(''), 3000);
       }
     } catch {
       // ignore
     }
   };
-
   const handleToggle = (id: string) => {
     setTreeData(toggleExpanded(id, treeData));
   };
 
   const resetForm = (newId?: string) => {
-    setIsianList([{
-      urutan_isian: 1,
+    setIsianForm({
       status: 'kosong',
       pemeriksaan_unsur_id: newId !== undefined ? newId : (selectedUnsur || ''),
       judul_dokumen: '',
@@ -398,98 +400,64 @@ export default function IsiAmiPage() {
       tahun_pelaksanaan: '',
       capaian: '',
       keterangan: '',
-      bukti_files: [null],
+      bukti_files: [{ file: null, judul_dokumen: '', keterangan_dokumen: '', tahun_dokumen: '' }],
       existing_files: [],
-    }]);
+    });
   };
 
   const handleInputChange = (
-    index: number,
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value, type } = e.target;
-    setIsianList((prev) => {
-      const newList = [...prev];
+    setIsianForm((prev) => {
+      if (!prev) return prev;
       if (type === 'checkbox') {
-        newList[index] = { ...newList[index], [name]: (e.target as HTMLInputElement).checked };
-      } else {
-        newList[index] = { ...newList[index], [name]: value };
+        return { ...prev, [name]: (e.target as HTMLInputElement).checked };
       }
-      return newList;
+      return { ...prev, [name]: value };
+    });
+  };
+  const handleFileMetaChange = (index: number, e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setIsianForm((prev) => {
+      if (!prev) return prev;
+      const newFiles = [...prev.bukti_files];
+      newFiles[index] = { ...newFiles[index], [name]: value };
+      return { ...prev, bukti_files: newFiles };
     });
   };
 
-  const handleFileChange = (isianIndex: number, fileIndex: number, e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
-    setIsianList((prev) => {
-      const newList = [...prev];
-      const newFiles = [...newList[isianIndex].bukti_files];
-      newFiles[fileIndex] = file;
-      newList[isianIndex] = { ...newList[isianIndex], bukti_files: newFiles };
-      return newList;
+    setIsianForm((prev) => {
+      if (!prev) return prev;
+      const newFiles = [...prev.bukti_files];
+      newFiles[index] = { ...newFiles[index], file };
+      return { ...prev, bukti_files: newFiles };
     });
   };
 
-  const addFileField = (isianIndex: number) => {
-    setIsianList((prev) => {
-      const newList = [...prev];
-      newList[isianIndex] = { 
-        ...newList[isianIndex], 
-        bukti_files: [...newList[isianIndex].bukti_files, null] 
+  const addFileField = () => {
+    setIsianForm((prev) => {
+      if (!prev) return prev;
+      return { 
+        ...prev, 
+        bukti_files: [...prev.bukti_files, { file: null, judul_dokumen: '', keterangan_dokumen: '', tahun_dokumen: '' }] 
       };
-      return newList;
     });
   };
 
-  const removeFileField = (isianIndex: number, fileIndex: number) => {
-    setIsianList((prev) => {
-      const newList = [...prev];
-      const newFiles = [...newList[isianIndex].bukti_files];
-      newFiles.splice(fileIndex, 1);
-      if (newFiles.length === 0) newFiles.push(null);
-      newList[isianIndex] = { ...newList[isianIndex], bukti_files: newFiles };
-      return newList;
+  const removeFileField = (index: number) => {
+    setIsianForm((prev) => {
+      if (!prev) return prev;
+      const newFiles = [...prev.bukti_files];
+      newFiles.splice(index, 1);
+      if (newFiles.length === 0) newFiles.push({ file: null, judul_dokumen: '', keterangan_dokumen: '', tahun_dokumen: '' });
+      return { ...prev, bukti_files: newFiles };
     });
   };
-
-  const addIsianBlock = () => {
-    setIsianList((prev) => {
-      const maxUrutan = prev.length > 0 ? Math.max(...prev.map(i => i.urutan_isian)) : 0;
-      return [
-        ...prev,
-        {
-          urutan_isian: maxUrutan + 1,
-          status: 'kosong',
-          pemeriksaan_unsur_id: selectedUnsur || '',
-          judul_dokumen: '',
-          ketersediaan_standar: 'tidak_ada',
-          dokumen: 'tidak_ada',
-          pencapaian_standar_spt_pt: false,
-          pencapaian_standar_sn_dikti: false,
-          daya_saing_lokal: false,
-          daya_saing_nasional: false,
-          daya_saing_internasional: false,
-          bukti_link: '',
-          tahun_pelaksanaan: '',
-          capaian: '',
-          keterangan: '',
-          bukti_files: [null],
-          existing_files: [],
-        }
-      ];
-    });
-  };
-
-  const removeIsianBlock = (index: number) => {
-    setIsianList((prev) => {
-      const newList = [...prev];
-      newList.splice(index, 1);
-      return newList;
-    });
-  };
-
   const handleSubmit = async (isDraft: boolean = false) => {
-    if (!selectedUnsur) {
+    if (!selectedUnsur || !isianForm) {
       setErrorMsg('Pilih unsur yang akan diisi');
       return;
     }
@@ -509,48 +477,50 @@ export default function IsiAmiPage() {
         return;
       }
 
-      // Loop over isianList and post one by one
-      for (const form of isianList) {
-        if (form.status === 'valid') continue;
+      if (isianForm.status === 'valid') {
+        setErrorMsg('Isian yang sudah valid tidak dapat diubah');
+        return;
+      }
 
-        const formDataObj = new FormData();
-        formDataObj.append('pemeriksaan_unsur_id', form.pemeriksaan_unsur_id);
-        formDataObj.append('periode_id', periode.data[0].id.toString());
-        formDataObj.append('is_draft', isDraft.toString());
-        formDataObj.append('urutan_isian', form.urutan_isian.toString());
-        formDataObj.append('judul_dokumen', form.judul_dokumen);
-        formDataObj.append('ketersediaan_standar', form.ketersediaan_standar);
-        formDataObj.append('dokumen', form.dokumen);
-        formDataObj.append('pencapaian_standar_spt_pt', form.pencapaian_standar_spt_pt.toString());
-        formDataObj.append('pencapaian_standar_sn_dikti', form.pencapaian_standar_sn_dikti.toString());
-        formDataObj.append('daya_saing_lokal', form.daya_saing_lokal.toString());
-        formDataObj.append('daya_saing_nasional', form.daya_saing_nasional.toString());
-        formDataObj.append('daya_saing_internasional', form.daya_saing_internasional.toString());
-        formDataObj.append('bukti_link', form.bukti_link);
-        formDataObj.append('tahun_pelaksanaan', form.tahun_pelaksanaan);
-        formDataObj.append('capaian', form.capaian);
-        formDataObj.append('keterangan', form.keterangan);
-        for (const file of form.bukti_files) {
-          if (file) {
-            formDataObj.append('bukti_files', file);
-          }
-        }
-
-        const res = await fetch('/api/isians', {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${token}` },
-          body: formDataObj,
-        });
-
-        if (!res.ok) {
-          const resData = await res.json();
-          throw new Error(resData.message || 'Gagal menyimpan isian ke-' + form.urutan_isian);
+      const formDataObj = new FormData();
+      formDataObj.append('pemeriksaan_unsur_id', isianForm.pemeriksaan_unsur_id);
+      formDataObj.append('periode_id', periode.data[0].id.toString());
+      formDataObj.append('is_draft', isDraft.toString());
+      formDataObj.append('judul_dokumen', isianForm.judul_dokumen);
+      formDataObj.append('ketersediaan_standar', isianForm.ketersediaan_standar);
+      formDataObj.append('dokumen', isianForm.dokumen);
+      formDataObj.append('pencapaian_standar_spt_pt', isianForm.pencapaian_standar_spt_pt.toString());
+      formDataObj.append('pencapaian_standar_sn_dikti', isianForm.pencapaian_standar_sn_dikti.toString());
+      formDataObj.append('daya_saing_lokal', isianForm.daya_saing_lokal.toString());
+      formDataObj.append('daya_saing_nasional', isianForm.daya_saing_nasional.toString());
+      formDataObj.append('daya_saing_internasional', isianForm.daya_saing_internasional.toString());
+      formDataObj.append('bukti_link', isianForm.bukti_link);
+      formDataObj.append('tahun_pelaksanaan', isianForm.tahun_pelaksanaan);
+      formDataObj.append('capaian', isianForm.capaian);
+      formDataObj.append('keterangan', isianForm.keterangan);
+      
+      for (const f of isianForm.bukti_files) {
+        if (f.file) {
+          formDataObj.append('bukti_files[]', f.file);
+          formDataObj.append('judul_dokumen_file[]', f.judul_dokumen);
+          formDataObj.append('keterangan_dokumen_file[]', f.keterangan_dokumen);
+          formDataObj.append('tahun_dokumen_file[]', f.tahun_dokumen);
         }
       }
 
-      setSuccessMsg(isDraft ? 'Semua isian berhasil disimpan sebagai draft' : 'Semua isian berhasil dikirim untuk review');
+      const res = await fetch('/api/isians', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formDataObj,
+      });
+
+      if (!res.ok) {
+        const resData = await res.json();
+        throw new Error(resData.message || 'Gagal menyimpan isian');
+      }
+
+      setSuccessMsg(isDraft ? 'Draft berhasil disimpan' : 'Isian berhasil dikirim untuk review');
       
-      // Reload isians
       handleNodeClick({ stopPropagation: () => {} } as any, selectedUnsur);
       fetchStatusMap();
 
@@ -891,31 +861,23 @@ export default function IsiAmiPage() {
           )}
 
                     <div className="space-y-8">
-            {isianList.map((formData, index) => {
+            {isianForm && (() => {
+              const formData = isianForm;
               const isUnsurValid = formData.status === 'valid';
               const inputClasses = "w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 disabled:bg-slate-50 disabled:text-slate-800 disabled:border-transparent disabled:opacity-100 disabled:shadow-none";
               const selectClasses = "w-full appearance-none border border-slate-300 rounded-lg pl-3 pr-10 py-2.5 text-sm bg-white outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 cursor-pointer hover:border-indigo-400 transition-colors disabled:bg-slate-50 disabled:text-slate-800 disabled:border-transparent disabled:opacity-100 disabled:cursor-default disabled:appearance-none disabled:shadow-none disabled:hover:border-transparent";
 
               return (
-                <div key={index} className="p-5 border border-slate-200 rounded-xl bg-white shadow-sm space-y-5 relative">
+                <div className="p-5 border border-slate-200 rounded-xl bg-white shadow-sm space-y-5 relative">
                   <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                     <h3 className="text-md font-bold text-slate-800 flex items-center gap-2">
                       <span className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs">
-                        {formData.urutan_isian}
+                        1
                       </span>
-                      Blok Isian {formData.urutan_isian}
+                      Formulir Isian AMI
                     </h3>
                     <div className="flex items-center gap-3">
                       <StatusBadge status={formData.status} />
-                      {!isUnsurValid && isianList.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removeIsianBlock(index)}
-                          className="text-rose-500 hover:bg-rose-50 p-1.5 rounded-lg transition-colors text-sm font-medium flex items-center gap-1 border border-transparent hover:border-rose-200"
-                        >
-                          <X size={16} /> Hapus Blok
-                        </button>
-                      )}
                     </div>
                   </div>
 
@@ -930,13 +892,13 @@ export default function IsiAmiPage() {
                     {/* Row 1 */}
                     <div className="grid sm:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Judul Dokumen</label>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Judul Isian <span className="text-rose-500">*</span></label>
                         <input
                           type="text"
                           name="judul_dokumen"
                           value={formData.judul_dokumen}
-                          onChange={(e) => handleInputChange(index, e)}
-                          placeholder="Nama dokumen atau bukti"
+                          onChange={(e) => handleInputChange(e)}
+                          placeholder="Judul pokok isian"
                           className={inputClasses}
                         />
                       </div>
@@ -946,7 +908,7 @@ export default function IsiAmiPage() {
                           type="number"
                           name="tahun_pelaksanaan"
                           value={formData.tahun_pelaksanaan}
-                          onChange={(e) => handleInputChange(index, e)}
+                          onChange={(e) => handleInputChange(e)}
                           placeholder="2024"
                           min="1900"
                           max="2099"
@@ -963,7 +925,7 @@ export default function IsiAmiPage() {
                           <select
                             name="ketersediaan_standar"
                             value={formData.ketersediaan_standar}
-                            onChange={(e) => handleInputChange(index, e)}
+                            onChange={(e) => handleInputChange(e)}
                             className={selectClasses}
                           >
                             <option value="ada">Ada</option>
@@ -980,7 +942,7 @@ export default function IsiAmiPage() {
                           <select
                             name="dokumen"
                             value={formData.dokumen}
-                            onChange={(e) => handleInputChange(index, e)}
+                            onChange={(e) => handleInputChange(e)}
                             className={selectClasses}
                           >
                             <option value="ada">Ada</option>
@@ -1002,7 +964,7 @@ export default function IsiAmiPage() {
                             type="checkbox"
                             name="pencapaian_standar_spt_pt"
                             checked={formData.pencapaian_standar_spt_pt}
-                            onChange={(e) => handleInputChange(index, e)}
+                            onChange={(e) => handleInputChange(e)}
                             className="w-4 h-4 rounded border-slate-300 text-indigo-600"
                           />
                           <span className="text-sm text-slate-700">Pencapaian Standar SPT PT</span>
@@ -1012,7 +974,7 @@ export default function IsiAmiPage() {
                             type="checkbox"
                             name="pencapaian_standar_sn_dikti"
                             checked={formData.pencapaian_standar_sn_dikti}
-                            onChange={(e) => handleInputChange(index, e)}
+                            onChange={(e) => handleInputChange(e)}
                             className="w-4 h-4 rounded border-slate-300 text-indigo-600"
                           />
                           <span className="text-sm text-slate-700">Pencapaian Standar SN Dikti</span>
@@ -1029,7 +991,7 @@ export default function IsiAmiPage() {
                             type="checkbox"
                             name="daya_saing_lokal"
                             checked={formData.daya_saing_lokal}
-                            onChange={(e) => handleInputChange(index, e)}
+                            onChange={(e) => handleInputChange(e)}
                             className="w-4 h-4 rounded border-slate-300 text-indigo-600"
                           />
                           <span className="text-sm text-slate-700">Daya Saing Lokal</span>
@@ -1039,7 +1001,7 @@ export default function IsiAmiPage() {
                             type="checkbox"
                             name="daya_saing_nasional"
                             checked={formData.daya_saing_nasional}
-                            onChange={(e) => handleInputChange(index, e)}
+                            onChange={(e) => handleInputChange(e)}
                             className="w-4 h-4 rounded border-slate-300 text-indigo-600"
                           />
                           <span className="text-sm text-slate-700">Daya Saing Nasional</span>
@@ -1049,7 +1011,7 @@ export default function IsiAmiPage() {
                             type="checkbox"
                             name="daya_saing_internasional"
                             checked={formData.daya_saing_internasional}
-                            onChange={(e) => handleInputChange(index, e)}
+                            onChange={(e) => handleInputChange(e)}
                             className="w-4 h-4 rounded border-slate-300 text-indigo-600"
                           />
                           <span className="text-sm text-slate-700">Daya Saing Internasional</span>
@@ -1064,7 +1026,7 @@ export default function IsiAmiPage() {
                         type="url"
                         name="bukti_link"
                         value={formData.bukti_link}
-                        onChange={(e) => handleInputChange(index, e)}
+                        onChange={(e) => handleInputChange(e)}
                         placeholder="https://..."
                         className={inputClasses}
                       />
@@ -1072,29 +1034,46 @@ export default function IsiAmiPage() {
 
                     {/* File Upload / Existing Files */}
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">
-                        {isUnsurValid ? 'Dokumen Bukti' : 'Upload File Bukti'}
-                      </label>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="block text-sm font-medium text-slate-700">
+                          {isUnsurValid ? 'Dokumen Bukti' : 'Upload Multi Dokumen Bukti'}
+                        </label>
+                        {!isUnsurValid && (
+                          <button
+                            type="button"
+                            onClick={() => addFileField()}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors border border-indigo-200"
+                          >
+                            <Plus size={14} /> Tambah Dokumen Baru
+                          </button>
+                        )}
+                      </div>
 
                       {isUnsurValid ? (
-                        <div className="space-y-2">
+                        <div className="space-y-3">
                           {formData.existing_files && formData.existing_files.length > 0 ? (
                             formData.existing_files.map((file: any) => (
-                              <a
-                                key={file.id}
-                                href={file.file_path}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 bg-white hover:border-indigo-300 hover:shadow-sm transition-all"
-                              >
-                                <div className="w-8 h-8 rounded bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0">
-                                  <FileText size={16} />
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                  <div className="text-sm font-medium text-slate-700 truncate">{file.original_name}</div>
-                                  <div className="text-xs text-slate-500 mt-0.5">Buka dokumen</div>
-                                </div>
-                              </a>
+                              <div key={file.id} className="p-4 rounded-lg border border-slate-200 bg-white">
+                                <a
+                                  href={file.file_path}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="flex items-center gap-3 hover:text-indigo-600 mb-2"
+                                >
+                                  <div className="w-10 h-10 rounded bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0">
+                                    <FileText size={20} />
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <div className="text-sm font-bold text-slate-800 truncate">{file.judul_dokumen || file.original_name}</div>
+                                    {file.tahun_dokumen && <div className="text-xs text-slate-500 mt-0.5">Tahun: {file.tahun_dokumen}</div>}
+                                  </div>
+                                </a>
+                                {file.keterangan_dokumen && (
+                                  <div className="mt-2 text-sm text-slate-600 bg-slate-50 p-2 rounded border border-slate-100">
+                                    {file.keterangan_dokumen}
+                                  </div>
+                                )}
+                              </div>
                             ))
                           ) : (
                             <div className="text-sm text-slate-500 italic p-3 rounded-lg bg-slate-50 border border-transparent">
@@ -1103,69 +1082,109 @@ export default function IsiAmiPage() {
                           )}
                         </div>
                       ) : (
-                        <div className="space-y-3">
+                        <div className="space-y-5">
                           {formData.existing_files && formData.existing_files.length > 0 && (
-                            <div className="mb-4 space-y-2">
-                              <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Dokumen Tersimpan</div>
+                            <div className="mb-4 space-y-3">
+                              <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Dokumen Tersimpan (Read Only)</div>
                               {formData.existing_files.map((file: any) => (
-                                <a
-                                  key={file.id}
-                                  href={file.file_path}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 bg-slate-50 hover:border-indigo-300 hover:shadow-sm transition-all"
-                                >
-                                  <div className="w-8 h-8 rounded bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0">
-                                    <FileText size={16} />
-                                  </div>
-                                  <div className="min-w-0 flex-1">
-                                    <div className="text-sm font-medium text-slate-700 truncate">{file.original_name}</div>
-                                    <div className="text-xs text-slate-500 mt-0.5">Buka dokumen</div>
-                                  </div>
-                                </a>
+                                <div key={file.id} className="p-4 rounded-lg border border-slate-200 bg-slate-50">
+                                  <a
+                                    href={file.file_path}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="flex items-center gap-3 hover:text-indigo-600 mb-2"
+                                  >
+                                    <div className="w-10 h-10 rounded bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0">
+                                      <FileText size={20} />
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                      <div className="text-sm font-bold text-slate-800 truncate">{file.judul_dokumen || file.original_name}</div>
+                                      {file.tahun_dokumen && <div className="text-xs text-slate-500 mt-0.5">Tahun: {file.tahun_dokumen}</div>}
+                                    </div>
+                                  </a>
+                                  {file.keterangan_dokumen && (
+                                    <div className="mt-2 text-sm text-slate-600 bg-white p-2 rounded border border-slate-200">
+                                      {file.keterangan_dokumen}
+                                    </div>
+                                  )}
+                                </div>
                               ))}
                             </div>
                           )}
 
-                          <div className="space-y-3">
-                            {formData.bukti_files.map((file, fileIndex) => (
-                              <div key={fileIndex} className="flex items-center gap-3">
-                                <div className="flex-1 border-2 border-dashed border-slate-300 rounded-lg p-4 text-center hover:border-indigo-400 transition-colors cursor-pointer relative bg-white">
-                                  <input
-                                    type="file"
-                                    onChange={(e) => handleFileChange(index, fileIndex, e)}
-                                    className="absolute inset-0 opacity-0 cursor-pointer"
-                                  />
-                                  <div className="flex flex-col items-center gap-1">
-                                    <FileUp size={20} className="text-slate-400" />
-                                    <div>
-                                      <p className="text-sm font-medium text-slate-700">{file ? 'Ganti file' : 'Klik atau drag file'}</p>
-                                      {!file && <p className="text-xs text-slate-500 mt-0.5">Format: PDF, JPG, PNG (Max 10MB)</p>}
-                                    </div>
-                                  </div>
-                                  {file && <p className="text-xs text-emerald-600 font-medium mt-2">✓ {file.name}</p>}
-                                </div>
+                          <div className="space-y-4 border-t border-slate-200 pt-4">
+                            {formData.bukti_files.map((fileEntry, fileIndex) => (
+                              <div key={fileIndex} className="p-4 border border-indigo-100 rounded-lg bg-indigo-50/30 relative space-y-4">
                                 {fileIndex > 0 && (
                                   <button
                                     type="button"
-                                    onClick={() => removeFileField(index, fileIndex)}
-                                    className="p-3 text-rose-500 hover:bg-rose-50 rounded-lg border border-transparent hover:border-rose-200 transition-colors"
+                                    onClick={() => removeFileField(fileIndex)}
+                                    className="absolute top-3 right-3 p-1.5 text-rose-500 hover:bg-rose-50 rounded-md transition-colors"
                                     title="Hapus kolom ini"
                                   >
-                                    <X size={20} />
+                                    <X size={18} />
                                   </button>
                                 )}
+                                
+                                <div className="grid sm:grid-cols-2 gap-4 pr-8">
+                                  <div>
+                                    <label className="block text-xs font-medium text-slate-600 mb-1">Judul File <span className="text-rose-500">*</span></label>
+                                    <input
+                                      type="text"
+                                      name="judul_dokumen"
+                                      value={fileEntry.judul_dokumen}
+                                      onChange={(e) => handleFileMetaChange(fileIndex, e)}
+                                      placeholder="Misal: Sertifikat A"
+                                      className={inputClasses}
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-xs font-medium text-slate-600 mb-1">Tahun File</label>
+                                    <input
+                                      type="text"
+                                      name="tahun_dokumen"
+                                      value={fileEntry.tahun_dokumen}
+                                      onChange={(e) => handleFileMetaChange(fileIndex, e)}
+                                      placeholder="2024"
+                                      className={inputClasses}
+                                    />
+                                  </div>
+                                </div>
+                                
+                                <div>
+                                  <label className="block text-xs font-medium text-slate-600 mb-1">Keterangan File</label>
+                                  <textarea
+                                    name="keterangan_dokumen"
+                                    value={fileEntry.keterangan_dokumen}
+                                    onChange={(e) => handleFileMetaChange(fileIndex, e)}
+                                    placeholder="Penjelasan singkat tentang dokumen ini..."
+                                    rows={2}
+                                    className={inputClasses}
+                                  />
+                                </div>
+
+                                <div className="mt-2">
+                                  <label className="block text-xs font-medium text-slate-600 mb-1">Upload PDF/JPG/PNG <span className="text-rose-500">*</span></label>
+                                  <div className="flex items-center gap-3">
+                                    <div className="flex-1 border border-dashed border-slate-300 rounded-lg p-3 text-center hover:border-indigo-400 transition-colors cursor-pointer relative bg-white">
+                                      <input
+                                        type="file"
+                                        onChange={(e) => handleFileChange(fileIndex, e)}
+                                        className="absolute inset-0 opacity-0 cursor-pointer"
+                                      />
+                                      <div className="flex flex-col items-center gap-1">
+                                        <FileUp size={16} className="text-slate-400" />
+                                        <div>
+                                          <p className="text-xs font-medium text-slate-700">{fileEntry.file ? 'Ganti file' : 'Pilih file upload'}</p>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  {fileEntry.file && <p className="text-xs text-emerald-600 font-bold mt-2 flex items-center gap-1"><CheckCircle size={12}/> {fileEntry.file.name}</p>}
+                                </div>
                               </div>
                             ))}
                           </div>
-
-                          <button
-                            type="button"
-                            onClick={() => addFileField(index)}
-                            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors mt-2 border border-indigo-200 border-dashed hover:border-solid"
-                          >
-                            <Plus size={16} /> Tambah Dokumen
-                          </button>
                         </div>
                       )}
                     </div>
@@ -1176,7 +1195,7 @@ export default function IsiAmiPage() {
                       <textarea
                         name="capaian"
                         value={formData.capaian}
-                        onChange={(e) => handleInputChange(index, e)}
+                        onChange={(e) => handleInputChange(e)}
                         placeholder="Jelaskan capaian yang sudah dicapai..."
                         rows={3}
                         className={`${inputClasses} resize-none`}
@@ -1189,7 +1208,7 @@ export default function IsiAmiPage() {
                       <textarea
                         name="keterangan"
                         value={formData.keterangan}
-                        onChange={(e) => handleInputChange(index, e)}
+                        onChange={(e) => handleInputChange(e)}
                         placeholder="Catatan atau penjelasan lainnya..."
                         rows={3}
                         className={`${inputClasses} resize-none`}
@@ -1198,18 +1217,7 @@ export default function IsiAmiPage() {
                   </fieldset>
                 </div>
               );
-            })}
-            </div>
-
-            {/* Tombol Tambah Blok Isian Baru */}
-            <div className="flex justify-center border-t border-slate-200 pt-6 pb-2">
-              <button
-                type="button"
-                onClick={addIsianBlock}
-                className="flex items-center gap-2 px-6 py-2.5 bg-white border-2 border-indigo-200 text-indigo-600 font-semibold rounded-full hover:bg-indigo-50 hover:border-indigo-300 transition-colors shadow-sm"
-              >
-                <Plus size={18} /> Tambah Blok Isian
-              </button>
+            })()}
             </div>
 
             {/* Messages */}

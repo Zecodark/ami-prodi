@@ -21,6 +21,9 @@ interface BuktiFile {
   file_path: string;
   file_size: number;
   mime_type: string;
+  judul_dokumen: string | null;
+  keterangan_dokumen: string | null;
+  tahun_dokumen: string | null;
 }
 
 interface IsianDetail {
@@ -537,26 +540,42 @@ export default function KaprodiReviewPage() {
                             )}
 
                             {detailData.bukti_files?.length > 0 ? (
-                              <div className="space-y-3">
+                              <div className="space-y-4">
                                 {detailData.bukti_files.map((file) => (
-                                  <div key={file.id} className="group flex items-center justify-between p-3.5 bg-white border border-slate-200 rounded-lg hover:border-blue-400 hover:shadow-sm transition-all">
-                                    <div className="flex items-center gap-3 overflow-hidden">
-                                      <div className="p-2 bg-slate-50 text-slate-500 rounded-md group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
-                                        <FileText size={20} />
+                                  <div key={file.id} className="group flex flex-col p-4 bg-white border border-slate-200 rounded-xl hover:border-blue-400 hover:shadow-md transition-all relative overflow-hidden">
+                                    <div className="flex items-start justify-between gap-3 relative z-10">
+                                      <div className="flex items-start gap-3 overflow-hidden">
+                                        <div className="p-2.5 bg-blue-50 text-blue-600 rounded-lg shrink-0 group-hover:bg-blue-600 group-hover:text-white transition-colors shadow-sm">
+                                          <FileText size={24} />
+                                        </div>
+                                        <div className="min-w-0">
+                                          <p className="text-sm font-bold text-slate-800 truncate leading-tight mb-1">{file.judul_dokumen || file.original_name}</p>
+                                          <div className="flex items-center gap-2 text-[11px] font-medium text-slate-500">
+                                            <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-600">{formatFileSize(file.file_size)}</span>
+                                            {file.tahun_dokumen && <span className="bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded border border-indigo-100">Tahun: {file.tahun_dokumen}</span>}
+                                          </div>
+                                        </div>
                                       </div>
-                                      <div className="truncate">
-                                        <p className="text-sm font-bold text-slate-700 group-hover:text-blue-800 truncate mb-0.5">{file.original_name}</p>
-                                        <p className="text-xs text-slate-400">{formatFileSize(file.file_size)}</p>
-                                      </div>
+                                      <a 
+                                        href={`/api/files/${file.id}`}
+                                        download={file.original_name}
+                                        className="p-2.5 bg-white text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors border border-slate-200 hover:border-blue-200 shadow-sm shrink-0"
+                                        title="Download Dokumen"
+                                      >
+                                        <Download size={20} />
+                                      </a>
                                     </div>
-                                    <a 
-                                      href={`/api/files/${file.id}`}
-                                      download={file.original_name}
-                                      className="p-2.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors border border-transparent hover:border-blue-200"
-                                      title="Download"
-                                    >
-                                      <Download size={18} />
-                                    </a>
+                                    {file.keterangan_dokumen && (
+                                      <div className="mt-3 pt-3 border-t border-slate-100 relative z-10">
+                                        <p className="text-xs text-slate-600 leading-relaxed bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                                          <span className="font-semibold block mb-0.5 text-slate-700">Keterangan:</span>
+                                          {file.keterangan_dokumen}
+                                        </p>
+                                      </div>
+                                    )}
+                                    <div className="absolute -right-4 -bottom-4 opacity-[0.03] group-hover:opacity-[0.05] transition-opacity pointer-events-none transform rotate-12">
+                                      <FileText size={120} />
+                                    </div>
                                   </div>
                                 ))}
                               </div>
