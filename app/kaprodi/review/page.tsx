@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   ChevronDown,
   CheckCircle2,
@@ -27,7 +27,7 @@ interface BuktiFile {
 }
 
 interface IsianDetail {
-  id: string;
+  id: number;
   urutan_isian: number;
   judul_dokumen: string;
   ketersediaan_standar: string;
@@ -77,26 +77,39 @@ interface InstrumenRow {
   area: string;
   status: 'proses' | 'valid' | 'revisi';
   unsur: string;
-  isian_id: string;
+  isian_id: number;
   urutan_isian: number;
+  dosen_nama: string;
+  submitted_at: string;
 }
+
+interface PeriodeSummary {
+  id: string;
+  is_active: boolean;
+}
+
+type ReviewLog = NonNullable<IsianDetail['review_logs']>[number];
 
 export default function KaprodiReviewPage() {
   const [selectedPeriode, setSelectedPeriode] = useState<string>('');
   const [selectedInstrumen, setSelectedInstrumen] = useState<string>('');
 
   const [rows, setRows] = useState<InstrumenRow[]>([]);
-  const [selectedRowId, setSelectedRowId] = useState<string>('');
+  const [selectedRowId, setSelectedRowId] = useState<number | null>(null);
   const [detailData, setDetailData] = useState<IsianDetail | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
 
-  const [reviewStatus, setReviewStatus] = useState<'valid' | 'revisi'>('valid');
+  const [reviewStatus, setReviewStatus] = useState<'valid' | 'revisi' | null>(null);
   const [reviewCatatan, setReviewCatatan] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  const [reviewHistory, setReviewHistory] = useState<any[]>([]);
+  const [reviewHistory, setReviewHistory] = useState<ReviewLog[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [sortBy, setSortBy] = useState<'kode' | 'terbaru' | 'terlama'>('kode');
+  const [dosenFilter, setDosenFilter] = useState('');
+  const [kodeFilter, setKodeFilter] = useState('');
 
   // Fetch active periode
   useEffect(() => {
@@ -108,7 +121,9 @@ export default function KaprodiReviewPage() {
         });
         const data = await res.json();
         if (data.data?.length > 0) {
-          const activePeriode = data.data.find((p: any) => p.is_active) || data.data[0];
+          const activePeriode =
+            (data.data as PeriodeSummary[]).find((periode) => periode.is_active) ||
+            data.data[0];
           setSelectedPeriode(activePeriode.id);
         }
       } catch (error) {
@@ -158,8 +173,8 @@ export default function KaprodiReviewPage() {
         const rowsMap = new Map<string, InstrumenRow>();
 
         iisiansData.forEach((isian) => {
-          // Hanya sembunyikan isian yang sudah valid, jangan sembunyikan isian lain dalam unsur yang sama
-          if (isian.status === 'valid') {
+          // Kaprodi hanya memverifikasi isian yang sedang menunggu review.
+          if (isian.status !== 'proses') {
             return;
           }
 
@@ -173,6 +188,8 @@ export default function KaprodiReviewPage() {
               unsur: isian.pemeriksaan_unsur.isi_unsur,
               isian_id: isian.id,
               urutan_isian: isian.urutan_isian,
+              dosen_nama: isian.dosen?.nama_lengkap || 'Tanpa Nama',
+              submitted_at: isian.submitted_at,
             });
           }
         });
@@ -182,7 +199,7 @@ export default function KaprodiReviewPage() {
         });
         sortedRows.forEach((row, index) => { row.no = index + 1; });
         setRows(sortedRows);
-        setSelectedRowId('');
+        setSelectedRowId(null);
         setDetailData(null);
       } catch (error) {
         console.error('Failed to fetch isians:', error);
@@ -197,7 +214,7 @@ export default function KaprodiReviewPage() {
   // Listen for refresh event
   useEffect(() => {
     const handleRefresh = () => {
-      setSelectedRowId('');
+      setSelectedRowId(null);
       setDetailData(null);
       if (selectedPeriode && selectedInstrumen) {
         const fetchIsians = async () => {
@@ -211,7 +228,7 @@ export default function KaprodiReviewPage() {
             
             const rowsMap = new Map<string, InstrumenRow>();
             iisiansData.forEach((isian) => {
-              if (isian.status === 'valid') return;
+              if (isian.status !== 'proses') return;
               if (!rowsMap.has(isian.id)) {
                 rowsMap.set(isian.id, {
                   no: rowsMap.size + 1,
@@ -222,6 +239,8 @@ export default function KaprodiReviewPage() {
                   unsur: isian.pemeriksaan_unsur.isi_unsur,
                   isian_id: isian.id,
                   urutan_isian: isian.urutan_isian,
+                  dosen_nama: isian.dosen?.nama_lengkap || 'Tanpa Nama',
+                  submitted_at: isian.submitted_at,
                 });
               }
             });
@@ -246,31 +265,41 @@ export default function KaprodiReviewPage() {
   // Fetch detail when row is selected
   useEffect(() => {
     if (!selectedRowId) {
-      setDetailData(null);
       return;
     }
 
     const fetchDetail = async () => {
       try {
+        setDetailLoading(true);
+        setDetailData(null);
         const token = localStorage.getItem('ami_token');
         const res = await fetch(`/api/isians/${selectedRowId}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
+        if (!res.ok) {
+          throw new Error('Gagal memuat detail isian');
+        }
         const data = await res.json();
         setDetailData(data.data);
-        setReviewStatus(data.data.status === 'valid' ? 'valid' : 'revisi');
-        setReviewCatatan(data.data.catatan_kaprodi || '');
+        setReviewStatus(null);
+        setReviewCatatan('');
         setReviewHistory(data.data.review_logs || []);
       } catch (error) {
         console.error('Failed to fetch detail:', error);
+        setMessage({ type: 'error', text: 'Gagal memuat detail isian' });
+      } finally {
+        setDetailLoading(false);
       }
     };
 
     fetchDetail();
   }, [selectedRowId]);
 
-  const handleReviewSubmit = async (status: 'valid' | 'revisi') => {
-    if (!selectedRowId) return;
+  const handleReviewSubmit = async (status: 'valid' | 'revisi' | null) => {
+    if (!selectedRowId || !status) {
+      setMessage({ type: 'error', text: 'Pilih status Valid atau Revisi terlebih dahulu' });
+      return;
+    }
     if (status === 'revisi' && !reviewCatatan.trim()) {
       setMessage({ type: 'error', text: 'Catatan wajib diisi jika memilih Revisi' });
       return;
@@ -300,14 +329,14 @@ export default function KaprodiReviewPage() {
       // Refresh data
       setTimeout(() => {
         setMessage(null);
-        setSelectedRowId('');
+        setSelectedRowId(null);
         setReviewCatatan('');
-        setReviewStatus('valid');
+        setReviewStatus(null);
         // Trigger refresh rows
         const event = new CustomEvent('refresh-rows');
         window.dispatchEvent(event);
       }, 1500);
-    } catch (error) {
+    } catch {
       setMessage({ type: 'error', text: 'Gagal menyimpan review' });
     } finally {
       setIsSubmitting(false);
@@ -348,10 +377,67 @@ export default function KaprodiReviewPage() {
     return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
   };
 
+  const truncateText = (text: string, maxLength = 100) =>
+    text.length > maxLength ? `${text.slice(0, maxLength).trimEnd()}...` : text;
+
+  const dosenOptions = useMemo(
+    () => Array.from(new Set(rows.map((row) => row.dosen_nama))).sort((a, b) => a.localeCompare(b)),
+    [rows]
+  );
+
+  const kodeOptions = useMemo(
+    () =>
+      Array.from(new Set(rows.map((row) => row.kode_ami))).sort((a, b) =>
+        a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
+      ),
+    [rows]
+  );
+
+  const visibleRows = useMemo(() => {
+    const filteredRows = rows.filter((row) => {
+      const matchesDosen =
+        !dosenFilter || row.dosen_nama.toLowerCase().includes(dosenFilter.toLowerCase());
+      const matchesKode = !kodeFilter || row.kode_ami === kodeFilter;
+      return matchesDosen && matchesKode;
+    });
+
+    return [...filteredRows]
+      .sort((a, b) => {
+        const aSubmittedAt = a.submitted_at ? new Date(a.submitted_at).getTime() : 0;
+        const bSubmittedAt = b.submitted_at ? new Date(b.submitted_at).getTime() : 0;
+
+        if (sortBy === 'terbaru') {
+          return bSubmittedAt - aSubmittedAt || b.isian_id - a.isian_id;
+        }
+        if (sortBy === 'terlama') {
+          return aSubmittedAt - bSubmittedAt || a.isian_id - b.isian_id;
+        }
+        return a.kode_ami.localeCompare(b.kode_ami, undefined, {
+          numeric: true,
+          sensitivity: 'base',
+        });
+      })
+      .map((row, index) => ({ ...row, no: index + 1 }));
+  }, [rows, sortBy, dosenFilter, kodeFilter]);
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-3xl font-bold text-gray-900 mb-6">Verifikasi Dokumen AMI</h1>
+        <div className="mb-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-[#0a2f6f] tracking-tight">
+                Verifikasi Dokumen AMI
+              </h1>
+              <p className="text-slate-500 text-sm mt-1">
+                Daftar isian dokumen aktif yang perlu Anda periksa dan verifikasi.
+              </p>
+            </div>
+            <span className="inline-flex self-start rounded-full bg-blue-100 px-3 py-1 text-sm font-semibold text-blue-800">
+              {rows.length} isian perlu diverifikasi
+            </span>
+          </div>
+        </div>
 
         {/* Message Toast */}
         {message && (
@@ -368,11 +454,77 @@ export default function KaprodiReviewPage() {
 
         {/* Main Content */}
         <div className="space-y-4">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-lg font-semibold text-gray-900">Daftar Isian Dokumen (Aktif)</h2>
-            <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-              {rows.length} isian perlu diverifikasi
-            </span>
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="p-5 border-b border-slate-200 bg-slate-50/50">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-4 items-end">
+                <div className="lg:col-span-3">
+                  <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">
+                    Urutkan
+                  </label>
+                  <select
+                    value={sortBy}
+                    onChange={(event) =>
+                      setSortBy(event.target.value as 'kode' | 'terbaru' | 'terlama')
+                    }
+                    className="w-full border border-slate-300 bg-white rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm"
+                  >
+                    <option value="kode">Urutan Kode AMI</option>
+                    <option value="terbaru">Submit Terbaru</option>
+                    <option value="terlama">Submit Terlama</option>
+                  </select>
+                </div>
+
+                <div className="lg:col-span-4">
+                  <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">
+                    Dosen Pengisi
+                  </label>
+                  <input
+                    list="review-dosen-list"
+                    value={dosenFilter}
+                    onChange={(event) => setDosenFilter(event.target.value)}
+                    placeholder="Ketik untuk mencari nama dosen..."
+                    className="w-full border border-slate-300 bg-white rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm"
+                  />
+                  <datalist id="review-dosen-list">
+                    {dosenOptions.map((dosen) => (
+                      <option key={dosen} value={dosen} />
+                    ))}
+                  </datalist>
+                </div>
+
+                <div className="lg:col-span-3">
+                  <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">
+                    Kode AMI
+                  </label>
+                  <select
+                    value={kodeFilter}
+                    onChange={(event) => setKodeFilter(event.target.value)}
+                    className="w-full border border-slate-300 bg-white rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm"
+                  >
+                    <option value="">Semua Kode</option>
+                    {kodeOptions.map((kode) => (
+                      <option key={kode} value={kode}>
+                        {kode}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="lg:col-span-2 h-[42px]">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSortBy('kode');
+                      setDosenFilter('');
+                      setKodeFilter('');
+                    }}
+                    className="w-full h-full px-4 py-2 text-sm font-semibold text-slate-600 hover:text-blue-600 bg-white border border-slate-300 hover:border-blue-300 hover:bg-blue-50 rounded-lg shadow-sm transition-all"
+                  >
+                    Reset Filter
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
 
           {loading ? (
@@ -386,8 +538,13 @@ export default function KaprodiReviewPage() {
               <h3 className="text-lg font-semibold text-gray-900 mb-1">Semua Selesai!</h3>
               <p>Tidak ada isian dokumen yang perlu diverifikasi pada periode ini.</p>
             </div>
+          ) : visibleRows.length === 0 ? (
+            <div className="bg-white rounded-lg shadow-sm border p-10 text-center text-gray-500">
+              <h3 className="text-lg font-semibold text-gray-900 mb-1">Isian tidak ditemukan</h3>
+              <p>Tidak ada isian yang sesuai dengan filter yang dipilih.</p>
+            </div>
           ) : (
-            rows.map((row) => (
+            visibleRows.map((row) => (
               <div 
                 key={row.isian_id}
                 className={`bg-white rounded-xl shadow-sm border transition-all duration-200 ${
@@ -397,16 +554,41 @@ export default function KaprodiReviewPage() {
                 {/* Header Row (Clickable) */}
                 <div 
                   className="p-5 cursor-pointer flex flex-col sm:flex-row sm:items-center gap-4"
-                  onClick={() => setSelectedRowId(selectedRowId === row.isian_id ? '' : row.isian_id)}
+                  onClick={() => {
+                    const nextRowId = selectedRowId === row.isian_id ? null : row.isian_id;
+                    setSelectedRowId(nextRowId);
+                    if (!nextRowId) setDetailData(null);
+                  }}
                 >
                   <div className="px-3 py-2 bg-blue-600 border border-blue-700 rounded text-sm font-semibold text-white whitespace-nowrap self-start sm:self-auto w-48 flex-shrink-0 text-center shadow-sm">
                     {row.kode_ami}
                   </div>
                   <div className="flex-1">
                     <h3 className="font-semibold text-gray-800 text-lg">Blok Isian {row.urutan_isian} - {row.kriteria || row.area}</h3>
-                    <p className="text-gray-500 text-sm mt-1">
-                      {row.kriteria ? row.area : row.unsur}
+                    <p
+                      className="text-gray-500 text-sm mt-1"
+                      title={row.kriteria ? row.area : row.unsur}
+                    >
+                      {truncateText(row.kriteria ? row.area : row.unsur)}
                     </p>
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-400 mt-2">
+                      <span>Disubmit oleh <strong className="font-semibold text-slate-600">{row.dosen_nama}</strong></span>
+                      <span className="flex items-center gap-1.5">
+                        <Clock size={13} />
+                        Disubmit pada{' '}
+                        <strong className="font-semibold text-slate-600">
+                          {row.submitted_at
+                            ? new Date(row.submitted_at).toLocaleString('id-ID', {
+                                day: '2-digit',
+                                month: 'short',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })
+                            : '-'}
+                        </strong>
+                      </span>
+                    </div>
                   </div>
                   <div className="self-start sm:self-center flex items-center gap-3">
                     {getStatusBadge(row.status)}
@@ -415,9 +597,57 @@ export default function KaprodiReviewPage() {
                 </div>
 
                 {/* Detail Accordion */}
+                {selectedRowId === row.isian_id && detailLoading && (
+                  <div className="border-t border-gray-100 bg-slate-50/50 p-8 text-center text-sm text-slate-500">
+                    <div className="animate-spin rounded-full h-7 w-7 border-b-2 border-blue-600 mx-auto mb-3" />
+                    Memuat detail isian...
+                  </div>
+                )}
                 {selectedRowId === row.isian_id && detailData && detailData.id === row.isian_id && (
                   <div className="border-t border-gray-100 bg-slate-50/50">
                     <div className="p-6 grid grid-cols-1 lg:grid-cols-12 gap-8">
+                      {/* Full Width Card: Informasi Instrumen */}
+                      <div className="lg:col-span-12 bg-white rounded-xl border border-gray-100 p-5 shadow-sm hover:shadow-md transition-shadow">
+                        <h4 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
+                          <span className="w-1.5 h-4 bg-cyan-500 rounded-full"></span>
+                          Informasi Instrumen
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5 text-sm">
+                          <div>
+                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                              Kriteria
+                            </p>
+                            <p className="font-bold text-gray-900">
+                              {detailData.pemeriksaan_unsur.deskripsi_area.kode_ami.kriteria.nama_kriteria}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                              Kode AMI
+                            </p>
+                            <span className="inline-flex items-center rounded-md border border-blue-200 bg-blue-50 px-2.5 py-1 font-bold text-blue-700">
+                              {detailData.pemeriksaan_unsur.deskripsi_area.kode_ami.kode_ami}
+                            </span>
+                          </div>
+                          <div className="md:col-span-2">
+                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                              Deskripsi Area Audit
+                            </p>
+                            <p className="text-gray-800 leading-relaxed">
+                              {detailData.pemeriksaan_unsur.deskripsi_area.deskripsi_area_audit}
+                            </p>
+                          </div>
+                          <div className="md:col-span-2">
+                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                              Unsur Pemeriksaan
+                            </p>
+                            <p className="text-gray-800 leading-relaxed whitespace-pre-line">
+                              {detailData.pemeriksaan_unsur.isi_unsur}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
                       {/* Left Column: Data Dokumen */}
                       <div className="lg:col-span-7 space-y-6">
                         
@@ -651,11 +881,17 @@ export default function KaprodiReviewPage() {
 
                             <button
                               onClick={() => handleReviewSubmit(reviewStatus)}
-                              disabled={isSubmitting || (reviewStatus === 'revisi' && !reviewCatatan.trim())}
+                              disabled={
+                                isSubmitting ||
+                                !reviewStatus ||
+                                (reviewStatus === 'revisi' && !reviewCatatan.trim())
+                              }
                               className={`w-full flex justify-center items-center gap-2 py-3.5 px-4 rounded-xl shadow-md text-sm font-bold text-white transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 ${
                                 reviewStatus === 'valid' 
                                   ? 'bg-green-600 hover:bg-green-700 focus:ring-green-500 shadow-green-200 hover:shadow-lg' 
-                                  : 'bg-orange-600 hover:bg-orange-700 focus:ring-orange-500 shadow-orange-200 hover:shadow-lg'
+                                  : reviewStatus === 'revisi'
+                                    ? 'bg-orange-600 hover:bg-orange-700 focus:ring-orange-500 shadow-orange-200 hover:shadow-lg'
+                                    : 'bg-slate-400 focus:ring-slate-300 shadow-slate-200'
                               } disabled:opacity-50 disabled:cursor-not-allowed`}
                             >
                               {isSubmitting ? (
@@ -666,7 +902,9 @@ export default function KaprodiReviewPage() {
                               ) : (
                                 <>
                                   <Save size={20} />
-                                  Simpan Verifikasi {reviewStatus === 'valid' ? 'Valid' : 'Revisi'}
+                                  {reviewStatus
+                                    ? `Simpan Verifikasi ${reviewStatus === 'valid' ? 'Valid' : 'Revisi'}`
+                                    : 'Pilih Status Verifikasi'}
                                 </>
                               )}
                             </button>

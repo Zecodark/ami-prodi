@@ -159,7 +159,7 @@ export async function GET(request: NextRequest) {
     const unsurBelumValid = Math.max(0, totalUnsur - unsurValid);
     const progress = totalUnsur > 0 ? Math.round((unsurValid / totalUnsur) * 100) : 0;
 
-    // Daftar isian terbaru yang menunggu review
+    // Dua isian terlama yang masih menunggu review
     const recentIsians = await prisma.isianAmi.findMany({
       where: {
         periode_id: activePeriode.id,
@@ -180,8 +180,11 @@ export async function GET(request: NextRequest) {
           },
         },
       },
-      orderBy: { submitted_at: 'desc' },
-      take: 5,
+      orderBy: [
+        { submitted_at: 'asc' },
+        { id: 'asc' },
+      ],
+      take: 2,
     });
 
     return R.ok(

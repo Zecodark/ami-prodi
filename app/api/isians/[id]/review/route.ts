@@ -59,6 +59,9 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
     const { id } = await params;
     const isian = await prisma.isianAmi.findUnique({ where: { id: Number(id) } });
     if (!isian) return R.notFound();
+    if (isian.status !== 'proses') {
+      return R.badRequest('Isian ini tidak sedang menunggu verifikasi');
+    }
 
     // Pastikan kaprodi hanya bisa review isian dari prodi-nya sendiri
     const kaprodiDosen = await prisma.dosen.findUnique({

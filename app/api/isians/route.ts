@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
     if (!dosen) return R.forbidden('Profil dosen tidak ditemukan');
 
     const formData = await request.formData();
-    const dataObj: Record<string, any> = {};
+    const dataObj: Record<string, FormDataEntryValue> = {};
     formData.forEach((value, key) => {
       // Collect arrays for multiple document attachments
       if (!key.endsWith('[]')) {
@@ -219,6 +219,11 @@ export async function POST(request: NextRequest) {
         where: { id: existingDraft.id },
         data: {
           ...isianPayload,
+          ...(!parsed.data.is_draft && {
+            catatan_kaprodi: null,
+            reviewed_by: null,
+            reviewed_at: null,
+          }),
           bukti_files: buktiFilesData.length > 0
             ? { create: buktiFilesData.map(f => ({ ...f, uploaded_by: user.userId })) }
             : undefined,
