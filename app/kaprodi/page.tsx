@@ -177,17 +177,16 @@ export default function KaprodiDashboard() {
         </div>
       </div>
 
-      {/* ====== Status Isian (4 dark blue cards) ====== */}
-      <div className="bg-white rounded-2xl border border-[#cfdbf2] shadow-sm p-6">
-        <h3 className="text-lg font-bold text-[#0a2f6f] mb-4">Status Isian</h3>
-
-        <div className="grid grid-cols-1 gap-4">
-          <StatusBlock
-            label="Total Isian Menunggu Review"
-            value={data.isians.proses}
-            tone="navy"
-            accentDot="amber"
-          />
+      {/* ====== Status Isian (Full width) ====== */}
+      <div className="bg-gradient-to-br from-[#0e4490] to-[#1456a8] rounded-2xl shadow-sm p-6 relative overflow-hidden text-white flex items-center justify-between">
+        <div className="relative z-10">
+          <div className="text-xs md:text-sm uppercase tracking-wider font-semibold text-blue-100/90">
+            Total Isian Menunggu Review
+          </div>
+          <div className="mt-2 text-4xl font-extrabold leading-tight">{data.isians.proses}</div>
+        </div>
+        <div className="relative z-10">
+          <span className="inline-block w-3 h-3 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.6)]" />
         </div>
       </div>
 
@@ -294,40 +293,3 @@ function KpiCard({
   );
 }
 
-function StatusBlock({
-  label,
-  value,
-  tone,
-  accentDot,
-}: {
-  label: string;
-  value: number;
-  tone?: 'navy';
-  accentDot?: 'emerald' | 'amber' | 'rose';
-}) {
-  const dotMap = {
-    emerald: 'bg-emerald-400',
-    amber: 'bg-amber-400',
-    rose: 'bg-rose-400',
-  };
-  return (
-    <div
-      className={`relative overflow-hidden rounded-xl p-4 text-white shadow-md ${
-        tone === 'navy'
-          ? 'bg-gradient-to-br from-[#0e4490] to-[#1456a8]'
-          : 'bg-slate-700'
-      }`}
-    >
-
-      <div className="relative z-10 flex items-start justify-between gap-2">
-        <div className="text-[11px] uppercase tracking-wider font-semibold text-blue-100/90 truncate">
-          {label}
-        </div>
-        {accentDot && (
-          <span className={`inline-block w-2 h-2 rounded-full ${dotMap[accentDot]}`} />
-        )}
-      </div>
-      <div className="relative z-10 mt-2 text-3xl font-extrabold leading-tight">{value}</div>
-    </div>
-  );
-}

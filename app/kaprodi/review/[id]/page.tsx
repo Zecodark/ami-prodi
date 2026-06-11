@@ -489,8 +489,8 @@ export default function IsianDetailPage() {
           </div>
         )}
 
-        {/* Review Form - only show if status is proses or revisi */}
-        {(data.status === 'proses' || data.status === 'revisi') && (
+        {/* Review Form - only show if status is proses */}
+        {data.status === 'proses' && (
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <h2 className="text-sm font-bold text-gray-900 uppercase mb-4">Review Isian</h2>
 

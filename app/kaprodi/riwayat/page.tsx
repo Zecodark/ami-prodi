@@ -205,7 +205,7 @@ export default function KaprodiRiwayatReviewPage() {
                 {visibleLogs.map((log) => (
                   <li key={log.id} className="group">
                     <Link
-                      href={`/kaprodi/review?isian_id=${log.id}`}
+                      href={`/kaprodi/review/${log.id}`}
                       className="block hover:bg-blue-50/40 transition-colors"
                     >
                       <div className="grid grid-cols-12 gap-4 px-6 py-4 items-center">
@@ -232,11 +232,16 @@ export default function KaprodiRiwayatReviewPage() {
                           {log.kode_ami}
                         </div>
 
-                        {/* Dokumen / Unsur */}
+                        {/* Dokumen / Unsur & Catatan */}
                         <div className="col-span-3 text-sm text-slate-700 pr-4">
                           <p className="truncate font-medium" title={log.judul || '(Tanpa judul)'}>
                             {log.judul ?? <span className="italic text-slate-400">Tanpa judul</span>}
                           </p>
+                          {log.catatan && (
+                            <p className="text-[11px] text-slate-500 mt-1 line-clamp-1 italic bg-amber-50/80 px-2 py-0.5 rounded border border-amber-100 inline-block max-w-full" title={log.catatan}>
+                              Catatan: {log.catatan}
+                            </p>
+                          )}
                         </div>
 
                         {/* Dosen */}
