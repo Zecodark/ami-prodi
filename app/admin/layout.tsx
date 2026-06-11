@@ -9,7 +9,8 @@ import {
   CalendarClock,
   ClipboardCheck,
   FileSpreadsheet,
-  Network
+  Network,
+  UserCircle
 } from 'lucide-react';
 
 const menuItems = [
@@ -22,6 +23,7 @@ const menuItems = [
   { title: 'Kelola Instrumen AMI', href: '/admin/instrumen', icon: <ClipboardCheck size={18} /> },
   { title: 'Struktur Instrumen', href: '/admin/struktur', icon: <Network size={18} /> },
   { title: 'Rekap Isian AMI', href: '/admin/rekap', icon: <FileSpreadsheet size={18} /> },
+  { title: 'Profil', href: '/admin/profil', icon: <UserCircle size={18} /> },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

@@ -1,17 +1,15 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Mail, Briefcase, ShieldCheck, BookOpen, Key, X } from 'lucide-react';
+import { Mail, ShieldCheck, Key, X } from 'lucide-react';
 
 interface MeData {
   id: string;
   email: string;
   role?: string;
-  prodi?: { id: string; nama_prodi: string; jenjang: string | null } | null;
-  dosen?: { nama_lengkap: string; nip: string; prodi?: any } | null;
 }
 
-export default function KaprodiProfilPage() {
+export default function AdminProfilPage() {
   const [me, setMe] = useState<MeData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -95,35 +93,28 @@ export default function KaprodiProfilPage() {
     );
   }
 
-  const namaTampil =
-    me.dosen?.nama_lengkap || me.email.split('@')[0] || 'Kaprodi';
-  const initial = namaTampil
-    .split(' ')
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((p) => p[0]?.toUpperCase())
-    .join('');
-  const prodi = me.prodi ?? me.dosen?.prodi ?? null;
+  const namaTampil = 'Administrator';
+  const initial = 'A';
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-[#0a2f6f] tracking-tight">
-          Profil Kaprodi
+          Profil Admin
         </h1>
         <p className="text-slate-500 text-sm mt-1">
-          Informasi akun kaprodi dan prodi yang Anda kelola.
+          Informasi akun administrator Anda.
         </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 text-center">
           <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#1456a8] to-[#0a2f6f] flex items-center justify-center mx-auto mb-4 text-white font-bold text-2xl shadow-lg">
-            {initial || 'K'}
+            {initial}
           </div>
           <h2 className="text-lg font-bold text-slate-800">{namaTampil}</h2>
           <span className="inline-block mt-2 text-xs font-semibold text-[#0a2f6f] bg-[#eef4ff] border border-[#cfdbf2] px-3 py-1 rounded-full">
-            {me.role?.toUpperCase() ?? 'KAPRODI'}
+            {me.role?.toUpperCase() ?? 'ADMIN'}
           </span>
           <div className="mt-6 pt-6 border-t border-slate-100">
             <button
@@ -147,24 +138,8 @@ export default function KaprodiProfilPage() {
           <Row
             icon={<ShieldCheck size={18} />}
             label="Role"
-            value={(me.role ?? 'kaprodi').toString().toUpperCase()}
+            value={(me.role ?? 'admin').toString().toUpperCase()}
           />
-          <Row
-            icon={<BookOpen size={18} />}
-            label="Prodi yang Dikelola"
-            value={
-              prodi
-                ? `${prodi.nama_prodi}${prodi.jenjang ? ` (${prodi.jenjang})` : ''}`
-                : '-'
-            }
-          />
-          {me.dosen && (
-            <Row
-              icon={<Briefcase size={18} />}
-              label="NIP"
-              value={me.dosen.nip ?? '-'}
-            />
-          )}
         </div>
       </div>
 
