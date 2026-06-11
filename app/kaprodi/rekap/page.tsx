@@ -75,6 +75,12 @@ export default function KaprodiRekapPage() {
   const [statusMap, setStatusMap] = useState<UnsurStatusMap>({});
   const [loading, setLoading] = useState(true);
   const [prodiId, setProdiId] = useState<string | null>(null);
+  const [periodes, setPeriodes] = useState<any[]>([]);
+  const [selectedPeriodeId, setSelectedPeriodeId] = useState<string | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
+  const [isAllExpanded, setIsAllExpanded] = useState(false);
+
+  const selectedPeriodeObj = periodes.find(p => String(p.id) === selectedPeriodeId);
 
   // States for Accordion details
   const [expandedDetails, setExpandedDetails] = useState<Record<string, boolean>>({});
@@ -94,11 +100,38 @@ export default function KaprodiRekapPage() {
         const pid = meJson?.data?.prodi?.id ?? meJson?.data?.dosen?.prodi?.id ?? null;
         setProdiId(pid ? String(pid) : null);
 
-        // Ambil instrumen aktif
-        const insRes = await fetch('/api/instrumens?is_active=true', { headers });
+        // Ambil list periodes
+        const perRes = await fetch('/api/periodes', { headers });
+        const perJson = await perRes.json();
+        if (perJson.data?.length > 0) {
+          setPeriodes(perJson.data);
+          const active = perJson.data.find((p: any) => p.is_active) || perJson.data[0];
+          setSelectedPeriodeId(String(active.id));
+        } else {
+          setLoading(false);
+        }
+      } catch (e) {
+        console.error(e);
+        setLoading(false);
+      }
+    };
+    run();
+  }, []);
+
+  useEffect(() => {
+    if (!selectedPeriodeId) return;
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const token = localStorage.getItem('ami_token');
+        const headers = { Authorization: `Bearer ${token}` };
+
+        // Ambil instrumen untuk periode ini
+        const insRes = await fetch(`/api/instrumens?periode_id=${selectedPeriodeId}`, { headers });
         const insJson = await insRes.json();
         if (!insJson.data?.length) {
           setTreeData([]);
+          setStatusMap({});
           setLoading(false);
           return;
         }
@@ -110,20 +143,22 @@ export default function KaprodiRekapPage() {
         if (krJson.data) buildTree(krJson.data);
 
         // Ambil status map
-        fetchStatusMap(pid ? String(pid) : null);
+        await fetchStatusMap(prodiId, selectedPeriodeId);
       } catch (e) {
         console.error(e);
       } finally {
         setLoading(false);
       }
     };
-    run();
-  }, []);
+    fetchData();
+  }, [selectedPeriodeId, prodiId]);
 
-  const fetchStatusMap = async (pid: string | null) => {
+  const fetchStatusMap = async (pid: string | null, periodId: string | null) => {
+    if (!periodId) return;
     try {
       const token = localStorage.getItem('ami_token');
-      const url = pid ? `/api/isians/by-unsur?prodi_id=${pid}` : '/api/isians/by-unsur';
+      let url = `/api/isians/by-unsur?periode_id=${periodId}`;
+      if (pid) url += `&prodi_id=${pid}`;
       const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
       const data = await res.json();
       if (data.data?.data) setStatusMap(data.data.data);
@@ -139,7 +174,7 @@ export default function KaprodiRekapPage() {
           id: area.id ? `area-${area.id}` : `area-rnd-${Math.random()}`,
           deskripsi_area_audit: area.deskripsi_area_audit,
           type: 'area' as const,
-          expanded: true,
+          expanded: false,
           children: (area.pemeriksaan_unsurs || []).map((unsur: any) => ({
             id: unsur.id?.toString() || Math.random().toString(),
             isi_unsur: unsur.isi_unsur,
@@ -151,7 +186,7 @@ export default function KaprodiRekapPage() {
           id: ami.id ? `ami-${ami.id}` : `ami-rnd-${Math.random()}`,
           kode_ami: ami.kode_ami,
           type: 'ami' as const,
-          expanded: true,
+          expanded: false,
           children: deskripsiAreas,
         };
       });
@@ -161,7 +196,7 @@ export default function KaprodiRekapPage() {
         kode_kriteria: k.kode_kriteria,
         nama_kriteria: k.nama_kriteria,
         type: 'kriteria' as const,
-        expanded: true,
+        expanded: false,
         children: kodeAmis,
       };
     });
@@ -464,14 +499,72 @@ export default function KaprodiRekapPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-[#0a2f6f] tracking-tight">
-          Rekap AMI Prodi
-        </h1>
-        <p className="text-slate-500 text-sm mt-1">
-          Rekapitulasi status pengisian setiap unsur AMI di prodi Anda. Klik unsur yang sudah terisi untuk melihat detail (View Only).
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-[#0a2f6f] tracking-tight">
+            Rekap AMI Prodi
+          </h1>
+          <p className="text-slate-500 text-sm mt-1">
+            Rekapitulasi status pengisian setiap unsur AMI di prodi Anda. Klik unsur yang sudah terisi untuk melihat detail (View Only).
+          </p>
+        </div>
+        <button 
+          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 hover:text-[#0a2f6f] rounded-lg shadow-sm transition-all self-start shrink-0"
+          onClick={() => alert("Fitur Export Rekap akan segera tersedia")}
+        >
+          <Download size={16} />
+          Export Rekap
+        </button>
       </div>
+
+      {/* Informasi Periode */}
+      {selectedPeriodeObj && (
+        <div className={`rounded-xl border p-5 transition-colors ${selectedPeriodeObj.is_active ? 'bg-blue-50 border-blue-200' : 'bg-white border-slate-200 shadow-sm'}`}>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">
+                Instrumen / Periode {selectedPeriodeObj.is_active ? 'Aktif' : 'Terpilih'}
+              </p>
+              <h2 className={`text-lg font-bold ${selectedPeriodeObj.is_active ? 'text-blue-900' : 'text-slate-800'}`}>
+                Periode {selectedPeriodeObj.tahun}
+              </h2>
+            </div>
+            
+            <div className="relative">
+              <button 
+                onClick={() => setShowHistory(!showHistory)}
+                className="text-sm font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-2"
+              >
+                Lihat riwayat instrumen/periode sebelumnya
+                <ChevronDown size={16} className={`transition-transform ${showHistory ? 'rotate-180' : ''}`} />
+              </button>
+
+              {showHistory && periodes.length > 0 && (
+                <div className="absolute right-0 top-full mt-2 w-64 bg-white border border-slate-200 shadow-lg rounded-xl z-10 overflow-hidden">
+                  <div className="p-2 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+                    <p className="text-xs font-bold text-slate-500 px-2 py-1 uppercase tracking-wider">Riwayat Periode</p>
+                  </div>
+                  <ul className="max-h-60 overflow-y-auto">
+                    {periodes.map(p => (
+                      <li key={p.id}>
+                        <button
+                          onClick={() => {
+                            setSelectedPeriodeId(String(p.id));
+                            setShowHistory(false);
+                          }}
+                          className={`w-full text-left px-4 py-3 text-sm transition-colors hover:bg-slate-50 ${String(p.id) === selectedPeriodeId ? 'bg-blue-50/50 font-semibold text-blue-700' : 'text-slate-700'}`}
+                        >
+                          Periode {p.tahun} {p.is_active ? '(Aktif)' : ''}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {treeData.length === 0 ? (
         <div className="bg-white rounded-xl border border-slate-200 p-12 text-center animate-fade-in">
@@ -492,21 +585,18 @@ export default function KaprodiRekapPage() {
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => setAllExpanded(true)}
+                    onClick={() => {
+                      const nextState = !isAllExpanded;
+                      setIsAllExpanded(nextState);
+                      setAllExpanded(nextState);
+                    }}
                     className="text-xs font-medium px-2.5 py-1 rounded-md border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition-colors"
                   >
-                    Buka Semua
+                    {isAllExpanded ? 'Tutup Semua' : 'Buka Semua'}
                   </button>
                   <button
                     type="button"
-                    onClick={() => setAllExpanded(false)}
-                    className="text-xs font-medium px-2.5 py-1 rounded-md border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition-colors"
-                  >
-                    Tutup Semua
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => fetchStatusMap(prodiId)}
+                    onClick={() => fetchStatusMap(prodiId, selectedPeriodeId)}
                     className="text-xs font-medium px-2.5 py-1 rounded-md border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors"
                   >
                     Refresh status

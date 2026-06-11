@@ -228,7 +228,7 @@ export default function KaprodiRiwayatReviewPage() {
                         </div>
 
                         {/* Kode AMI */}
-                        <div className="col-span-2 text-sm text-slate-800 font-bold whitespace-nowrap">
+                        <div className="col-span-2 text-sm text-slate-800 font-bold pr-2 truncate" title={log.kode_ami}>
                           {log.kode_ami}
                         </div>
 

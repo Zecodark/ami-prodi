@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import Link from 'next/link';
 import {
   ChevronDown,
   CheckCircle2,
@@ -433,9 +434,15 @@ export default function KaprodiReviewPage() {
                 Daftar isian dokumen aktif yang perlu Anda periksa dan verifikasi.
               </p>
             </div>
-            <span className="inline-flex self-start rounded-full bg-blue-100 px-3 py-1 text-sm font-semibold text-blue-800">
-              {rows.length} isian perlu diverifikasi
-            </span>
+            <div className="flex flex-row items-center gap-3">
+              <span className="inline-flex items-center rounded-full bg-blue-100 px-3 py-1.5 text-sm font-semibold text-blue-800 h-9">
+                {rows.length} isian perlu diverifikasi
+              </span>
+              <Link href="/kaprodi/riwayat" className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-[#0a2f6f] hover:bg-blue-800 rounded-lg shadow-sm transition-all h-9">
+                <History size={16} />
+                Riwayat Review
+              </Link>
+            </div>
           </div>
         </div>
 
@@ -560,8 +567,11 @@ export default function KaprodiReviewPage() {
                     if (!nextRowId) setDetailData(null);
                   }}
                 >
-                  <div className="px-3 py-2 bg-blue-600 border border-blue-700 rounded text-sm font-semibold text-white whitespace-nowrap self-start sm:self-auto w-48 flex-shrink-0 text-center shadow-sm">
-                    {row.kode_ami}
+                  <div 
+                    className="px-3 py-2 bg-blue-600 border border-blue-700 rounded text-sm font-semibold text-white self-start sm:self-auto w-48 flex-shrink-0 flex items-center justify-center min-h-[3.5rem] shadow-sm"
+                    title={row.kode_ami}
+                  >
+                    <span className="line-clamp-2 text-center w-full">{row.kode_ami}</span>
                   </div>
                   <div className="flex-1">
                     <h3 className="font-semibold text-gray-800 text-lg">Blok Isian {row.urutan_isian} - {row.kriteria || row.area}</h3>
