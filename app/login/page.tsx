@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import Link from 'next/link';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -156,6 +157,12 @@ export default function LoginPage() {
                   )}
                 </button>
               </div>
+            </div>
+
+            <div className="text-right">
+              <Link href="/lupa-password" className="text-[13px] font-semibold text-[#0a2f6f] hover:underline">
+                Lupa Password?
+              </Link>
             </div>
 
             <button id="btn-login" type="submit" className="btn-login" disabled={loading}>
