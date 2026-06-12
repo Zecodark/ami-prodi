@@ -36,7 +36,7 @@ const instrumenItems: InstrumenSeedItem[] = [
       "Renstra Jurusan/Prodi",
       "Renop Jurusan /prodi",
       "Dokumen Visi Keilmuan (Keunikan Prodi)",
-      "Dokumen Implemenntasi"
+      "Dokumen Implementasi"
     ]
   },
   {
@@ -141,7 +141,7 @@ const instrumenItems: InstrumenSeedItem[] = [
       "Adanya Dokumen Penjaminan Mutu Pendidikan",
       "Dokumen Sistem Penjamin Mutu Internal",
       "Dokunen Hasil Audit Mutu Internal",
-      "DokumenTindak lanjut perbaikan mutu"
+      "Dokumen Tindak lanjut perbaikan mutu"
     ]
   },
   {
@@ -211,7 +211,7 @@ const instrumenItems: InstrumenSeedItem[] = [
     "str": "4.1",
     "d3": "4.1",
     "criterionName": "CRITERIA 4 - Sumber Daya Manusia",
-    "kodeAmiLabel": "Dose dan Tenaga Kepndidikan",
+    "kodeAmiLabel": "Dosen dan Tenaga Kependidikan",
     "area": "Ketersediaan Profil Dosen Tetap pragram Studi (kecukupan jumlah, jabfung, kualifikasi, keahlian, beban kerja EWMP, keanggotaan dalam organisasi, sertifikasi profesi, dan sertifikat\nkompetensi).",
     "unsurList": [
       "Data profil dosen tetap dan tenaga kependidikan.",
@@ -853,6 +853,100 @@ async function main() {
   });
 
   console.log('✅ Periode & Instrumen seeded');
+
+  const periode2026 = await prisma.periode.create({
+  data: {
+    tahun: '2026/2027',
+    is_active: false,
+    tanggal_mulai: new Date('2026-09-01'),
+    tanggal_selesai: new Date('2027-06-30'),
+  },
+});
+
+const instrumen2026 = await prisma.instrumen.create({
+  data: {
+    periode_id: periode2026.id,
+    nama_instrumen: 'Instrumen AMI Program Studi 2026/2027',
+    deskripsi: 'Dummy Instrumen Testing',
+    is_active: true,
+    created_by: adminUser.id,
+  },
+});
+
+const k1 = await prisma.kriteriaStandar.create({
+  data: {
+    instrumen_id: instrumen2026.id,
+    kode_kriteria: 'K1',
+    nama_kriteria: 'Dummy VMTS',
+    urutan: 1,
+  },
+});
+
+const k2 = await prisma.kriteriaStandar.create({
+  data: {
+    instrumen_id: instrumen2026.id,
+    kode_kriteria: 'K2',
+    nama_kriteria: 'Dummy Tata Pamong',
+    urutan: 2,
+  },
+});
+
+const ami11 = await prisma.kodeAmi.create({
+  data: {
+    kriteria_id: k1.id,
+    kode_ami: 'AMI 1.1',
+    urutan: 1,
+  },
+});
+
+const ami21 = await prisma.kodeAmi.create({
+  data: {
+    kriteria_id: k2.id,
+    kode_ami: 'AMI 2.1',
+    urutan: 1,
+  },
+});
+
+const area1 = await prisma.deskripsiArea.create({
+  data: {
+    kode_ami_id: ami11.id,
+    deskripsi_area_audit: 'Kesesuaian VMTS dengan Renstra',
+    urutan: 1,
+  },
+});
+
+const area2 = await prisma.deskripsiArea.create({
+  data: {
+    kode_ami_id: ami21.id,
+    deskripsi_area_audit: 'Implementasi Tata Pamong',
+    urutan: 1,
+  },
+});
+
+await prisma.pemeriksaanUnsur.createMany({
+  data: [
+    {
+      deskripsi_area_id: area1.id,
+      isi_unsur: 'Dokumen Renstra',
+      urutan: 1,
+    },
+    {
+      deskripsi_area_id: area1.id,
+      isi_unsur: 'Dokumen VMTS',
+      urutan: 2,
+    },
+    {
+      deskripsi_area_id: area2.id,
+      isi_unsur: 'SK Organisasi',
+      urutan: 1,
+    },
+    {
+      deskripsi_area_id: area2.id,
+      isi_unsur: 'SOP Tata Kelola',
+      urutan: 2,
+    },
+  ],
+});
 
   // =========================================================
   // 7. Struktur Instrumen AMI sesuai Excel
