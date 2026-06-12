@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Mail, Briefcase, ShieldCheck, BookOpen, Key, X } from 'lucide-react';
+import { Mail, Briefcase, ShieldCheck, BookOpen, Key, X, Eye, EyeOff } from 'lucide-react';
 
 interface MeData {
   id: string;
@@ -22,6 +22,9 @@ export default function KaprodiProfilPage() {
   const [pwdLoading, setPwdLoading] = useState(false);
   const [pwdError, setPwdError] = useState('');
   const [pwdSuccess, setPwdSuccess] = useState('');
+  const [showPwdLama, setShowPwdLama] = useState(false);
+  const [showPwdBaru, setShowPwdBaru] = useState(false);
+  const [showPwdKonfirmasi, setShowPwdKonfirmasi] = useState(false);
 
   const handleGantiPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -199,44 +202,59 @@ export default function KaprodiProfilPage() {
                 <label className="block text-sm font-semibold text-slate-700 mb-1.5">
                   Password Lama
                 </label>
-                <input
-                  type="password"
-                  required
-                  value={pwdLama}
-                  onChange={(e) => setPwdLama(e.target.value)}
-                  className="w-full border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#0a2f6f] focus:border-[#0a2f6f] text-sm"
-                  placeholder="Masukkan password lama"
-                />
+                <div className="relative">
+                  <input
+                    type={showPwdLama ? "text" : "password"}
+                    required
+                    value={pwdLama}
+                    onChange={(e) => setPwdLama(e.target.value)}
+                    className="w-full border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#0a2f6f] focus:border-[#0a2f6f] text-sm pr-10"
+                    placeholder="Masukkan password lama"
+                  />
+                  <button type="button" onClick={() => setShowPwdLama(!showPwdLama)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                    {showPwdLama ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
               </div>
               
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1.5">
                   Password Baru
                 </label>
-                <input
-                  type="password"
-                  required
-                  minLength={6}
-                  value={pwdBaru}
-                  onChange={(e) => setPwdBaru(e.target.value)}
-                  className="w-full border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#0a2f6f] focus:border-[#0a2f6f] text-sm"
-                  placeholder="Minimal 6 karakter"
-                />
+                <div className="relative">
+                  <input
+                    type={showPwdBaru ? "text" : "password"}
+                    required
+                    minLength={6}
+                    value={pwdBaru}
+                    onChange={(e) => setPwdBaru(e.target.value)}
+                    className="w-full border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#0a2f6f] focus:border-[#0a2f6f] text-sm pr-10"
+                    placeholder="Minimal 6 karakter"
+                  />
+                  <button type="button" onClick={() => setShowPwdBaru(!showPwdBaru)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                    {showPwdBaru ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
               </div>
               
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1.5">
                   Konfirmasi Password Baru
                 </label>
-                <input
-                  type="password"
-                  required
-                  minLength={6}
-                  value={pwdKonfirmasi}
-                  onChange={(e) => setPwdKonfirmasi(e.target.value)}
-                  className="w-full border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#0a2f6f] focus:border-[#0a2f6f] text-sm"
-                  placeholder="Masukkan ulang password baru"
-                />
+                <div className="relative">
+                  <input
+                    type={showPwdKonfirmasi ? "text" : "password"}
+                    required
+                    minLength={6}
+                    value={pwdKonfirmasi}
+                    onChange={(e) => setPwdKonfirmasi(e.target.value)}
+                    className="w-full border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#0a2f6f] focus:border-[#0a2f6f] text-sm pr-10"
+                    placeholder="Masukkan ulang password baru"
+                  />
+                  <button type="button" onClick={() => setShowPwdKonfirmasi(!showPwdKonfirmasi)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                    {showPwdKonfirmasi ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
               </div>
 
               <div className="pt-2 flex justify-end gap-3">

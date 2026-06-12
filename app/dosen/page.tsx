@@ -199,11 +199,16 @@ export default function DosenDashboard() {
         </div>
       </div>
 
-      {/* ====== Status Isian (4 dark blue cards) ====== */}
-      <div className="bg-white rounded-2xl border border-[#cfdbf2] shadow-sm p-6">
-        <h3 className="text-lg font-bold text-[#0a2f6f] mb-4">Status Isian</h3>
-        <div className="grid grid-cols-1 gap-4">
-          <StatusBlock label="Total Isian Menunggu Review" value={stat.proses} accentDot="amber" />
+      {/* ====== Status Isian (Full width) ====== */}
+      <div className="bg-gradient-to-br from-[#0e4490] to-[#1456a8] rounded-2xl shadow-sm p-6 relative overflow-hidden text-white flex items-center justify-between">
+        <div className="relative z-10">
+          <div className="text-xs md:text-sm uppercase tracking-wider font-semibold text-blue-100/90">
+            Total Isian Menunggu Review
+          </div>
+          <div className="mt-2 text-4xl font-extrabold leading-tight">{stat.proses}</div>
+        </div>
+        <div className="relative z-10">
+          <span className="inline-block w-3 h-3 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.6)]" />
         </div>
       </div>
 

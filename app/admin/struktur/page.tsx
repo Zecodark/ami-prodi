@@ -50,6 +50,7 @@ function StrukturContent() {
   const [treeData, setTreeData] = useState<KriteriaData[]>([]);
   const [loading, setLoading] = useState(false);
   const [expandedNodes, setExpandedNodes] = useState<Record<string, boolean>>({});
+  const [isAllExpanded, setIsAllExpanded] = useState(false);
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -96,12 +97,8 @@ function StrukturContent() {
       const data = await res.json();
       if (data.data) {
         setTreeData(data.data);
-        // Expand criteria by default
-        const initialExpanded: Record<string, boolean> = { ...expandedNodes };
-        data.data.forEach((k: any) => {
-          initialExpanded[`k-${k.id}`] = true;
-        });
-        setExpandedNodes(initialExpanded);
+        // Default hanya tampil kriteria (tidak di-expand otomatis)
+        setExpandedNodes({});
       }
     } catch (e) {
       console.error(e);
@@ -114,7 +111,10 @@ function StrukturContent() {
     setExpandedNodes(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const collapseAll = () => setExpandedNodes({});
+  const collapseAll = () => {
+    setExpandedNodes({});
+    setIsAllExpanded(false);
+  };
   const expandAll = () => {
     const allExp: Record<string, boolean> = {};
     treeData.forEach(k => {
@@ -127,6 +127,15 @@ function StrukturContent() {
       });
     });
     setExpandedNodes(allExp);
+    setIsAllExpanded(true);
+  };
+
+  const toggleExpandCollapseAll = () => {
+    if (isAllExpanded) {
+      collapseAll();
+    } else {
+      expandAll();
+    }
   };
 
   const openModal = (type: NodeType, isEdit: boolean, nodeData?: any, parent?: string) => {
@@ -348,11 +357,11 @@ function StrukturContent() {
 
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
         {/* Toolbar */}
-        <div className="p-4 border-b border-slate-200 bg-slate-50 flex flex-wrap lg:flex-nowrap items-center justify-between gap-4">
-          <div className="flex items-center gap-3 w-full lg:w-auto">
+        <div className="p-4 border-b border-slate-200 bg-slate-50 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 w-full md:w-auto">
              <label className="text-sm font-medium text-slate-700 shrink-0">Instrumen:</label>
              <select 
-               className="w-full lg:w-64 border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white outline-none focus:border-indigo-500 shadow-sm"
+               className="w-full sm:w-72 border border-slate-300 rounded-lg px-3 py-2 pr-8 text-sm bg-white outline-none focus:border-indigo-500 shadow-sm truncate"
                value={selectedInstrumen}
                onChange={(e) => setSelectedInstrumen(e.target.value)}
              >
@@ -363,12 +372,9 @@ function StrukturContent() {
              </select>
           </div>
           
-          <div className="flex gap-2 w-full lg:w-auto justify-end">
-            <button onClick={collapseAll} className="px-3 py-2 bg-white border border-slate-200 text-slate-600 rounded-lg text-sm hover:bg-slate-50 transition-colors shadow-sm">
-              <ChevronUp size={16} className="inline mr-1"/> Lipat
-            </button>
-            <button onClick={expandAll} className="px-3 py-2 bg-white border border-slate-200 text-slate-600 rounded-lg text-sm hover:bg-slate-50 transition-colors shadow-sm">
-              <ChevronDown size={16} className="inline mr-1"/> Bentangkan
+          <div className="flex flex-wrap gap-2 w-full md:w-auto justify-start md:justify-end shrink-0">
+            <button onClick={toggleExpandCollapseAll} className="px-3 py-2 bg-white border border-slate-200 text-slate-600 rounded-lg text-sm hover:bg-slate-50 transition-colors shadow-sm whitespace-nowrap">
+              {isAllExpanded ? <><ChevronUp size={16} className="inline mr-1"/> Tutup Semua</> : <><ChevronDown size={16} className="inline mr-1"/> Buka Semua</>}
             </button>
             <button 
               onClick={() => openModal('kriteria', false)}
@@ -386,7 +392,7 @@ function StrukturContent() {
         </div>
 
         {/* Tree Body */}
-        <div className="w-full overflow-x-auto pb-10 min-h-[300px]">
+        <div className="w-full overflow-x-auto pb-4">
            <div className="min-w-[800px]">
              {loading ? (
                <div className="p-8 text-center text-slate-500">Memuat struktur instrumen...</div>

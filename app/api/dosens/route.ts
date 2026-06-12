@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
     const { nip, nama_lengkap, status_kepegawaian, no_hp, alamat, user_id, prodi_id, is_active } = parsed.data;
     const data = await prisma.dosen.create({
       data: {
-        nip, nama_lengkap, status_kepegawaian,
+        nip, nama_lengkap: nama_lengkap.toUpperCase(), status_kepegawaian,
         no_hp: no_hp ?? null,
         alamat: alamat ?? null,
         user_id: user_id ?? null,

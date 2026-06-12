@@ -51,6 +51,10 @@ export async function PUT(request: NextRequest, { params }: Ctx) {
     const parsed = updateSchema.safeParse(body);
     if (!parsed.success) return R.badRequest('Validasi gagal', parsed.error.flatten());
 
+    if (parsed.data.nama_lengkap) {
+      parsed.data.nama_lengkap = parsed.data.nama_lengkap.toUpperCase();
+    }
+
     const data = await prisma.dosen.update({
       where: { id: Number(id) },
       data: parsed.data,
