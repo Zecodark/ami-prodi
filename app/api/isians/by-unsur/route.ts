@@ -63,10 +63,12 @@ export async function GET(request: NextRequest) {
       // Dosen hanya bisa lihat prodinya sendiri
       const dosen = await prisma.dosen.findUnique({
         where: { user_id: user.userId },
-        select: { prodi_id: true },
+        select: { id: true, prodi_id: true },
       });
       if (!dosen?.prodi_id) return R.notFound('Profil dosen tidak terhubung ke prodi');
       prodiId = dosen.prodi_id;
+      // @ts-ignore
+      request.dosenId = dosen.id;
     } else if (user.roleName.toLowerCase() === 'kaprodi') {
       // Kaprodi otomatis filter ke prodi-nya sendiri
       const kaprodiDosen = await prisma.dosen.findUnique({
@@ -114,10 +116,22 @@ export async function GET(request: NextRequest) {
 
     // Group berdasarkan unsur
     const grouped = new Map<string, (typeof isians)[number][]>();
+    let dosenProses = 0;
+    let dosenRevisi = 0;
+    
+    // @ts-ignore
+    const currentDosenId = request.dosenId;
+
     for (const it of isians) {
       const key = it.pemeriksaan_unsur_id.toString();
       if (!grouped.has(key)) grouped.set(key, []);
       grouped.get(key)!.push(it);
+      
+      // Hitung khusus untuk dosen login
+      if (currentDosenId && it.dosen_id === currentDosenId) {
+        if (it.status === 'proses') dosenProses++;
+        if (it.status === 'revisi') dosenRevisi++;
+      }
     }
 
     const result: Record<
@@ -185,7 +199,12 @@ export async function GET(request: NextRequest) {
     for (const key of Object.keys(result)) {
       console.log(`[DEBUG by-unsur] unsur ${key} status:`, result[key].status);
     }
-    return R.ok(serialize({ data: result, periode_id: periodeId, prodi_id: prodiId }));
+    return R.ok(serialize({ 
+      data: result, 
+      periode_id: periodeId, 
+      prodi_id: prodiId,
+      dosen_stats: currentDosenId ? { proses: dosenProses, revisi: dosenRevisi } : null
+    }));
   } catch (e) {
     return R.serverError(e);
   }

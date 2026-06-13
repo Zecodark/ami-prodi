@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
       const dosen = await prisma.dosen.findUnique({ where: { user_id: user.userId } });
       if (!dosen) return R.notFound('Profil dosen tidak ditemukan');
       where.prodi_id = dosen.prodi_id;
-      if (searchParams.get('dosen_id')) where.dosen_id = Number(searchParams.get('dosen_id')!);
+      where.dosen_id = dosen.id;
     } else if (user.roleName.toLowerCase() === 'kaprodi') {
       if (user.prodiId) {
         where.prodi_id = user.prodiId;

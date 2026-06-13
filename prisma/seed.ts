@@ -957,113 +957,75 @@ async function main() {
   // 8. Contoh Isian AMI
   // Mengisi beberapa pemeriksaan_unsur individual, bukan gabungan.
   // =========================================================
-  const sampleIsian = [
-    {
-      key: '1.1',
-      dosen: dosen1,
-      prodi: prodiD3TI,
-      kaprodi: kaprodiUser,
-      judul: 'Renstra Polines dan VMTS Prodi Teknik Informatika 2025',
-      status: 'valid' as const,
-      ada: true,
-      spt: true,
-      sn: true,
-      lokal: true,
-      nasional: true,
-      internasional: false,
-      catatan: 'Bukti Renstra dan VMTS sudah lengkap.',
-    },
-    {
-      key: '1.4',
-      dosen: dosen1,
-      prodi: prodiD3TI,
-      kaprodi: kaprodiUser,
-      judul: 'Dokumen Visi Keilmuan Prodi Teknik Informatika',
-      status: 'proses' as const,
-      ada: true,
-      spt: true,
-      sn: true,
-      lokal: true,
-      nasional: false,
-      internasional: false,
-      catatan: null,
-    },
-    {
-      key: '4.1',
-      dosen: dosen3,
-      prodi: prodiD3TI,
-      kaprodi: kaprodiUser,
-      judul: 'Statuta Polines dan Dokumen Tata Pamong',
-      status: 'proses' as const,
-      ada: true,
-      spt: true,
-      sn: true,
-      lokal: true,
-      nasional: false,
-      internasional: false,
-      catatan: null,
-    },
-    {
-      key: '11.1',
-      dosen: dosen2,
-      prodi: prodiD3TI,
-      kaprodi: kaprodiUser,
-      judul: 'Dokumen Profil Dosen Tetap dan Tenaga Kependidikan',
-      status: 'proses' as const,
-      ada: true,
-      spt: true,
-      sn: true,
-      lokal: true,
-      nasional: true,
-      internasional: false,
-      catatan: null,
-    },
-    {
-      key: '12.2',
-      dosen: dosen2,
-      prodi: prodiD3TI,
-      kaprodi: kaprodiUser,
-      judul: 'Dokumen SOP Pengajuan Beasiswa dan Magang',
-      status: 'revisi' as const,
-      ada: true,
-      spt: false,
-      sn: true,
-      lokal: true,
-      nasional: false,
-      internasional: false,
-      catatan: 'Lengkapi bukti pelaksanaan dan evaluasi layanan mahasiswa.',
-    },
-    {
-      key: '18.1',
-      dosen: dosen1,
-      prodi: prodiD3TI,
-      kaprodi: kaprodiUser,
-      judul: 'Dokumen Profil Lulusan dan Capaian Pembelajaran Lulusan',
-      status: 'proses' as const,
-      ada: true,
-      spt: true,
-      sn: true,
-      lokal: true,
-      nasional: true,
-      internasional: false,
-      catatan: null,
-    },
-    {
-      key: '22.2',
-      dosen: dosen4,
-      prodi: prodiD4TRK,
-      kaprodi: kaprodiUser2,
-      judul: 'Dokumen Kurikulum Prodi Teknologi Rekayasa Komputer',
-      status: 'valid' as const,
-      ada: true,
-      spt: true,
-      sn: true,
-      lokal: true,
-      nasional: true,
-      internasional: false,
-      catatan: 'Kurikulum sudah sesuai dan terdokumentasi.',
-    },
-  ];
+  const allKeysTI = Array.from(unsurByKey.keys());
+  const sampleIsian: any[] = [];
+  const tiDosen = [dosen1, dosen2, dosen3];
+
+  // 1. Fully fill kode_ami 1 (item.no = 1, keys: 1.1, 1.2, 1.3, 1.4, 1.5) for TI
+  for (let i = 1; i <= 5; i++) {
+    const k = `1.${i}`;
+    sampleIsian.push({
+      key: k, dosen: tiDosen[i % 3], prodi: prodiD3TI, kaprodi: kaprodiUser,
+      judul: `Dokumen Lengkap Kode AMI 1 - ${k}`, status: 'valid' as const, ada: true, spt: true, sn: true, lokal: true, nasional: true, internasional: false, catatan: 'Lengkap dan valid.'
+    });
+    const idx = allKeysTI.indexOf(k);
+    if (idx !== -1) allKeysTI.splice(idx, 1);
+  }
+
+  // 2. Karena tabel IsianAmi memiliki @@unique([pemeriksaan_unsur_id, periode_id, prodi_id]), 
+  // kita TIDAK BISA membuat 2 baris isian yang berbeda untuk unsur yang sama di prodi yang sama.
+  // "Nabrak" di sistem ini berarti dosen saling menimpa data pada row yang sama.
+  // Oleh karena itu kita cukup mendistribusikan isian ke dosen 1, 2, 3 secara bergantian.
+
+  // 3. Target TI ~40% valid. Total unsur is 100. We already have 5 + 2 = 7 valid. Need 33 more valid.
+  for (let i = 0; i < 33; i++) {
+    const k = allKeysTI.shift()!;
+    sampleIsian.push({
+      key: k, dosen: tiDosen[i % 3], prodi: prodiD3TI, kaprodi: kaprodiUser,
+      judul: `Dokumen Valid TI - ${k}`, status: 'valid' as const, ada: true, spt: true, sn: true, lokal: true, nasional: false, internasional: false, catatan: 'Sesuai standar.'
+    });
+  }
+
+  // 4. Add some proses and revisi for TI
+  for (let i = 0; i < 8; i++) {
+    const k = allKeysTI.shift()!;
+    sampleIsian.push({
+      key: k, dosen: tiDosen[i % 3], prodi: prodiD3TI, kaprodi: kaprodiUser,
+      judul: `Dokumen Proses TI - ${k}`, status: 'proses' as const, ada: true, spt: true, sn: true, lokal: false, nasional: false, internasional: false, catatan: null
+    });
+  }
+  for (let i = 0; i < 5; i++) {
+    const k = allKeysTI.shift()!;
+    sampleIsian.push({
+      key: k, dosen: tiDosen[i % 3], prodi: prodiD3TI, kaprodi: kaprodiUser,
+      judul: `Dokumen Revisi TI - ${k}`, status: 'revisi' as const, ada: true, spt: false, sn: true, lokal: false, nasional: false, internasional: false, catatan: 'Mohon lengkapi bukti dokumen sesuai template terbaru.'
+    });
+  }
+
+  // 5. PRODI TRK (Dosen 4) - Target 10% valid (10 unsur). 
+  // TRK has its own AMI container, so it can reuse the same keys.
+  const allKeysTRK = Array.from(unsurByKey.keys());
+  for (let i = 0; i < 10; i++) {
+    const k = allKeysTRK.shift()!;
+    sampleIsian.push({
+      key: k, dosen: dosen4, prodi: prodiD4TRK, kaprodi: kaprodiUser2,
+      judul: `Dokumen Valid TRK - ${k}`, status: 'valid' as const, ada: true, spt: true, sn: true, lokal: true, nasional: false, internasional: false, catatan: 'Valid.'
+    });
+  }
+  for (let i = 0; i < 3; i++) {
+    const k = allKeysTRK.shift()!;
+    sampleIsian.push({
+      key: k, dosen: dosen4, prodi: prodiD4TRK, kaprodi: kaprodiUser2,
+      judul: `Dokumen Proses TRK - ${k}`, status: 'proses' as const, ada: true, spt: true, sn: true, lokal: false, nasional: false, internasional: false, catatan: null
+    });
+  }
+  for (let i = 0; i < 2; i++) {
+    const k = allKeysTRK.shift()!;
+    sampleIsian.push({
+      key: k, dosen: dosen4, prodi: prodiD4TRK, kaprodi: kaprodiUser2,
+      judul: `Dokumen Revisi TRK - ${k}`, status: 'revisi' as const, ada: true, spt: false, sn: true, lokal: false, nasional: false, internasional: false, catatan: 'Harus melampirkan laporan akhir.'
+    });
+  }
 
   for (const [index, item] of sampleIsian.entries()) {
     const pemeriksaanUnsur = unsurByKey.get(item.key);

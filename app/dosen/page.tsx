@@ -91,6 +91,13 @@ export default function DosenDashboard() {
           else if (v.status === 'proses') proses++;
           else if (v.status === 'revisi') revisi++;
         }
+        
+        // Gunakan statistik milik dosen yang login untuk indikator proses & revisi
+        if (statusJson.data?.dosen_stats) {
+          proses = statusJson.data.dosen_stats.proses;
+          revisi = statusJson.data.dosen_stats.revisi;
+        }
+
         const kosong = Math.max(0, totalUnsur - (valid + proses + revisi));
 
         setStat({ total: totalUnsur, valid, proses, revisi, kosong });
@@ -216,41 +223,49 @@ export default function DosenDashboard() {
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
         <h3 className="text-lg font-bold text-[#0a2f6f] mb-4">Tindakan Diperlukan</h3>
 
-        {stat.revisi > 0 ? (
-          <ActionRow
-            tone="rose"
-            icon={<AlertCircle size={20} />}
-            title={`Ada ${stat.revisi} unsur yang perlu direvisi`}
-            desc="Kaprodi memberikan catatan revisi pada beberapa unsur. Mohon segera diperbaiki."
-            actionHref="/dosen/revisi"
-            actionLabel="Lihat Revisi"
-          />
-        ) : stat.kosong > 0 ? (
-          <ActionRow
-            tone="amber"
-            icon={<CircleDashed size={20} />}
-            title={`Masih ada ${stat.kosong} unsur yang belum diisi`}
-            desc="Bersama dosen lain, lengkapi unsur AMI sebelum batas waktu periode berakhir."
-            actionHref="/dosen/isi-ami"
-            actionLabel="Lanjutkan Pengisian"
-          />
-        ) : stat.proses > 0 ? (
-          <ActionRow
-            tone="indigo"
-            icon={<Clock size={20} />}
-            title={`${stat.proses} unsur sedang menunggu review kaprodi`}
-            desc="Pengisian sudah lengkap, tunggu validasi dari kaprodi."
-            actionHref="/dosen/riwayat"
-            actionLabel="Lihat Riwayat"
-          />
-        ) : (
-          <ActionRow
-            tone="emerald"
-            icon={<CheckCircle size={20} />}
-            title="Semua unsur sudah valid"
-            desc="Hebat! Seluruh unsur AMI prodi sudah disetujui kaprodi pada periode ini."
-          />
-        )}
+        <div className="space-y-4">
+          {stat.revisi > 0 && (
+            <ActionRow
+              tone="rose"
+              icon={<AlertCircle size={20} />}
+              title={`Ada ${stat.revisi} unsur yang perlu direvisi`}
+              desc="Kaprodi memberikan catatan revisi pada beberapa unsur. Mohon segera diperbaiki."
+              actionHref="/dosen/revisi"
+              actionLabel="Lihat Revisi"
+            />
+          )}
+
+          {stat.kosong > 0 && (
+            <ActionRow
+              tone="amber"
+              icon={<CircleDashed size={20} />}
+              title={`Masih ada ${stat.kosong} unsur yang belum diisi`}
+              desc="Bersama dosen lain, lengkapi unsur AMI sebelum batas waktu periode berakhir."
+              actionHref="/dosen/isi-ami"
+              actionLabel="Lanjutkan Pengisian"
+            />
+          )}
+
+          {stat.revisi === 0 && stat.kosong === 0 && stat.proses > 0 && (
+            <ActionRow
+              tone="indigo"
+              icon={<Clock size={20} />}
+              title={`${stat.proses} unsur sedang menunggu review kaprodi`}
+              desc="Pengisian sudah lengkap, tunggu validasi dari kaprodi."
+              actionHref="/dosen/riwayat"
+              actionLabel="Lihat Riwayat"
+            />
+          )}
+
+          {stat.revisi === 0 && stat.kosong === 0 && stat.proses === 0 && (
+            <ActionRow
+              tone="emerald"
+              icon={<CheckCircle size={20} />}
+              title="Semua unsur sudah valid"
+              desc="Hebat! Seluruh unsur AMI prodi sudah disetujui kaprodi pada periode ini."
+            />
+          )}
+        </div>
       </div>
     </div>
   );
