@@ -697,6 +697,7 @@ async function main() {
       email: 'kaprodi.ti@polines.ac.id',
       password: hashedPassword,
       role_id: roleKaprodi.id,
+      prodi_id: prodiD3TI.id,
       is_active: true,
     },
   });
@@ -706,6 +707,7 @@ async function main() {
       email: 'kaprodi.trk@polines.ac.id',
       password: hashedPassword,
       role_id: roleKaprodi.id,
+      prodi_id: prodiD4TRK.id,
       is_active: true,
     },
   });

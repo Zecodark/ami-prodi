@@ -74,14 +74,12 @@ export async function GET(request: NextRequest) {
       if (!dosen) return R.notFound('Profil dosen tidak ditemukan');
       where.prodi_id = dosen.prodi_id;
       if (searchParams.get('dosen_id')) where.dosen_id = Number(searchParams.get('dosen_id')!);
-    } else {
-      const kaprodiDosen = await prisma.dosen.findUnique({
-        where: { user_id: user.userId },
-        select: { prodi_id: true },
-      });
-      if (kaprodiDosen?.prodi_id) {
-        where.prodi_id = kaprodiDosen.prodi_id;
+    } else if (user.roleName.toLowerCase() === 'kaprodi') {
+      if (user.prodiId) {
+        where.prodi_id = user.prodiId;
       }
+      if (searchParams.get('dosen_id')) where.dosen_id = Number(searchParams.get('dosen_id')!);
+    } else {
       if (searchParams.get('dosen_id')) where.dosen_id = Number(searchParams.get('dosen_id')!);
       if (searchParams.get('prodi_id')) where.prodi_id = Number(searchParams.get('prodi_id')!);
     }

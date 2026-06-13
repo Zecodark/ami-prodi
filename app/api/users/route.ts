@@ -11,6 +11,8 @@ const serialize = (data: unknown) =>
 const select = {
   id: true, email: true, is_active: true, last_login_at: true, created_at: true, updated_at: true,
   role: { select: { id: true, nama_role: true } },
+  prodi_id: true,
+  prodi: { select: { id: true, nama_prodi: true, jenjang: true } },
   dosen: {
     select: {
       id: true, nip: true, nama_lengkap: true, status_kepegawaian: true,
@@ -51,10 +53,31 @@ export async function POST(request: NextRequest) {
       email: z.string().email().max(50),
       password: z.string().min(4, 'Password minimal 4 karakter').max(20),
       role_id: z.coerce.number().optional().nullable(),
+      prodi_id: z.coerce.number().optional().nullable(),
       is_active: z.boolean().default(true),
     });
     const parsed = schema.safeParse(body);
     if (!parsed.success) return R.badRequest('Validasi gagal', parsed.error.flatten());
+
+    if (parsed.data.role_id) {
+      const role = await prisma.role.findUnique({ where: { id: parsed.data.role_id } });
+      if (role?.nama_role.toLowerCase() === 'kaprodi') {
+        if (parsed.data.prodi_id) {
+          // Cek apakah prodi tersebut sudah punya kaprodi aktif
+          const existingKaprodi = await prisma.user.findFirst({
+            where: {
+              prodi_id: parsed.data.prodi_id,
+              role: { nama_role: 'kaprodi' },
+              is_active: true
+            }
+          });
+        
+          if (existingKaprodi) {
+            return R.badRequest('Prodi ini sudah memiliki akun Kaprodi aktif');
+          }
+        }
+      }
+    }
 
     const hashed = await bcrypt.hash(parsed.data.password, 10);
     const data = await prisma.user.create({
@@ -62,6 +85,7 @@ export async function POST(request: NextRequest) {
         email: parsed.data.email,
         password: hashed,
         role_id: parsed.data.role_id ?? null,
+        prodi_id: parsed.data.prodi_id ?? null,
         is_active: parsed.data.is_active,
       },
       select,

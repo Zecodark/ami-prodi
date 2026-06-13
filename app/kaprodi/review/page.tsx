@@ -171,7 +171,7 @@ export default function KaprodiReviewPage() {
 
         const iisiansData: IsianDetail[] = data.data || [];
         
-        const rowsMap = new Map<string, InstrumenRow>();
+        const rowsMap = new Map<number, InstrumenRow>();
 
         iisiansData.forEach((isian) => {
           // Kaprodi hanya memverifikasi isian yang sedang menunggu review.
@@ -227,7 +227,7 @@ export default function KaprodiReviewPage() {
             const data = await res.json();
             const iisiansData: IsianDetail[] = data.data || [];
             
-            const rowsMap = new Map<string, InstrumenRow>();
+            const rowsMap = new Map<number, InstrumenRow>();
             iisiansData.forEach((isian) => {
               if (isian.status !== 'proses') return;
               if (!rowsMap.has(isian.id)) {

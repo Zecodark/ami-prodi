@@ -135,7 +135,7 @@ export default function ProdiPage() {
 
   const filteredProdis = prodis.filter(p => {
     const matchSearch = p.nama_prodi.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchJurusan = filterJurusan ? p.jurusan?.id === filterJurusan : true;
+    const matchJurusan = filterJurusan ? p.jurusan?.id?.toString() === filterJurusan : true;
     return matchSearch && matchJurusan;
   });
 

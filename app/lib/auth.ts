@@ -7,6 +7,7 @@ export interface AuthUser {
   email: string;
   roleId: number | null;
   roleName: string;
+  prodiId: number | null;
 }
 
 interface JwtPayload {
@@ -14,6 +15,7 @@ interface JwtPayload {
   email: string;
   roleId: string | null;
   roleName: string;
+  prodiId: string | null;
 }
 
 const JWT_SECRET = process.env.JWT_SECRET!;
@@ -25,6 +27,7 @@ export const signToken = (payload: {
   email: string;
   roleId: string | null;
   roleName: string;
+  prodiId: string | null;
 }): string => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (jwt.sign as any)(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN }) as string;
@@ -46,6 +49,7 @@ export const authenticate = (
       email: decoded.email,
       roleId: decoded.roleId ? Number(decoded.roleId) : null,
       roleName: decoded.roleName,
+      prodiId: decoded.prodiId ? Number(decoded.prodiId) : null,
     };
   } catch {
     return R.unauthorized('Token tidak valid atau sudah expired');

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, Eye, Edit2, Clock, CheckCircle, AlertCircle, File, FileText, ExternalLink, Download, Save, History } from 'lucide-react';
+import { Search, Eye, Edit2, Clock, CheckCircle, AlertCircle, File, FileText, ExternalLink, Download, Save, History, XCircle } from 'lucide-react';
 
 interface IsianData {
   id: string;
@@ -322,11 +322,11 @@ export default function RiwayatIsianPage() {
                       <div className="space-y-6 text-sm">
                         <div className="grid grid-cols-2 gap-4">
                           <div className={`flex items-center gap-3 p-3 rounded-lg border ${detailData.pencapaian_standar_spt_pt ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
-                            {detailData.pencapaian_standar_spt_pt ? <CheckCircle size={20} className="text-green-600"/> : <XIconPlaceholder />}
+                            {detailData.pencapaian_standar_spt_pt ? <CheckCircle size={20} className="text-green-600"/> : <XCircle size={20} className="text-red-500" />}
                             <span className={`font-semibold ${detailData.pencapaian_standar_spt_pt ? 'text-green-800' : 'text-red-800'}`}>Standar SPT PT</span>
                           </div>
                           <div className={`flex items-center gap-3 p-3 rounded-lg border ${detailData.pencapaian_standar_sn_dikti ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
-                            {detailData.pencapaian_standar_sn_dikti ? <CheckCircle size={20} className="text-green-600"/> : <XIconPlaceholder />}
+                            {detailData.pencapaian_standar_sn_dikti ? <CheckCircle size={20} className="text-green-600"/> : <XCircle size={20} className="text-red-500" />}
                             <span className={`font-semibold ${detailData.pencapaian_standar_sn_dikti ? 'text-green-800' : 'text-red-800'}`}>Standar SN Dikti</span>
                           </div>
                         </div>
@@ -335,13 +335,13 @@ export default function RiwayatIsianPage() {
                           <p className="text-xs font-semibold text-gray-500 mb-3 uppercase tracking-wider">Daya Saing</p>
                           <div className="flex flex-wrap gap-3">
                             <div className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold border shadow-sm ${detailData.daya_saing_lokal ? 'bg-green-50 border-green-300 text-green-700' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
-                              {detailData.daya_saing_lokal ? <CheckCircle size={16} /> : <XIconPlaceholder />} Lokal
+                              {detailData.daya_saing_lokal ? <CheckCircle size={16} /> : <XCircle size={16} />} Lokal
                             </div>
                             <div className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold border shadow-sm ${detailData.daya_saing_nasional ? 'bg-green-50 border-green-300 text-green-700' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
-                              {detailData.daya_saing_nasional ? <CheckCircle size={16} /> : <XIconPlaceholder />} Nasional
+                              {detailData.daya_saing_nasional ? <CheckCircle size={16} /> : <XCircle size={16} />} Nasional
                             </div>
                             <div className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold border shadow-sm ${detailData.daya_saing_internasional ? 'bg-green-50 border-green-300 text-green-700' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
-                              {detailData.daya_saing_internasional ? <CheckCircle size={16} /> : <XIconPlaceholder />} Internasional
+                              {detailData.daya_saing_internasional ? <CheckCircle size={16} /> : <XCircle size={16} />} Internasional
                             </div>
                           </div>
                         </div>

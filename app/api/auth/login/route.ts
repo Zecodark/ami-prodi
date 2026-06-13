@@ -50,6 +50,7 @@ export async function POST(request: NextRequest) {
       email: user.email,
       roleId: user.role_id?.toString() ?? null,
       roleName: user.role?.nama_role ?? '',
+      prodiId: user.prodi_id?.toString() ?? null,
     });
 
     return R.ok(

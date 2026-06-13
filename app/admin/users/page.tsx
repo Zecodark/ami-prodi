@@ -9,7 +9,15 @@ interface UserData {
   is_active: boolean;
   last_login_at: string | null;
   role: { id: string; nama_role: string } | null;
+  prodi_id: number | null;
   dosen: { nama_lengkap: string; prodi: { nama_prodi: string } } | null;
+}
+
+interface ProdiData {
+  id: number;
+  nama_prodi: string;
+  jenjang: string;
+  users: { id: number }[];
 }
 
 interface RoleData {
@@ -20,6 +28,7 @@ interface RoleData {
 export default function UsersPage() {
   const [users, setUsers] = useState<UserData[]>([]);
   const [roles, setRoles] = useState<RoleData[]>([]);
+  const [prodis, setProdis] = useState<ProdiData[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState('');
@@ -27,7 +36,7 @@ export default function UsersPage() {
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
-  const [formData, setFormData] = useState({ email: '', password: '', role_id: '', is_active: true });
+  const [formData, setFormData] = useState({ email: '', password: '', role_id: '', prodi_id: '', is_active: true });
   const [showPassword, setShowPassword] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -42,16 +51,19 @@ export default function UsersPage() {
       const token = localStorage.getItem('ami_token');
       const headers = { Authorization: `Bearer ${token}` };
       
-      const [resUsers, resRoles] = await Promise.all([
+      const [resUsers, resRoles, resProdis] = await Promise.all([
         fetch('/api/users', { headers }),
-        fetch('/api/roles', { headers })
+        fetch('/api/roles', { headers }),
+        fetch('/api/prodis', { headers })
       ]);
       
       const dataUsers = await resUsers.json();
       const dataRoles = await resRoles.json();
+      const dataProdis = await resProdis.json();
       
       if (dataUsers.data) setUsers(dataUsers.data);
       if (dataRoles.data) setRoles(dataRoles.data);
+      if (dataProdis.data) setProdis(dataProdis.data);
     } catch (error) {
       console.error(error);
     } finally {
@@ -61,7 +73,7 @@ export default function UsersPage() {
 
   const openAddModal = () => {
     setEditId(null);
-    setFormData({ email: '', password: '', role_id: '', is_active: true });
+    setFormData({ email: '', password: '', role_id: '', prodi_id: '', is_active: true });
     setErrorMsg('');
     setIsModalOpen(true);
   };
@@ -71,7 +83,8 @@ export default function UsersPage() {
     setFormData({ 
       email: user.email, 
       password: '', // blank so we don't update unless typed
-      role_id: user.role?.id || '',
+      role_id: user.role?.id?.toString() || '',
+      prodi_id: user.prodi_id?.toString() || '',
       is_active: user.is_active
     });
     setErrorMsg('');
@@ -110,6 +123,7 @@ export default function UsersPage() {
       const payload: any = {
         email: formData.email,
         role_id: formData.role_id || null,
+        prodi_id: formData.prodi_id || null,
         is_active: formData.is_active
       };
       
@@ -144,12 +158,32 @@ export default function UsersPage() {
     }
   };
 
-  const filteredUsers = users.filter(u => {
-    const matchSearch = u.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        (u.dosen?.nama_lengkap.toLowerCase() || '').includes(searchTerm.toLowerCase());
-    const matchRole = filterRole ? u.role?.id === filterRole : true;
-    return matchSearch && matchRole;
-  });
+  const roleOrder: Record<string, number> = {
+    'admin': 1,
+    'kaprodi': 2,
+    'dosen': 3
+  };
+
+  const filteredUsers = users
+    .filter(u => {
+      const matchSearch = u.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          (u.dosen?.nama_lengkap.toLowerCase() || '').includes(searchTerm.toLowerCase());
+      const matchRole = filterRole ? u.role?.id?.toString() === filterRole : true;
+      return matchSearch && matchRole;
+    })
+    .sort((a, b) => {
+      const roleA = a.role?.nama_role?.toLowerCase() || 'zzz';
+      const roleB = b.role?.nama_role?.toLowerCase() || 'zzz';
+      
+      const orderA = roleOrder[roleA] || 99;
+      const orderB = roleOrder[roleB] || 99;
+      
+      if (orderA !== orderB) {
+        return orderA - orderB;
+      }
+      
+      return a.email.localeCompare(b.email);
+    });
 
   return (
     <div className="space-y-6">
@@ -331,6 +365,21 @@ export default function UsersPage() {
                     ))}
                   </select>
                 </div>
+                {roles.find(r => r.id.toString() === formData.role_id?.toString())?.nama_role.toLowerCase() === 'kaprodi' && (
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Program Studi (Opsional)</label>
+                    <select 
+                      value={formData.prodi_id}
+                      onChange={(e) => setFormData({...formData, prodi_id: e.target.value})}
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none text-sm bg-white"
+                    >
+                      <option value="">-- Tidak Ditautkan (None) --</option>
+                      {prodis.filter(p => p.users.length === 0 || p.id.toString() === formData.prodi_id).map(p => (
+                        <option key={p.id} value={p.id}>{p.jenjang} - {p.nama_prodi}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 <label className="flex items-center gap-2 mt-4 cursor-pointer">
                   <input 
                     type="checkbox" 

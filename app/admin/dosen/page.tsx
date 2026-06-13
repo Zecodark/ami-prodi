@@ -161,7 +161,7 @@ export default function DosenPage() {
   const filteredDosens = dosens.filter(d => {
     const matchSearch = d.nama_lengkap.toLowerCase().includes(searchTerm.toLowerCase()) || 
                         d.nip.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchProdi = filterProdi ? d.prodi?.id === filterProdi : true;
+    const matchProdi = filterProdi ? d.prodi?.id?.toString() === filterProdi : true;
     return matchSearch && matchProdi;
   });
 

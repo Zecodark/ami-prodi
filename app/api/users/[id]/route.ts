@@ -11,6 +11,7 @@ const serialize = (data: unknown) =>
 const select = {
   id: true, email: true, created_at: true, updated_at: true,
   role: { select: { id: true, nama_role: true } },
+  prodi_id: true,
   dosen: { select: { id: true, nip: true, nama_lengkap: true, status_kepegawaian: true, prodi: { select: { nama_prodi: true } } } },
 };
 
@@ -42,6 +43,7 @@ export async function PUT(request: NextRequest, { params }: Ctx) {
       email: z.string().email().optional(),
       password: z.string().min(6).optional(),
       role_id: z.coerce.number().nullable().optional(),
+      prodi_id: z.coerce.number().nullable().optional(),
       is_active: z.boolean().optional(),
     });
     const parsed = schema.safeParse(body);
@@ -52,6 +54,38 @@ export async function PUT(request: NextRequest, { params }: Ctx) {
     if (parsed.data.password) updateData.password = await bcrypt.hash(parsed.data.password, 12);
     if (parsed.data.role_id !== undefined) updateData.role_id = parsed.data.role_id;
     if (parsed.data.is_active !== undefined) updateData.is_active = parsed.data.is_active;
+    if (parsed.data.prodi_id !== undefined) updateData.prodi_id = parsed.data.prodi_id;
+
+    // Ambil data user yang ada sekarang untuk tahu role-nya kalau tidak diupdate
+    const currentUser = await prisma.user.findUnique({ where: { id: Number(id) } });
+    const targetRoleId = parsed.data.role_id !== undefined ? parsed.data.role_id : currentUser?.role_id;
+    
+    if (targetRoleId) {
+      const role = await prisma.role.findUnique({ where: { id: targetRoleId } });
+      if (role?.nama_role.toLowerCase() === 'kaprodi') {
+        const targetProdiId = parsed.data.prodi_id !== undefined ? parsed.data.prodi_id : currentUser?.prodi_id;
+        const targetIsActive = parsed.data.is_active !== undefined ? parsed.data.is_active : currentUser?.is_active;
+
+        // Cek duplicate prodi_id untuk kaprodi aktif selain user ini
+        if (targetIsActive && targetProdiId) {
+          const existingKaprodi = await prisma.user.findFirst({
+            where: {
+              id: { not: Number(id) },
+              prodi_id: targetProdiId,
+              role: { nama_role: 'kaprodi' },
+              is_active: true
+            }
+          });
+          
+          if (existingKaprodi) {
+            return R.badRequest('Prodi ini sudah memiliki akun Kaprodi aktif');
+          }
+        }
+      } else {
+        // Jika bukan kaprodi, prodi_id harus diset null (atau dibiarkan tergantung rule, kita set null saja)
+        updateData.prodi_id = null;
+      }
+    }
 
     const data = await prisma.user.update({ where: { id: Number(id) }, data: updateData, select });
     return R.ok(serialize(data), 'User berhasil diperbarui');

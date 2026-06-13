@@ -9,13 +9,18 @@ const serialize = (data: unknown) =>
 // GET /api/isians/summary
 export async function GET(request: NextRequest) {
   try {
-    const { error } = guard(request, 'kaprodi', 'admin');
+    const { user, error } = guard(request, 'kaprodi', 'admin');
     if (error) return error;
 
     const { searchParams } = request.nextUrl;
     const where: Record<string, unknown> = {};
     if (searchParams.get('periode_id')) where.periode_id = Number(searchParams.get('periode_id')!);
-    if (searchParams.get('prodi_id')) where.prodi_id = Number(searchParams.get('prodi_id')!);
+    
+    if (user.roleName.toLowerCase() === 'kaprodi') {
+      if (user.prodiId) where.prodi_id = user.prodiId;
+    } else {
+      if (searchParams.get('prodi_id')) where.prodi_id = Number(searchParams.get('prodi_id')!);
+    }
 
     const [total, proses, valid, revisi] = await Promise.all([
       prisma.isianAmi.count({ where }),

@@ -6,44 +6,20 @@ import * as R from '@/app/lib/response';
 const serialize = (data: unknown) =>
   JSON.parse(JSON.stringify(data, (_, v) => (typeof v === 'bigint' ? v.toString() : v)));
 
-/**
- * Resolve prodi_id untuk seorang kaprodi.
- * Urutan:
- *  1. Dari profil Dosen yang terhubung ke user
- *  2. Fallback: ambil prodi pertama yang ada (untuk kasus seeder belum dijalankan ulang)
- */
-async function resolveKaprodiProdi(userId: number) {
-  // Coba dari profil Dosen
-  const dosen = await prisma.dosen.findUnique({
-    where: { user_id: userId },
-    include: { prodi: true },
-  });
-  if (dosen?.prodi_id) {
-    return { prodiId: dosen.prodi_id, prodi: dosen.prodi };
-  }
 
-  // Fallback: ambil prodi pertama (untuk sistem single-prodi atau jika seeder belum dijalankan ulang)
-  const firstProdi = await prisma.prodi.findFirst({
-    orderBy: { id: 'asc' },
-  });
-  if (firstProdi) {
-    return { prodiId: firstProdi.id, prodi: firstProdi };
-  }
-
-  return { prodiId: null as number | null, prodi: null };
-}
 
 export async function GET(request: NextRequest) {
   try {
     const { user, error } = guard(request, 'kaprodi');
     if (error) return error;
 
-    const { prodiId, prodi } = await resolveKaprodiProdi(user.userId);
+    const prodiId = user.prodiId;
     if (!prodiId) {
       return R.notFound(
         'Akun kaprodi belum terhubung ke prodi. Hubungi admin untuk pengaturan.'
       );
     }
+    const prodi = await prisma.prodi.findUnique({ where: { id: prodiId } });
 
     // Periode aktif
     const activePeriode = await prisma.periode.findFirst({

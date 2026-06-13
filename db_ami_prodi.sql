@@ -30,6 +30,7 @@ CREATE TABLE users (
     email VARCHAR(50) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
     role_id BIGINT UNSIGNED NULL,
+    prodi_id BIGINT UNSIGNED NULL,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     last_login_at TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -43,6 +44,7 @@ CREATE TABLE users (
 ) ENGINE=InnoDB;
 
 CREATE INDEX idx_users_role_id ON users(role_id);
+CREATE INDEX idx_users_prodi_id ON users(prodi_id);
 
 -- =========================================================
 -- 3. JURUSANS
@@ -78,6 +80,14 @@ CREATE TABLE prodis (
 ) ENGINE=InnoDB;
 
 CREATE INDEX idx_prodis_jurusan_id ON prodis(jurusan_id);
+
+-- Tambahkan foreign key untuk prodi_id pada users karena tabel prodis baru dibuat
+ALTER TABLE users 
+    ADD CONSTRAINT fk_users_prodi
+    FOREIGN KEY (prodi_id)
+    REFERENCES prodis(id)
+    ON UPDATE CASCADE
+    ON DELETE SET NULL;
 
 -- =========================================================
 -- 5. DOSENS
