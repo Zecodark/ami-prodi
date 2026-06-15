@@ -1,8 +1,8 @@
-
+-- CreateTable
 CREATE TABLE `roles` (
-    `id` INT(1) NOT NULL AUTO_INCREMENT,
-    `nama_role` VARCHAR(10) NOT NULL,
-    `deskripsi` VARCHAR(50) NULL,
+    `id` INTEGER NOT NULL AUTO_INCREMENT,
+    `nama_role` VARCHAR(50) NOT NULL,
+    `deskripsi` VARCHAR(100) NULL,
     `created_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
     `updated_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
 
@@ -10,12 +10,13 @@ CREATE TABLE `roles` (
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
-
+-- CreateTable
 CREATE TABLE `users` (
-    `id` INT(3) NOT NULL AUTO_INCREMENT,
+    `id` INTEGER NOT NULL AUTO_INCREMENT,
     `email` VARCHAR(50) NOT NULL,
     `password` VARCHAR(255) NOT NULL,
-    `role_id` INT(10) NULL,
+    `role_id` INTEGER NULL,
+    `prodi_id` INTEGER NULL,
     `is_active` BOOLEAN NOT NULL DEFAULT true,
     `last_login_at` TIMESTAMP(0) NULL,
     `created_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
@@ -23,12 +24,13 @@ CREATE TABLE `users` (
 
     UNIQUE INDEX `users_email_key`(`email`),
     INDEX `users_role_id_idx`(`role_id`),
+    INDEX `users_prodi_id_idx`(`prodi_id`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
-
+-- CreateTable
 CREATE TABLE `jurusans` (
-    `id` INT(1) NOT NULL AUTO_INCREMENT,
+    `id` INTEGER NOT NULL AUTO_INCREMENT,
     `nama_jurusan` VARCHAR(30) NOT NULL,
     `created_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
     `updated_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
@@ -37,10 +39,10 @@ CREATE TABLE `jurusans` (
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
-
+-- CreateTable
 CREATE TABLE `prodis` (
-    `id` INT(2) NOT NULL AUTO_INCREMENT,
-    `jurusan_id` INT(10) NULL,
+    `id` INTEGER NOT NULL AUTO_INCREMENT,
+    `jurusan_id` INTEGER NULL,
     `nama_prodi` VARCHAR(50) NOT NULL,
     `jenjang` VARCHAR(20) NULL,
     `created_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
@@ -51,11 +53,11 @@ CREATE TABLE `prodis` (
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
-
+-- CreateTable
 CREATE TABLE `dosens` (
-    `id` INT(3) NOT NULL AUTO_INCREMENT,
-    `user_id` INT(10) NULL,
-    `prodi_id` INT(10) NULL,
+    `id` INTEGER NOT NULL AUTO_INCREMENT,
+    `user_id` INTEGER NULL,
+    `prodi_id` INTEGER NULL,
     `nip` VARCHAR(20) NOT NULL,
     `nama_lengkap` VARCHAR(50) NOT NULL,
     `status_kepegawaian` VARCHAR(50) NOT NULL,
@@ -71,9 +73,9 @@ CREATE TABLE `dosens` (
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
-
+-- CreateTable
 CREATE TABLE `periodes` (
-    `id` INT(3) NOT NULL AUTO_INCREMENT,
+    `id` INTEGER NOT NULL AUTO_INCREMENT,
     `tahun` VARCHAR(10) NOT NULL,
     `is_active` BOOLEAN NOT NULL DEFAULT false,
     `tanggal_mulai` DATE NULL,
@@ -86,14 +88,14 @@ CREATE TABLE `periodes` (
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
-
+-- CreateTable
 CREATE TABLE `instrumens` (
-    `id` INT(3) NOT NULL AUTO_INCREMENT,
-    `periode_id` INT(10) NULL,
+    `id` INTEGER NOT NULL AUTO_INCREMENT,
+    `periode_id` INTEGER NULL,
     `nama_instrumen` VARCHAR(50) NOT NULL,
     `deskripsi` TEXT NULL,
     `is_active` BOOLEAN NOT NULL DEFAULT true,
-    `created_by` INT(10) NULL,
+    `created_by` INTEGER NULL,
     `created_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
     `updated_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
 
@@ -103,10 +105,10 @@ CREATE TABLE `instrumens` (
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
-
+-- CreateTable
 CREATE TABLE `kriteria_standars` (
-    `id` INT(3) NOT NULL AUTO_INCREMENT,
-    `instrumen_id` INT(10) NOT NULL,
+    `id` INTEGER NOT NULL AUTO_INCREMENT,
+    `instrumen_id` INTEGER NOT NULL,
     `kode_kriteria` VARCHAR(50) NOT NULL,
     `nama_kriteria` VARCHAR(50) NOT NULL,
     `deskripsi` TEXT NULL,
@@ -120,10 +122,10 @@ CREATE TABLE `kriteria_standars` (
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
-
+-- CreateTable
 CREATE TABLE `kode_amis` (
-    `id` INT(3) NOT NULL AUTO_INCREMENT,
-    `kriteria_id` INT(10) NOT NULL,
+    `id` INTEGER NOT NULL AUTO_INCREMENT,
+    `kriteria_id` INTEGER NOT NULL,
     `kode_ami` VARCHAR(50) NOT NULL,
     `urutan` INTEGER UNSIGNED NOT NULL DEFAULT 1,
     `created_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
@@ -135,9 +137,9 @@ CREATE TABLE `kode_amis` (
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
-
+-- CreateTable
 CREATE TABLE `jenjang_standars` (
-    `id` INT(3) NOT NULL AUTO_INCREMENT,
+    `id` INTEGER NOT NULL AUTO_INCREMENT,
     `kode_jenjang` VARCHAR(10) NOT NULL,
     `nama_jenjang` VARCHAR(50) NOT NULL,
     `urutan` INTEGER UNSIGNED NOT NULL DEFAULT 1,
@@ -148,11 +150,11 @@ CREATE TABLE `jenjang_standars` (
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
-
+-- CreateTable
 CREATE TABLE `kode_ami_butir_standars` (
-    `id` INT(3) NOT NULL AUTO_INCREMENT,
-    `kode_ami_id` INT(10) NOT NULL,
-    `jenjang_id` INT(10) NOT NULL,
+    `id` INTEGER NOT NULL AUTO_INCREMENT,
+    `kode_ami_id` INTEGER NOT NULL,
+    `jenjang_id` INTEGER NOT NULL,
     `no_butir` VARCHAR(50) NULL,
     `created_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
     `updated_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
@@ -163,10 +165,10 @@ CREATE TABLE `kode_ami_butir_standars` (
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
-
+-- CreateTable
 CREATE TABLE `deskripsi_areas` (
-    `id` INT(3) NOT NULL AUTO_INCREMENT,
-    `kode_ami_id` INT(10) NOT NULL,
+    `id` INTEGER NOT NULL AUTO_INCREMENT,
+    `kode_ami_id` INTEGER NOT NULL,
     `deskripsi_area_audit` TEXT NOT NULL,
     `target_standar` TEXT NULL,
     `urutan` INTEGER UNSIGNED NOT NULL DEFAULT 1,
@@ -178,10 +180,10 @@ CREATE TABLE `deskripsi_areas` (
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
-
+-- CreateTable
 CREATE TABLE `pemeriksaan_unsurs` (
-    `id` INT(3) NOT NULL AUTO_INCREMENT,
-    `deskripsi_area_id` INT(10) NOT NULL,
+    `id` INTEGER NOT NULL AUTO_INCREMENT,
+    `deskripsi_area_id` INTEGER NOT NULL,
     `isi_unsur` TEXT NOT NULL,
     `urutan` INTEGER UNSIGNED NOT NULL DEFAULT 1,
     `created_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
@@ -192,13 +194,13 @@ CREATE TABLE `pemeriksaan_unsurs` (
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
-
+-- CreateTable
 CREATE TABLE `isian_ami` (
-    `id` INT(3) NOT NULL AUTO_INCREMENT,
-    `pemeriksaan_unsur_id` INT(10) NOT NULL,
-    `periode_id` INT(10) NOT NULL,
-    `dosen_id` INT(10) NOT NULL,
-    `prodi_id` INT(10) NULL,
+    `id` INTEGER NOT NULL AUTO_INCREMENT,
+    `pemeriksaan_unsur_id` INTEGER NOT NULL,
+    `periode_id` INTEGER NOT NULL,
+    `dosen_id` INTEGER NOT NULL,
+    `prodi_id` INTEGER NULL,
     `judul_dokumen` VARCHAR(100) NULL,
     `ketersediaan_standar` ENUM('ada', 'tidak_ada') NOT NULL DEFAULT 'tidak_ada',
     `dokumen` ENUM('ada', 'tidak_ada') NOT NULL DEFAULT 'tidak_ada',
@@ -213,7 +215,7 @@ CREATE TABLE `isian_ami` (
     `keterangan` TEXT NULL,
     `status` ENUM('draft', 'proses', 'valid', 'revisi') NOT NULL DEFAULT 'proses',
     `catatan_kaprodi` TEXT NULL,
-    `reviewed_by` INT(10) NULL,
+    `reviewed_by` INTEGER NULL,
     `reviewed_at` TIMESTAMP(0) NULL,
     `attempt` INTEGER UNSIGNED NOT NULL DEFAULT 1,
     `submitted_at` TIMESTAMP(0) NULL,
@@ -227,20 +229,23 @@ CREATE TABLE `isian_ami` (
     INDEX `isian_ami_status_idx`(`status`),
     INDEX `isian_ami_reviewed_by_idx`(`reviewed_by`),
     INDEX `isian_ami_submitted_at_idx`(`submitted_at`),
-    UNIQUE INDEX `isian_ami_pemeriksaan_unsur_id_periode_id_dosen_id_attempt_key`(`pemeriksaan_unsur_id`, `periode_id`, `dosen_id`, `attempt`),
+    UNIQUE INDEX `isian_ami_pemeriksaan_unsur_id_periode_id_prodi_id_key`(`pemeriksaan_unsur_id`, `periode_id`, `prodi_id`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
-
+-- CreateTable
 CREATE TABLE `isian_bukti_files` (
-    `id` INT(3) NOT NULL AUTO_INCREMENT,
-    `isian_id` INT(10) NOT NULL,
+    `id` INTEGER NOT NULL AUTO_INCREMENT,
+    `isian_id` INTEGER NOT NULL,
     `original_name` VARCHAR(255) NOT NULL,
     `file_name` VARCHAR(255) NOT NULL,
     `file_path` VARCHAR(500) NOT NULL,
     `mime_type` VARCHAR(100) NULL,
-    `file_size` INT(10) NULL,
-    `uploaded_by` INT(10) NULL,
+    `file_size` INTEGER NULL,
+    `judul_dokumen` VARCHAR(255) NULL,
+    `keterangan_dokumen` TEXT NULL,
+    `tahun_dokumen` VARCHAR(10) NULL,
+    `uploaded_by` INTEGER NULL,
     `created_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
 
     INDEX `isian_bukti_files_isian_id_idx`(`isian_id`),
@@ -248,11 +253,11 @@ CREATE TABLE `isian_bukti_files` (
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
-
+-- CreateTable
 CREATE TABLE `isian_review_logs` (
-    `id` INT(3) NOT NULL AUTO_INCREMENT,
-    `isian_id` INT(10) NOT NULL,
-    `reviewer_id` INT(10) NULL,
+    `id` INTEGER NOT NULL AUTO_INCREMENT,
+    `isian_id` INTEGER NOT NULL,
+    `reviewer_id` INTEGER NULL,
     `status_sebelum` ENUM('draft', 'proses', 'valid', 'revisi') NULL,
     `status_sesudah` ENUM('draft', 'proses', 'valid', 'revisi') NOT NULL,
     `catatan` TEXT NULL,
@@ -264,8 +269,28 @@ CREATE TABLE `isian_review_logs` (
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
+-- CreateTable
+CREATE TABLE `password_reset_otps` (
+    `id` INTEGER NOT NULL AUTO_INCREMENT,
+    `user_id` INTEGER NOT NULL,
+    `email` VARCHAR(50) NOT NULL,
+    `otp_hash` VARCHAR(255) NOT NULL,
+    `expires_at` TIMESTAMP(0) NOT NULL,
+    `used_at` TIMESTAMP(0) NULL,
+    `attempt_count` INTEGER UNSIGNED NOT NULL DEFAULT 0,
+    `created_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
+    `updated_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
+
+    INDEX `password_reset_otps_user_id_idx`(`user_id`),
+    INDEX `password_reset_otps_email_idx`(`email`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
 -- AddForeignKey
 ALTER TABLE `users` ADD CONSTRAINT `users_role_id_fkey` FOREIGN KEY (`role_id`) REFERENCES `roles`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `users` ADD CONSTRAINT `users_prodi_id_fkey` FOREIGN KEY (`prodi_id`) REFERENCES `prodis`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `prodis` ADD CONSTRAINT `prodis_jurusan_id_fkey` FOREIGN KEY (`jurusan_id`) REFERENCES `jurusans`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
@@ -327,4 +352,5 @@ ALTER TABLE `isian_review_logs` ADD CONSTRAINT `isian_review_logs_isian_id_fkey`
 -- AddForeignKey
 ALTER TABLE `isian_review_logs` ADD CONSTRAINT `isian_review_logs_reviewer_id_fkey` FOREIGN KEY (`reviewer_id`) REFERENCES `users`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
-
+-- AddForeignKey
+ALTER TABLE `password_reset_otps` ADD CONSTRAINT `password_reset_otps_user_id_fkey` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
