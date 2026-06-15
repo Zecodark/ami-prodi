@@ -13,13 +13,25 @@ export async function GET(request: NextRequest) {
     if (error) return error;
 
     const { searchParams } = request.nextUrl;
-    const where: Record<string, unknown> = {};
+    const where: any = {};
     if (searchParams.get('periode_id')) where.periode_id = Number(searchParams.get('periode_id')!);
     
     if (user.roleName.toLowerCase() === 'kaprodi') {
       if (user.prodiId) where.prodi_id = user.prodiId;
     } else {
       if (searchParams.get('prodi_id')) where.prodi_id = Number(searchParams.get('prodi_id')!);
+    }
+    
+    if (searchParams.get('instrumen_id')) {
+      where.pemeriksaan_unsur = {
+        deskripsi_area: {
+          kode_ami: {
+            kriteria: {
+              instrumen_id: Number(searchParams.get('instrumen_id')!)
+            }
+          }
+        }
+      };
     }
 
     const [total, proses, valid, revisi] = await Promise.all([

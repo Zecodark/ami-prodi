@@ -27,10 +27,6 @@ export async function GET(request: NextRequest) {
         jurusan: { select: { id: true, nama_jurusan: true } },
         dosens: { select: { id: true, nip: true, nama_lengkap: true } },
         _count: { select: { dosens: true } },
-        users: { 
-          where: { role: { nama_role: 'kaprodi' }, is_active: true },
-          select: { id: true }
-        }
       },
       orderBy: [{ jenjang: 'asc' }, { nama_prodi: 'asc' }],
     });

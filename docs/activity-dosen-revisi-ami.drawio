@@ -1,0 +1,201 @@
+<mxfile host="app.diagrams.net" agent="Kiro" version="24.0.0">
+  <diagram name="Activity - Dosen Revisi Isian AMI" id="actDosenRevisi">
+    <mxGraphModel dx="1100" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="1700" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- ====================== SWIMLANE POOL ====================== -->
+        <mxCell id="poolDosen" value="Dosen" style="swimlane;html=1;startSize=30;horizontal=0;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="500" height="1580" as="geometry" />
+        </mxCell>
+        <mxCell id="poolSistem" value="Sistem (Aplikasi AMI)" style="swimlane;html=1;startSize=30;horizontal=0;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="540" y="40" width="520" height="1580" as="geometry" />
+        </mxCell>
+
+        <!-- ====================== DOSEN LANE NODES ====================== -->
+        <!-- start -->
+        <mxCell id="start" value="" style="ellipse;html=1;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="170" y="80" width="30" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="a1" value="Login &amp; buka halaman&#10;&quot;Revisi Saya&quot;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="120" y="150" width="160" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="a2" value="Lihat daftar isian&#10;berstatus REVISI" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="120" y="320" width="160" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- decision ada revisi -->
+        <mxCell id="d1" value="Ada isian&#10;revisi?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="125" y="420" width="150" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="aEndNoRevisi" value="Selesai&#10;(tidak ada revisi)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="330" y="430" width="150" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="a3" value="Pilih &amp; buka item revisi,&#10;baca catatan Kaprodi" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="120" y="560" width="160" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="a4" value="Klik &quot;Perbaiki Isian&quot;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="120" y="650" width="160" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="a5" value="Edit form isian:&#10;judul, ketersediaan,&#10;dokumen, capaian,&#10;upload bukti, dll." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="120" y="740" width="160" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- decision draft / kirim -->
+        <mxCell id="d2" value="Simpan draft&#10;atau kirim?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="125" y="860" width="150" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="a6draft" value="Pilih&#10;&quot;Simpan Draft&quot;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1000" width="130" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="a6kirim" value="Pilih&#10;&quot;Kirim untuk Review&quot;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="230" y="1000" width="140" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- receive corrected note after invalid -->
+        <mxCell id="a7" value="Perbaiki kembali data&#10;sesuai pesan validasi" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="120" y="1230" width="160" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- end -->
+        <mxCell id="endFinal" value="" style="ellipse;html=1;fillColor=#ffffff;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="175" y="1500" width="30" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="endFinalInner" value="" style="ellipse;html=1;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="181" y="1506" width="18" height="18" as="geometry" />
+        </mxCell>
+
+        <!-- ====================== SISTEM LANE NODES ====================== -->
+        <mxCell id="s1" value="Ambil data isian&#10;(GET /api/isians?status=revisi)&#10;difilter sesuai prodi dosen" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="600" y="225" width="200" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="s2" value="Tampilkan catatan Kaprodi,&#10;kriteria, kode AMI,&#10;deskripsi area &amp; unsur" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="600" y="555" width="200" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="s3" value="Muat form &amp; prefill&#10;data isian sebelumnya" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="600" y="650" width="200" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="s4" value="Terima submit&#10;(POST /api/isians)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="600" y="1075" width="200" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- validation decision -->
+        <mxCell id="sd1" value="Lolos validasi?&#10;(instrumen aktif &amp;&#10;belum berstatus valid)" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="610" y="1190" width="180" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="sErr" value="Kembalikan pesan error&#10;validasi ke dosen" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="850" y="1215" width="160" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="sDraft" value="Simpan sebagai DRAFT&#10;(status=draft,&#10;submitted_at=null)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="600" y="1350" width="190" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="sProses" value="Simpan &amp; ubah status&#10;jadi PROSES&#10;(submitted_at=now,&#10;simpan file bukti)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="830" y="1350" width="190" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="sNotif" value="Isian masuk antrian&#10;review Kaprodi kembali" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="830" y="1460" width="190" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- ====================== FLOWS ====================== -->
+        <mxCell id="e_start_a1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" edge="1" parent="1" source="start" target="a1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_a1_s1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" edge="1" parent="1" source="a1" target="s1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_s1_a2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" edge="1" parent="1" source="s1" target="a2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_a2_d1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" edge="1" parent="1" source="a2" target="d1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_d1_no" value="Tidak" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" edge="1" parent="1" source="d1" target="aEndNoRevisi">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_d1_yes" value="Ya" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" edge="1" parent="1" source="d1" target="a3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_a3_s2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" edge="1" parent="1" source="a3" target="s2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_a3_a4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" edge="1" parent="1" source="a3" target="a4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_a4_s3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" edge="1" parent="1" source="a4" target="s3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_s3_a5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" edge="1" parent="1" source="s3" target="a5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_a5_d2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" edge="1" parent="1" source="a5" target="d2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_d2_draft" value="Draft" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" edge="1" parent="1" source="d2" target="a6draft">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_d2_kirim" value="Kirim" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" edge="1" parent="1" source="d2" target="a6kirim">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_a6draft_s4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" edge="1" parent="1" source="a6draft" target="s4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_a6kirim_s4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" edge="1" parent="1" source="a6kirim" target="s4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_s4_sd1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" edge="1" parent="1" source="s4" target="sd1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_sd1_err" value="Tidak" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" edge="1" parent="1" source="sd1" target="sErr">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_err_a7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" edge="1" parent="1" source="sErr" target="a7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_a7_a5" value="ulangi" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;dashed=1;" edge="1" parent="1" source="a7" target="a5">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="100" y="1255" />
+              <mxPoint x="100" y="775" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_sd1_draftYes" value="Ya (draft)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" edge="1" parent="1" source="sd1" target="sDraft">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_sd1_prosesYes" value="Ya (kirim)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" edge="1" parent="1" source="sd1" target="sProses">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_sProses_sNotif" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" edge="1" parent="1" source="sProses" target="sNotif">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_sDraft_end" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" edge="1" parent="1" source="sDraft" target="endFinal">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_sNotif_end" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" edge="1" parent="1" source="sNotif" target="endFinal">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="190" y="1485" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
