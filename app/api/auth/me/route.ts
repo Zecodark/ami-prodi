@@ -21,6 +21,14 @@ export async function GET(request: NextRequest) {
         is_active: true,
         last_login_at: true,
         role: { select: { id: true, nama_role: true } },
+        prodi: {
+          select: {
+            id: true,
+            nama_prodi: true,
+            jenjang: true,
+            jurusan: { select: { id: true, nama_jurusan: true } },
+          },
+        },
         dosen: {
           select: {
             id: true,
@@ -47,7 +55,7 @@ export async function GET(request: NextRequest) {
     // Sertakan flat field 'role' (string) dan 'prodi' supaya frontend gampang
     const result: any = serialize(data);
     result.role = data.role?.nama_role ?? null;
-    result.prodi = data.dosen?.prodi ?? null;
+    result.prodi = data.prodi ?? data.dosen?.prodi ?? null;
     return R.ok(result);
   } catch (e) {
     return R.serverError(e);

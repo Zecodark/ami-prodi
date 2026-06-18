@@ -71,12 +71,14 @@ export async function GET(request: NextRequest) {
       request.dosenId = dosen.id;
     } else if (user.roleName.toLowerCase() === 'kaprodi') {
       // Kaprodi otomatis filter ke prodi-nya sendiri
-      const kaprodiDosen = await prisma.dosen.findUnique({
-        where: { user_id: user.userId },
-        select: { prodi_id: true },
+      const kaprodiUser = await prisma.user.findUnique({
+        where: { id: user.userId },
+        select: { prodi_id: true, dosen: { select: { prodi_id: true } } },
       });
-      if (kaprodiDosen?.prodi_id) {
-        prodiId = kaprodiDosen.prodi_id;
+      if (kaprodiUser?.prodi_id) {
+        prodiId = kaprodiUser.prodi_id;
+      } else if (kaprodiUser?.dosen?.prodi_id) {
+        prodiId = kaprodiUser.dosen.prodi_id;
       } else if (prodiParam) {
         prodiId = Number(prodiParam);
       }

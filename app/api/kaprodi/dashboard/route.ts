@@ -13,7 +13,15 @@ export async function GET(request: NextRequest) {
     const { user, error } = guard(request, 'kaprodi');
     if (error) return error;
 
-    const prodiId = user.prodiId;
+    let prodiId = user.prodiId;
+    if (!prodiId && user.roleName.toLowerCase() === 'kaprodi') {
+      const kaprodiUser = await prisma.user.findUnique({
+        where: { id: user.userId },
+        select: { prodi_id: true, dosen: { select: { prodi_id: true } } },
+      });
+      prodiId = kaprodiUser?.prodi_id ?? kaprodiUser?.dosen?.prodi_id ?? null;
+    }
+
     if (!prodiId) {
       return R.notFound(
         'Akun kaprodi belum terhubung ke prodi. Hubungi admin untuk pengaturan.'

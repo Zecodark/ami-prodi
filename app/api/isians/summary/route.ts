@@ -17,7 +17,15 @@ export async function GET(request: NextRequest) {
     if (searchParams.get('periode_id')) where.periode_id = Number(searchParams.get('periode_id')!);
     
     if (user.roleName.toLowerCase() === 'kaprodi') {
-      if (user.prodiId) where.prodi_id = user.prodiId;
+      let prodiId = user.prodiId;
+      if (!prodiId) {
+        const kaprodiUser = await prisma.user.findUnique({
+          where: { id: user.userId },
+          select: { prodi_id: true, dosen: { select: { prodi_id: true } } },
+        });
+        prodiId = kaprodiUser?.prodi_id ?? kaprodiUser?.dosen?.prodi_id ?? null;
+      }
+      if (prodiId) where.prodi_id = prodiId;
     } else {
       if (searchParams.get('prodi_id')) where.prodi_id = Number(searchParams.get('prodi_id')!);
     }

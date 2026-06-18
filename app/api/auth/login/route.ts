@@ -25,6 +25,7 @@ export async function POST(request: NextRequest) {
       where: { email },
       include: {
         role: true,
+        prodi: true,
         dosen: {
           include: {
             prodi: { select: { id: true, nama_prodi: true, jenjang: true } },
@@ -50,7 +51,7 @@ export async function POST(request: NextRequest) {
       email: user.email,
       roleId: user.role_id?.toString() ?? null,
       roleName: user.role?.nama_role ?? '',
-      prodiId: user.prodi_id?.toString() ?? null,
+      prodiId: (user.prodi_id ?? user.dosen?.prodi_id)?.toString() ?? null,
     });
 
     return R.ok(

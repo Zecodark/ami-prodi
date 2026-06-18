@@ -75,8 +75,16 @@ export async function GET(request: NextRequest) {
       where.prodi_id = dosen.prodi_id;
       where.dosen_id = dosen.id;
     } else if (user.roleName.toLowerCase() === 'kaprodi') {
-      if (user.prodiId) {
-        where.prodi_id = user.prodiId;
+      let prodiId = user.prodiId;
+      if (!prodiId) {
+        const kaprodiUser = await prisma.user.findUnique({
+          where: { id: user.userId },
+          select: { prodi_id: true, dosen: { select: { prodi_id: true } } },
+        });
+        prodiId = kaprodiUser?.prodi_id ?? kaprodiUser?.dosen?.prodi_id ?? null;
+      }
+      if (prodiId) {
+        where.prodi_id = prodiId;
       }
       if (searchParams.get('dosen_id')) where.dosen_id = Number(searchParams.get('dosen_id')!);
     } else {
