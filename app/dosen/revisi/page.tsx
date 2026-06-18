@@ -2,9 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { AlertCircle, Edit2, ArrowRight } from 'lucide-react';
+import Link from 'next/link';
+
 
 interface RevisiData {
   id: string;
+  pemeriksaan_unsur_id: number;
   pemeriksaan_unsur: {
     isi_unsur: string;
     deskripsi_area: {
@@ -182,12 +185,14 @@ export default function RevisiSayaPage() {
                     >
                       Tutup
                     </button>
-                    <button 
+                     
+                    <Link
+                      href={`/dosen/isi-ami?pemeriksaan_unsur_id=${revisi.pemeriksaan_unsur_id}`}
                       className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-rose-600 text-white rounded-lg hover:bg-rose-700 transition-colors text-sm font-medium"
                     >
                       <Edit2 size={16} />
                       Perbaiki Isian
-                    </button>
+                    </Link>
                   </div>
                 </div>
               )}

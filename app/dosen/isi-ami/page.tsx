@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
   FileUp,
   FileText,
@@ -196,10 +197,35 @@ export default function IsiAmiPage() {
   const [isianForm, setIsianForm] = useState<IsianForm | null>(null);
   const [isAllExpanded, setIsAllExpanded] = useState(false);
 
+  const searchParams = useSearchParams();
+
   useEffect(() => {
     loadActiveInstrumen();
     fetchStatusMap();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!treeData.length) return;
+    const unsurId = searchParams.get('pemeriksaan_unsur_id');
+    if (!unsurId) return;
+
+    const expandParents = (nodes: TreeNode[]): TreeNode[] =>
+      nodes.map((n) => {
+        if (n.type === 'unsur' && n.id === unsurId) return n;
+        if (n.children) {
+          const children = expandParents(n.children);
+          const hasTarget = children.some(c =>
+            c.id === unsurId || (c.children && c.children.length > 0)
+          );
+          return { ...n, expanded: hasTarget, children };
+        }
+        return n;
+      });
+    setTreeData(prev => expandParents(prev));
+    handleNodeClick({ stopPropagation: () => {} }, unsurId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [treeData.length]);
 
   const loadActiveInstrumen = async () => {
     try {
