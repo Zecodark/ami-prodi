@@ -194,6 +194,7 @@ export default function IsiAmiPage() {
   const [statusMap, setStatusMap] = useState<UnsurStatusMap>({});
 
   const [isianForm, setIsianForm] = useState<IsianForm | null>(null);
+  const [isAllExpanded, setIsAllExpanded] = useState(false);
 
   useEffect(() => {
     loadActiveInstrumen();
@@ -266,7 +267,7 @@ export default function IsiAmiPage() {
           id: area.id ? `area-${area.id}` : `area-rnd-${Math.random()}`,
           deskripsi_area_audit: area.deskripsi_area_audit,
           type: 'area' as const,
-          expanded: true,
+          expanded: false,
           children: (area.pemeriksaan_unsurs || []).map((unsur: any) => ({
             id: unsur.id?.toString() || Math.random().toString(),
             isi_unsur: unsur.isi_unsur,
@@ -278,7 +279,7 @@ export default function IsiAmiPage() {
           id: ami.id ? `ami-${ami.id}` : `ami-rnd-${Math.random()}`,
           kode_ami: ami.kode_ami,
           type: 'ami' as const,
-          expanded: true,
+          expanded: false,
           children: deskripsiAreas,
         };
       });
@@ -288,7 +289,7 @@ export default function IsiAmiPage() {
         kode_kriteria: k.kode_kriteria,
         nama_kriteria: k.nama_kriteria,
         type: 'kriteria' as const,
-        expanded: true,
+        expanded: false,
         children: kodeAmis,
       };
     });
@@ -776,17 +777,14 @@ export default function IsiAmiPage() {
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => setAllExpanded(true)}
+                    onClick={() => {
+                      const nextState = !isAllExpanded;
+                      setIsAllExpanded(nextState);
+                      setAllExpanded(nextState);
+                    }}
                     className="text-xs font-medium px-2.5 py-1 rounded-md border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition-colors"
                   >
-                    Buka Semua
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setAllExpanded(false)}
-                    className="text-xs font-medium px-2.5 py-1 rounded-md border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition-colors"
-                  >
-                    Tutup Semua
+                    {isAllExpanded ? 'Tutup Semua' : 'Buka Semua'}
                   </button>
                   <button
                     type="button"

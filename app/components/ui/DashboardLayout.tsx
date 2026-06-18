@@ -53,9 +53,11 @@ export default function DashboardLayout({ children, menuItems, role }: Dashboard
   }, [router]);
 
   const handleLogout = () => {
-    localStorage.removeItem('ami_token');
-    localStorage.removeItem('ami_user');
-    router.push('/login');
+    if (window.confirm('Apakah Anda yakin ingin keluar?')) {
+      localStorage.removeItem('ami_token');
+      localStorage.removeItem('ami_user');
+      router.push('/login');
+    }
   };
 
   // Breadcrumb sederhana berdasarkan menu aktif
