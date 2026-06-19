@@ -16,6 +16,7 @@ import {
   Plus,
   X,
 } from 'lucide-react';
+import ViewValidIsian from './ViewValidIsian';
 
 type UnsurStatus = 'valid' | 'revisi' | 'proses' | 'kosong' | 'superseded';
 
@@ -208,6 +209,7 @@ export default function IsiAmiPage() {
   const [statusMap, setStatusMap] = useState<UnsurStatusMap>({});
 
   const [isianForm, setIsianForm] = useState<IsianForm | null>(null);
+  const [viewValidData, setViewValidData] = useState<any>(null);
   const [isAllExpanded, setIsAllExpanded] = useState(false);
 
   const searchParams = useSearchParams();
@@ -380,7 +382,8 @@ export default function IsiAmiPage() {
   const handleNodeClick = async (e: React.MouseEvent | any, id: string) => {
     if(e?.stopPropagation) e.stopPropagation();
     setSelectedUnsur(id);
-    resetForm(id);
+    setViewValidData(null); // Reset view-only data
+    setIsianForm(null); // Reset form data
 
     try {
       const token = localStorage.getItem('ami_token');
@@ -393,33 +396,80 @@ export default function IsiAmiPage() {
       
       if (items.length > 0) {
         const item = items[0]; // Hanya ambil isian pertama (1 unsur 1 isian)
-        setIsianForm({
-          id: item.id,
-          status: item.status,
-          pemeriksaan_unsur_id: id,
-          judul_dokumen: item.judul_dokumen ?? '',
-          ketersediaan_standar: item.ketersediaan_standar ?? 'tidak_ada',
-          dokumen: item.dokumen ?? 'tidak_ada',
-          pencapaian_standar_spt_pt: item.pencapaian_standar_spt_pt ?? false,
-          pencapaian_standar_sn_dikti: item.pencapaian_standar_sn_dikti ?? false,
-          daya_saing_lokal: item.daya_saing_lokal ?? false,
-          daya_saing_nasional: item.daya_saing_nasional ?? false,
-          daya_saing_internasional: item.daya_saing_internasional ?? false,
-          bukti_link: item.bukti_link ?? '',
-          tahun_pelaksanaan: item.tahun_pelaksanaan ?? '',
-          capaian: item.capaian ?? '',
-          keterangan: item.keterangan ?? '',
-          catatan_kaprodi: item.catatan_kaprodi ?? '',
-          bukti_files: [{ file: null, judul_dokumen: '', keterangan_dokumen: '', tahun_dokumen: '' }],
-          existing_files: item.bukti_files ?? [],
-        });
-        setSuccessMsg('Memuat isian.');
-        setTimeout(() => setSuccessMsg(''), 3000);
+        
+        console.log('🔍 DEBUG: item.status =', item.status); // Debug log
+        
+        // Check if isian is valid - show view-only component
+        if (item.status === 'valid') {
+          console.log('✅ Valid isian detected, setting viewValidData'); // Debug log
+          setViewValidData({
+            id: item.id,
+            judul_dokumen: item.judul_dokumen ?? '',
+            ketersediaan_standar: item.ketersediaan_standar ?? 'tidak_ada',
+            dokumen: item.dokumen ?? 'tidak_ada',
+            pencapaian_standar_spt_pt: item.pencapaian_standar_spt_pt ?? false,
+            pencapaian_standar_sn_dikti: item.pencapaian_standar_sn_dikti ?? false,
+            daya_saing_lokal: item.daya_saing_lokal ?? false,
+            daya_saing_nasional: item.daya_saing_nasional ?? false,
+            daya_saing_internasional: item.daya_saing_internasional ?? false,
+            bukti_link: item.bukti_link ?? '',
+            tahun_pelaksanaan: item.tahun_pelaksanaan ?? '',
+            capaian: item.capaian ?? '',
+            keterangan: item.keterangan ?? '',
+            catatan_kaprodi: item.catatan_kaprodi ?? '',
+            reviewed_at: item.reviewed_at,
+            submitted_at: item.submitted_at,
+            dosen: item.dosen ? {
+              nama_lengkap: item.dosen.nama_lengkap,
+              nip: item.dosen.nip,
+            } : undefined,
+            existing_files: item.bukti_files ?? [],
+            unsurInfo: {
+              isi_unsur: item.pemeriksaan_unsur?.isi_unsur ?? '',
+              deskripsi_area_audit: item.pemeriksaan_unsur?.deskripsi_area?.deskripsi_area_audit ?? '',
+              kode_ami: item.pemeriksaan_unsur?.deskripsi_area?.kode_ami?.kode_ami ?? '',
+              nama_kriteria: item.pemeriksaan_unsur?.deskripsi_area?.kode_ami?.kriteria?.nama_kriteria ?? '',
+            }
+          });
+          setSuccessMsg('Isian valid dimuat dalam mode view-only.');
+          setTimeout(() => setSuccessMsg(''), 3000);
+        } else {
+          console.log('📝 Non-valid isian, setting isianForm'); // Debug log
+          // Not valid - show editable form
+          setIsianForm({
+            id: item.id,
+            status: item.status,
+            pemeriksaan_unsur_id: id,
+            judul_dokumen: item.judul_dokumen ?? '',
+            ketersediaan_standar: item.ketersediaan_standar ?? 'tidak_ada',
+            dokumen: item.dokumen ?? 'tidak_ada',
+            pencapaian_standar_spt_pt: item.pencapaian_standar_spt_pt ?? false,
+            pencapaian_standar_sn_dikti: item.pencapaian_standar_sn_dikti ?? false,
+            daya_saing_lokal: item.daya_saing_lokal ?? false,
+            daya_saing_nasional: item.daya_saing_nasional ?? false,
+            daya_saing_internasional: item.daya_saing_internasional ?? false,
+            bukti_link: item.bukti_link ?? '',
+            tahun_pelaksanaan: item.tahun_pelaksanaan ?? '',
+            capaian: item.capaian ?? '',
+            keterangan: item.keterangan ?? '',
+            catatan_kaprodi: item.catatan_kaprodi ?? '',
+            bukti_files: [{ file: null, judul_dokumen: '', keterangan_dokumen: '', tahun_dokumen: '' }],
+            existing_files: item.bukti_files ?? [],
+          });
+          setSuccessMsg('Memuat isian.');
+          setTimeout(() => setSuccessMsg(''), 3000);
+        }
+      } else {
+        // No isian yet - show empty form
+        console.log('📄 No isian found, reset form'); // Debug log
+        resetForm(id);
       }
-    } catch {
+    } catch (err) {
+      console.error('❌ Error fetching isian:', err); // Debug log
       // ignore
     }
   };
+  
   const handleToggle = (id: string) => {
     setTreeData(toggleExpanded(id, treeData));
   };
@@ -897,7 +947,19 @@ export default function IsiAmiPage() {
             </div>
           )}
 
-                    <div className="space-y-8">
+          {/* Conditional Rendering: View-Only for Valid Isian OR Editable Form */}
+          {viewValidData ? (
+            <ViewValidIsian 
+              data={viewValidData}
+              unsurInfo={viewValidData.unsurInfo}
+              onClose={() => {
+                setViewValidData(null);
+                setSelectedUnsur(null);
+              }}
+            />
+          ) : (
+            <>
+              <div className="space-y-8">
             {isianForm && (() => {
               const formData = isianForm;
               const isUnsurValid = formData.status === 'valid';
@@ -1255,40 +1317,44 @@ export default function IsiAmiPage() {
                 </div>
               );
             })()}
-            </div>
-
-            {/* Messages */}
-            {errorMsg && (
-              <div className="flex items-center gap-2 p-3 rounded-lg bg-rose-50 text-rose-700 text-sm border border-rose-200">
-                <AlertCircle size={16} /> {errorMsg}
               </div>
-            )}
-            {successMsg && (
-              <div className="flex items-center gap-2 p-3 rounded-lg bg-emerald-50 text-emerald-700 text-sm border border-emerald-200">
-                <CheckCircle size={16} /> {successMsg}
-              </div>
-            )}
 
-            {/* Global Submit Buttons */}
-            <div className="flex gap-3 pt-6 border-t border-slate-200 sticky bottom-0 bg-white/90 backdrop-blur pb-4 z-10">
-              <button
-                type="button"
-                onClick={() => handleSubmit(true)}
-                disabled={submitting}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-slate-600 text-white rounded-lg hover:bg-slate-700 disabled:opacity-50 transition-colors text-sm font-semibold shadow-sm"
-              >
-                <Save size={18} /> Simpan Draft Semua
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSubmit(false)}
-                disabled={submitting}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors text-sm font-semibold shadow-sm"
-              >
-                <Send size={18} /> Kirim untuk Review
-              </button>
-            </div>
-          </div>
+              {/* Messages */}
+              {errorMsg && (
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-rose-50 text-rose-700 text-sm border border-rose-200">
+                  <AlertCircle size={16} /> {errorMsg}
+                </div>
+              )}
+              {successMsg && (
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-emerald-50 text-emerald-700 text-sm border border-emerald-200">
+                  <CheckCircle size={16} /> {successMsg}
+                </div>
+              )}
+
+              {/* Global Submit Buttons - only show if not viewing valid isian */}
+              {isianForm && (
+                <div className="flex gap-3 pt-6 border-t border-slate-200 sticky bottom-0 bg-white/90 backdrop-blur pb-4 z-10">
+                  <button
+                    type="button"
+                    onClick={() => handleSubmit(true)}
+                    disabled={submitting || isianForm.status === 'valid'}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-slate-600 text-white rounded-lg hover:bg-slate-700 disabled:opacity-50 transition-colors text-sm font-semibold shadow-sm"
+                  >
+                    <Save size={18} /> Simpan Draft Semua
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSubmit(false)}
+                    disabled={submitting || isianForm.status === 'valid'}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors text-sm font-semibold shadow-sm"
+                  >
+                    <Send size={18} /> Kirim untuk Review
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
       )}
     </div>
   );

@@ -954,79 +954,149 @@ async function main() {
   console.log(`✅ Struktur instrumen AMI seeded: ${instrumenItems.length} area audit, ${totalUnsur} pemeriksaan unsur terpisah, ${kriteriaMap.size} kriteria`);
 
   // =========================================================
-  // 8. Contoh Isian AMI
-  // Mengisi beberapa pemeriksaan_unsur individual, bukan gabungan.
+  // 8. Contoh Isian AMI dengan Skenario Realistic
   // =========================================================
-  const allKeysTI = Array.from(unsurByKey.keys());
+  // CATATAN PENTING:
+  // - Constraint: @@unique([pemeriksaan_unsur_id, periode_id, dosen_id])
+  // - Setiap dosen punya riwayat isian sendiri untuk setiap unsur
+  // - Bisa ada multiple isian untuk 1 unsur dari dosen berbeda
+  // - First Valid Wins: Hanya 1 isian valid per unsur per prodi
+  
+  const allKeys = Array.from(unsurByKey.keys());
   const sampleIsian: any[] = [];
   const tiDosen = [dosen1, dosen2, dosen3];
 
-  // 1. Fully fill kode_ami 1 (item.no = 1, keys: 1.1, 1.2, 1.3, 1.4, 1.5) for TI
-  for (let i = 1; i <= 5; i++) {
-    const k = `1.${i}`;
+  // =========================================================
+  // SKENARIO 1: Area AMI 1 (5 unsur) - Multiple dosen compete, Dosen 1 wins
+  // =========================================================
+  // Unsur 1.1: Dosen1 valid (winner), Dosen2 proses, Dosen3 revisi
+  sampleIsian.push({
+    key: '1.1', dosen: dosen1, prodi: prodiD3TI, kaprodi: kaprodiUser,
+    judul: 'Renstra Polines 2025-2029', status: 'valid' as const, 
+    ada: true, spt: true, sn: true, lokal: true, nasional: true, internasional: false, 
+    catatan: 'Dokumen lengkap dan sesuai standar SPMI.'
+  });
+  sampleIsian.push({
+    key: '1.1', dosen: dosen2, prodi: prodiD3TI, kaprodi: kaprodiUser,
+    judul: 'Renstra Polines (Draft)', status: 'superseded' as const,
+    ada: true, spt: true, sn: true, lokal: true, nasional: false, internasional: false,
+    catatan: 'Isian ini telah digantikan oleh isian valid dari IDHAWATI HESTININGSIH.'
+  });
+  sampleIsian.push({
+    key: '1.1', dosen: dosen3, prodi: prodiD3TI, kaprodi: kaprodiUser,
+    judul: 'Renstra Polines (Versi Lama)', status: 'superseded' as const,
+    ada: true, spt: false, sn: true, lokal: false, nasional: false, internasional: false,
+    catatan: 'Isian ini telah digantikan oleh isian valid dari IDHAWATI HESTININGSIH.'
+  });
+
+  // Unsur 1.2: Dosen2 valid (winner), Dosen1 revisi
+  sampleIsian.push({
+    key: '1.2', dosen: dosen2, prodi: prodiD3TI, kaprodi: kaprodiUser,
+    judul: 'Dokumen Mekanisme VMTS Jurusan TE', status: 'valid' as const,
+    ada: true, spt: true, sn: true, lokal: true, nasional: true, internasional: false,
+    catatan: 'Lengkap dengan bukti rapat penyusunan VMTS.'
+  });
+  sampleIsian.push({
+    key: '1.2', dosen: dosen1, prodi: prodiD3TI, kaprodi: kaprodiUser,
+    judul: 'Mekanisme VMTS (Draft)', status: 'superseded' as const,
+    ada: true, spt: true, sn: false, lokal: true, nasional: false, internasional: false,
+    catatan: 'Isian ini telah digantikan oleh isian valid dari MUTTABIK FATHUL LATHIEF.'
+  });
+
+  // Unsur 1.3-1.5: Dosen3 valid
+  for (let i = 3; i <= 5; i++) {
     sampleIsian.push({
-      key: k, dosen: tiDosen[i % 3], prodi: prodiD3TI, kaprodi: kaprodiUser,
-      judul: `Dokumen Lengkap Kode AMI 1 - ${k}`, status: 'valid' as const, ada: true, spt: true, sn: true, lokal: true, nasional: true, internasional: false, catatan: 'Lengkap dan valid.'
+      key: `1.${i}`, dosen: dosen3, prodi: prodiD3TI, kaprodi: kaprodiUser,
+      judul: `Dokumen AMI 1.${i} - Valid`, status: 'valid' as const,
+      ada: true, spt: true, sn: true, lokal: true, nasional: true, internasional: false,
+      catatan: 'Sesuai standar dan lengkap.'
     });
-    const idx = allKeysTI.indexOf(k);
-    if (idx !== -1) allKeysTI.splice(idx, 1);
   }
 
-  // 2. Karena tabel IsianAmi memiliki @@unique([pemeriksaan_unsur_id, periode_id, prodi_id]), 
-  // kita TIDAK BISA membuat 2 baris isian yang berbeda untuk unsur yang sama di prodi yang sama.
-  // "Nabrak" di sistem ini berarti dosen saling menimpa data pada row yang sama.
-  // Oleh karena itu kita cukup mendistribusikan isian ke dosen 1, 2, 3 secara bergantian.
-
-  // 3. Target TI ~40% valid. Total unsur is 100. We already have 5 + 2 = 7 valid. Need 33 more valid.
-  for (let i = 0; i < 33; i++) {
-    const k = allKeysTI.shift()!;
+  // =========================================================
+  // SKENARIO 2: Distribusi normal untuk TI (target 40 valid total)
+  // Sudah ada 5 valid di atas, butuh 35 lagi
+  // =========================================================
+  const remainingKeysTI = allKeys.filter(k => !['1.1','1.2','1.3','1.4','1.5'].includes(k));
+  
+  // 35 valid dari berbagai dosen
+  for (let i = 0; i < 35 && remainingKeysTI.length > 0; i++) {
+    const k = remainingKeysTI.shift()!;
+    const selectedDosen = tiDosen[i % 3];
     sampleIsian.push({
-      key: k, dosen: tiDosen[i % 3], prodi: prodiD3TI, kaprodi: kaprodiUser,
-      judul: `Dokumen Valid TI - ${k}`, status: 'valid' as const, ada: true, spt: true, sn: true, lokal: true, nasional: false, internasional: false, catatan: 'Sesuai standar.'
+      key: k, dosen: selectedDosen, prodi: prodiD3TI, kaprodi: kaprodiUser,
+      judul: `Dokumen Valid TI - ${k}`, status: 'valid' as const,
+      ada: true, spt: true, sn: true, lokal: true, nasional: i % 2 === 0, internasional: false,
+      catatan: 'Sesuai standar.'
     });
   }
 
-  // 4. Add some proses and revisi for TI
-  for (let i = 0; i < 8; i++) {
-    const k = allKeysTI.shift()!;
+  // 10 menunggu review (proses)
+  for (let i = 0; i < 10 && remainingKeysTI.length > 0; i++) {
+    const k = remainingKeysTI.shift()!;
+    const selectedDosen = tiDosen[i % 3];
     sampleIsian.push({
-      key: k, dosen: tiDosen[i % 3], prodi: prodiD3TI, kaprodi: kaprodiUser,
-      judul: `Dokumen Proses TI - ${k}`, status: 'proses' as const, ada: true, spt: true, sn: true, lokal: false, nasional: false, internasional: false, catatan: null
-    });
-  }
-  for (let i = 0; i < 5; i++) {
-    const k = allKeysTI.shift()!;
-    sampleIsian.push({
-      key: k, dosen: tiDosen[i % 3], prodi: prodiD3TI, kaprodi: kaprodiUser,
-      judul: `Dokumen Revisi TI - ${k}`, status: 'revisi' as const, ada: true, spt: false, sn: true, lokal: false, nasional: false, internasional: false, catatan: 'Mohon lengkapi bukti dokumen sesuai template terbaru.'
+      key: k, dosen: selectedDosen, prodi: prodiD3TI, kaprodi: kaprodiUser,
+      judul: `Dokumen Proses TI - ${k}`, status: 'proses' as const,
+      ada: true, spt: true, sn: true, lokal: false, nasional: false, internasional: false,
+      catatan: null
     });
   }
 
-  // 5. PRODI TRK (Dosen 4) - Target 10% valid (10 unsur). 
-  // TRK has its own AMI container, so it can reuse the same keys.
-  const allKeysTRK = Array.from(unsurByKey.keys());
-  for (let i = 0; i < 10; i++) {
-    const k = allKeysTRK.shift()!;
+  // 8 perlu revisi
+  for (let i = 0; i < 8 && remainingKeysTI.length > 0; i++) {
+    const k = remainingKeysTI.shift()!;
+    const selectedDosen = tiDosen[i % 3];
+    sampleIsian.push({
+      key: k, dosen: selectedDosen, prodi: prodiD3TI, kaprodi: kaprodiUser,
+      judul: `Dokumen Revisi TI - ${k}`, status: 'revisi' as const,
+      ada: true, spt: false, sn: true, lokal: false, nasional: false, internasional: false,
+      catatan: 'Mohon lengkapi dengan dokumen pendukung yang lebih detail dan update tahun pelaksanaan.'
+    });
+  }
+
+  // Sisanya kosong (tidak ada isian dari dosen manapun)
+
+  // =========================================================
+  // SKENARIO 3: TRK (Dosen 4) - Target 15 valid
+  // =========================================================
+  const keysForTRK = Array.from(unsurByKey.keys());
+  
+  for (let i = 0; i < 15 && keysForTRK.length > 0; i++) {
+    const k = keysForTRK.shift()!;
     sampleIsian.push({
       key: k, dosen: dosen4, prodi: prodiD4TRK, kaprodi: kaprodiUser2,
-      judul: `Dokumen Valid TRK - ${k}`, status: 'valid' as const, ada: true, spt: true, sn: true, lokal: true, nasional: false, internasional: false, catatan: 'Valid.'
-    });
-  }
-  for (let i = 0; i < 3; i++) {
-    const k = allKeysTRK.shift()!;
-    sampleIsian.push({
-      key: k, dosen: dosen4, prodi: prodiD4TRK, kaprodi: kaprodiUser2,
-      judul: `Dokumen Proses TRK - ${k}`, status: 'proses' as const, ada: true, spt: true, sn: true, lokal: false, nasional: false, internasional: false, catatan: null
-    });
-  }
-  for (let i = 0; i < 2; i++) {
-    const k = allKeysTRK.shift()!;
-    sampleIsian.push({
-      key: k, dosen: dosen4, prodi: prodiD4TRK, kaprodi: kaprodiUser2,
-      judul: `Dokumen Revisi TRK - ${k}`, status: 'revisi' as const, ada: true, spt: false, sn: true, lokal: false, nasional: false, internasional: false, catatan: 'Harus melampirkan laporan akhir.'
+      judul: `Dokumen Valid TRK - ${k}`, status: 'valid' as const,
+      ada: true, spt: true, sn: true, lokal: true, nasional: i % 3 === 0, internasional: false,
+      catatan: 'Valid dan lengkap.'
     });
   }
 
+  // 5 menunggu review
+  for (let i = 0; i < 5 && keysForTRK.length > 0; i++) {
+    const k = keysForTRK.shift()!;
+    sampleIsian.push({
+      key: k, dosen: dosen4, prodi: prodiD4TRK, kaprodi: kaprodiUser2,
+      judul: `Dokumen Proses TRK - ${k}`, status: 'proses' as const,
+      ada: true, spt: true, sn: true, lokal: false, nasional: false, internasional: false,
+      catatan: null
+    });
+  }
+
+  // 3 perlu revisi
+  for (let i = 0; i < 3 && keysForTRK.length > 0; i++) {
+    const k = keysForTRK.shift()!;
+    sampleIsian.push({
+      key: k, dosen: dosen4, prodi: prodiD4TRK, kaprodi: kaprodiUser2,
+      judul: `Dokumen Revisi TRK - ${k}`, status: 'revisi' as const,
+      ada: true, spt: false, sn: true, lokal: false, nasional: false, internasional: false,
+      catatan: 'Harap melampirkan laporan akhir kegiatan dan notulensi rapat.'
+    });
+  }
+
+  // =========================================================
+  // Create isian dengan review logs yang lengkap
+  // =========================================================
   for (const [index, item] of sampleIsian.entries()) {
     const pemeriksaanUnsur = unsurByKey.get(item.key);
     if (!pemeriksaanUnsur) {
@@ -1048,59 +1118,111 @@ async function main() {
         daya_saing_lokal: item.lokal,
         daya_saing_nasional: item.nasional,
         daya_saing_internasional: item.internasional,
-        bukti_link: `https://drive.google.com/file/dummy-ami-${item.key.replace('.', '-')}`,
+        bukti_link: `https://drive.google.com/file/dummy-ami-${item.dosen.nip}-${item.key.replace('.', '-')}`,
         tahun_pelaksanaan: '2025',
-        capaian: `Contoh capaian untuk pemeriksaan unsur individual ${item.key}.`,
-        keterangan: item.catatan ?? 'Contoh data isian AMI.',
+        capaian: `Capaian untuk ${item.judul}: Implementasi telah dilakukan sesuai standar yang ditetapkan oleh institusi dengan melibatkan seluruh pemangku kepentingan.`,
+        keterangan: item.catatan ?? `Data isian AMI untuk unsur ${item.key} oleh ${item.dosen.nama_lengkap}.`,
         status: item.status,
-        catatan_kaprodi: item.status === 'revisi' || item.status === 'valid' ? item.catatan : null,
-        reviewed_by: item.status === 'revisi' || item.status === 'valid' ? item.kaprodi.id : null,
-        reviewed_at: item.status === 'revisi' || item.status === 'valid' ? new Date() : null,
+        catatan_kaprodi: (item.status === 'revisi' || item.status === 'valid' || item.status === 'superseded') ? item.catatan : null,
+        reviewed_by: (item.status === 'revisi' || item.status === 'valid' || item.status === 'superseded') ? item.kaprodi.id : null,
+        reviewed_at: (item.status === 'revisi' || item.status === 'valid' || item.status === 'superseded') ? new Date() : null,
         attempt: 1,
-        submitted_at: new Date(),
+        submitted_at: item.status !== 'draft' ? new Date() : null,
       },
     });
 
+    // Create bukti file
     await prisma.isianBuktiFile.create({
       data: {
         isian_id: isian.id,
-        original_name: `${item.judul}.pdf`,
-        file_name: `bukti-ami-${item.key.replace('.', '-')}.pdf`,
-        file_path: `/uploads/ami/bukti-ami-${item.key.replace('.', '-')}.pdf`,
+        original_name: `${item.judul.substring(0, 50)}.pdf`,
+        file_name: `bukti-${item.dosen.nip}-${item.key.replace('.', '-')}-${Date.now()}.pdf`,
+        file_path: `/uploads/ami/bukti-${item.dosen.nip}-${item.key.replace('.', '-')}.pdf`,
         mime_type: 'application/pdf',
-        file_size: 1024 * (index + 1),
+        file_size: 1024 * (100 + index),
         judul_dokumen: item.judul,
-        keterangan_dokumen: item.catatan ?? 'Dokumen pelengkap isian AMI.',
+        keterangan_dokumen: `Dokumen bukti pelengkap untuk isian AMI unsur ${item.key}.`,
         tahun_dokumen: '2025',
         uploaded_by: item.dosen.user_id,
       },
     });
 
-    if (item.status === 'valid' || item.status === 'revisi') {
+    // Create review log untuk yang sudah direview
+    if (item.status === 'valid' || item.status === 'revisi' || item.status === 'superseded') {
       await prisma.isianReviewLog.create({
         data: {
           isian_id: isian.id,
           reviewer_id: item.kaprodi.id,
           status_sebelum: 'proses',
           status_sesudah: item.status,
-          catatan: item.catatan ?? 'Review selesai.',
+          catatan: item.catatan ?? `Review ${item.status} oleh kaprodi.`,
         },
       });
     }
   }
 
-  console.log('✅ Contoh isian AMI seeded');
+  console.log(`✅ ${sampleIsian.length} contoh isian AMI seeded dengan distribusi:`);
+  console.log(`   - Valid: ${sampleIsian.filter(i => i.status === 'valid').length}`);
+  console.log(`   - Proses: ${sampleIsian.filter(i => i.status === 'proses').length}`);
+  console.log(`   - Revisi: ${sampleIsian.filter(i => i.status === 'revisi').length}`);
+  console.log(`   - Superseded: ${sampleIsian.filter(i => i.status === 'superseded').length}`);
 
   console.log('\n🎉 Seed selesai!');
   console.log('===========================================');
-  console.log('Akun tersedia:');
-  console.log('  Admin      : admin@polines.ac.id / password123');
-  console.log('  Kaprodi TI : kaprodi.ti@polines.ac.id / password123  (Dr. Budi Santoso, M.Kom. - Teknik Informatika)');
-  console.log('  Kaprodi TRK: kaprodi.trk@polines.ac.id / password123  (Dr. Andi Prasetyo, M.T. - Teknologi Rekayasa Komputer)');
-  console.log('  Dosen 1    : idhawati.hestiningsih@polines.ac.id / password123  (IDHAWATI HESTININGSIH - Teknik Informatika)');
-  console.log('  Dosen 2    : muttabik.fathul@polines.ac.id / password123  (MUTTABIK FATHUL LATHIEF - Teknik Informatika)');
-  console.log('  Dosen 3    : sukamto@polines.ac.id / password123  (SUKAMTO - Teknik Informatika)');
-  console.log('  Dosen 4    : wiktasari@polines.ac.id / password123  (WIKTASARI - Teknologi Rekayasa Komputer)');
+  console.log('📊 STATISTIK DATA:');
+  console.log(`   Instrumen AMI    : ${instrumenItems.length} area audit`);
+  console.log(`   Total Unsur      : ${totalUnsur} pemeriksaan unsur`);
+  console.log(`   Total Isian      : ${sampleIsian.length} isian`);
+  console.log('');
+  console.log('🔐 AKUN LOGIN:');
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.log('  👤 Admin:');
+  console.log('     Email    : admin@polines.ac.id');
+  console.log('     Password : password123');
+  console.log('');
+  console.log('  👔 Kaprodi Teknik Informatika:');
+  console.log('     Email    : kaprodi.ti@polines.ac.id');
+  console.log('     Password : password123');
+  console.log('     Prodi    : D3 Teknik Informatika');
+  console.log('');
+  console.log('  👔 Kaprodi Teknologi Rekayasa Komputer:');
+  console.log('     Email    : kaprodi.trk@polines.ac.id');
+  console.log('     Password : password123');
+  console.log('     Prodi    : D4 Teknologi Rekayasa Komputer');
+  console.log('');
+  console.log('  👨‍🏫 Dosen 1 (TI):');
+  console.log('     Email    : idhawati.hestiningsih@polines.ac.id');
+  console.log('     Password : password123');
+  console.log('     Nama     : IDHAWATI HESTININGSIH, S.KOM., M.KOM.');
+  console.log('     NIP      : 196910071995122001');
+  console.log('');
+  console.log('  👨‍🏫 Dosen 2 (TI):');
+  console.log('     Email    : muttabik.fathul@polines.ac.id');
+  console.log('     Password : password123');
+  console.log('     Nama     : MUTTABIK FATHUL LATHIEF, S.KOM., M.ENG.');
+  console.log('     NIP      : 199001012019031002');
+  console.log('');
+  console.log('  👨‍🏫 Dosen 3 (TI):');
+  console.log('     Email    : sukamto@polines.ac.id');
+  console.log('     Password : password123');
+  console.log('     Nama     : SUKAMTO, S.KOM., M.T.');
+  console.log('     NIP      : 197105052000031003');
+  console.log('');
+  console.log('  👨‍🏫 Dosen 4 (TRK):');
+  console.log('     Email    : wiktasari@polines.ac.id');
+  console.log('     Password : password123');
+  console.log('     Nama     : WIKTASARI, S.T., M.KOM.');
+  console.log('     NIP      : 197506012003122004');
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.log('');
+  console.log('💡 FITUR YANG DAPAT DITEST:');
+  console.log('   ✅ Login multi-role (admin, kaprodi, dosen)');
+  console.log('   ✅ Riwayat isian per-dosen (terpisah)');
+  console.log('   ✅ First Valid Wins strategy');
+  console.log('   ✅ View-only untuk isian valid');
+  console.log('   ✅ Multiple dosen competing (unsur 1.1 & 1.2)');
+  console.log('   ✅ Status superseded untuk isian kalah');
+  console.log('   ✅ Review workflow (proses → valid/revisi)');
   console.log('===========================================');
 }
 

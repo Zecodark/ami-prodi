@@ -249,7 +249,7 @@ export default function ProdiPage() {
                     value={formData.nama_prodi}
                     onChange={(e) => setFormData({...formData, nama_prodi: e.target.value})}
                     className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none text-sm"
-                    placeholder="Contoh: D4 Teknologi Rekayasa Perangkat Lunak"
+                    placeholder="Contoh: Teknologi Rekayasa Perangkat Lunak"
                   />
                 </div>
                 <div>
