@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
       where,
       include: {
         jurusan: { select: { id: true, nama_jurusan: true } },
-        dosens: { select: { id: true, nip: true, nama_lengkap: true } },
+        dosens: { select: { id: true, nip: true, nama_lengkap: true, user_id: true } },
         _count: { select: { dosens: true } },
       },
       orderBy: [{ jenjang: 'asc' }, { nama_prodi: 'asc' }],

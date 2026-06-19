@@ -17,7 +17,7 @@ interface ProdiData {
   id: number;
   nama_prodi: string;
   jenjang: string;
-  users: { id: number }[];
+  dosens: { id: number; user_id: number | null }[];
 }
 
 interface RoleData {
@@ -119,6 +119,17 @@ export default function UsersPage() {
       const token = localStorage.getItem('ami_token');
       const method = editId ? 'PUT' : 'POST';
       const url = editId ? `/api/users/${editId}` : '/api/users';
+
+      // Validasi: maksimal 2 kaprodi
+      const selectedRole = roles.find(r => r.id.toString() === formData.role_id?.toString());
+      if (selectedRole?.nama_role.toLowerCase() === 'kaprodi' && !editId) {
+        const kaprodiCount = users.filter(u => u.role?.nama_role.toLowerCase() === 'kaprodi').length;
+        if (kaprodiCount >= 2) {
+          setErrorMsg('Sistem hanya mengizinkan maksimal 2 akun Kaprodi. Hapus salah satu kaprodi terlebih dahulu jika ingin menambah yang baru.');
+          setSubmitLoading(false);
+          return;
+        }
+      }
 
       const payload: any = {
         email: formData.email,
@@ -374,10 +385,22 @@ export default function UsersPage() {
                       className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none text-sm bg-white"
                     >
                       <option value="">-- Tidak Ditautkan (None) --</option>
-                      {prodis.filter(p => p.users.length === 0 || p.id.toString() === formData.prodi_id).map(p => (
-                        <option key={p.id} value={p.id}>{p.jenjang} - {p.nama_prodi}</option>
-                      ))}
+                      {prodis
+                        .filter(p => {
+                          // Cek apakah prodi ini sudah punya kaprodi (user role kaprodi dengan dosen.prodi_id = p.id)
+                          const hasKaprodi = users.some(u => 
+                            u.role?.nama_role.toLowerCase() === 'kaprodi' && 
+                            u.dosen?.prodi?.id === p.id &&
+                            u.id !== editId // kecuali user yang sedang diedit
+                          );
+                          return !hasKaprodi || p.id.toString() === formData.prodi_id;
+                        })
+                        .map(p => (
+                          <option key={p.id} value={p.id}>{p.jenjang} - {p.nama_prodi}</option>
+                        ))
+                      }
                     </select>
+                    <p className="text-xs text-slate-500 mt-1">Hanya prodi yang belum memiliki Kaprodi akan ditampilkan</p>
                   </div>
                 )}
                 <label className="flex items-center gap-2 mt-4 cursor-pointer">
