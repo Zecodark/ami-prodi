@@ -17,7 +17,7 @@ import {
   X,
 } from 'lucide-react';
 
-type UnsurStatus = 'valid' | 'revisi' | 'proses' | 'kosong';
+type UnsurStatus = 'valid' | 'revisi' | 'proses' | 'kosong' | 'superseded';
 
 interface UnsurStatusInfo {
   status: UnsurStatus;
@@ -104,6 +104,15 @@ const STATUS_META: Record<
     ring: 'ring-rose-300',
     icon: <Edit3 size={12} />,
   },
+  superseded: {
+    label: 'Digantikan',
+    tone: 'slate',
+    bg: 'bg-slate-50',
+    text: 'text-slate-600',
+    border: 'border-slate-300',
+    ring: 'ring-slate-300',
+    icon: <CircleDashed size={12} />,
+  },
   kosong: {
     label: 'Belum Diisi',
     tone: 'slate',
@@ -153,31 +162,35 @@ function StatusDot({ status }: { status: UnsurStatus }) {
   );
 }
 
-// Aggregate parent status mengikuti aturan: revisi > proses > valid > kosong (untuk perhatian)
+// Aggregate parent status mengikuti aturan: revisi > proses > valid > superseded > kosong (untuk perhatian)
 function aggregateParentStatus(children: UnsurStatus[]): {
   total: number;
   valid: number;
   proses: number;
   revisi: number;
+  superseded: number;
   kosong: number;
   primary: UnsurStatus;
 } {
   let valid = 0;
   let proses = 0;
   let revisi = 0;
+  let superseded = 0;
   let kosong = 0;
   for (const s of children) {
     if (s === 'valid') valid++;
     else if (s === 'proses') proses++;
     else if (s === 'revisi') revisi++;
+    else if (s === 'superseded') superseded++;
     else kosong++;
   }
   let primary: UnsurStatus = 'kosong';
   if (revisi > 0) primary = 'revisi';
   else if (proses > 0) primary = 'proses';
-  else if (valid > 0 && kosong === 0) primary = 'valid';
+  else if (valid > 0 && kosong === 0 && superseded === 0) primary = 'valid';
   else if (valid > 0) primary = 'proses';
-  return { total: children.length, valid, proses, revisi, kosong, primary };
+  else if (superseded > 0) primary = 'superseded';
+  return { total: children.length, valid, proses, revisi, superseded, kosong, primary };
 }
 
 // =====================================================================

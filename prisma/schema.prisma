@@ -292,6 +292,7 @@ enum IsianStatus {
   proses
   valid
   revisi
+  superseded
 }
 
 model IsianAmi {

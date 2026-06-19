@@ -59,8 +59,19 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
     const { id } = await params;
     const isian = await prisma.isianAmi.findUnique({ where: { id: Number(id) } });
     if (!isian) return R.notFound();
+    
+    // Allow review for 'proses' status only (submitted for review)
+    // Note: 'revisi' isian must be resubmitted by dosen, which will change status to 'proses'
     if (isian.status !== 'proses') {
-      return R.badRequest('Isian ini tidak sedang menunggu verifikasi');
+      const statusMessages: Record<string, string> = {
+        'draft': 'Isian ini masih draft dan belum disubmit oleh dosen',
+        'valid': 'Isian ini sudah divalidasi dan tidak dapat diubah lagi',
+        'revisi': 'Isian ini menunggu perbaikan dari dosen. Dosen harus submit ulang sebelum dapat direview lagi',
+        'superseded': 'Isian ini sudah digantikan oleh isian valid lain',
+      };
+      return R.badRequest(
+        statusMessages[isian.status] || `Isian dengan status "${isian.status}" tidak dapat direview`
+      );
     }
 
     // Pastikan kaprodi hanya bisa review isian dari prodi-nya sendiri
@@ -74,6 +85,25 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
 
     // Update isian dan buat review log dalam transaction
     const data = await prisma.$transaction(async (tx) => {
+      // Check if there's already a valid isian for this unsur in the same prodi
+      if (parsed.data.status === 'valid') {
+        const existingValid = await tx.isianAmi.findFirst({
+          where: {
+            pemeriksaan_unsur_id: isian.pemeriksaan_unsur_id,
+            periode_id: isian.periode_id,
+            prodi_id: isian.prodi_id,
+            status: 'valid',
+            id: { not: Number(id) }, // Exclude current isian
+          },
+        });
+
+        if (existingValid) {
+          return R.badRequest(
+            'Unsur ini sudah memiliki isian yang valid dari dosen lain di prodi yang sama. Hanya satu isian valid yang diperbolehkan per unsur per prodi.'
+          );
+        }
+      }
+
       const updated = await tx.isianAmi.update({
         where: { id: Number(id) },
         data: {
@@ -84,6 +114,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
         },
         include: isianInclude,
       });
+
       await tx.isianReviewLog.create({
         data: {
           isian_id: Number(id),
@@ -93,6 +124,47 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
           catatan: parsed.data.catatan_kaprodi ?? null,
         },
       });
+
+      // FIRST VALID WINS: If this isian is validated, supersede all other pending/revisi isian
+      // for the same unsur in the same prodi
+      if (parsed.data.status === 'valid') {
+        const supersededIsians = await tx.isianAmi.findMany({
+          where: {
+            pemeriksaan_unsur_id: isian.pemeriksaan_unsur_id,
+            periode_id: isian.periode_id,
+            prodi_id: isian.prodi_id,
+            id: { not: Number(id) },
+            status: { in: ['proses', 'revisi', 'draft'] },
+          },
+          select: { id: true, dosen_id: true },
+        });
+
+        if (supersededIsians.length > 0) {
+          // Update status ke 'superseded' dan buat review log
+          for (const si of supersededIsians) {
+            await tx.isianAmi.update({
+              where: { id: si.id },
+              data: {
+                status: 'superseded',
+                catatan_kaprodi: `Isian ini telah digantikan oleh isian valid dari dosen lain (ID: ${id}). Tidak perlu direvisi lagi.`,
+                reviewed_by: user.userId,
+                reviewed_at: new Date(),
+              },
+            });
+
+            await tx.isianReviewLog.create({
+              data: {
+                isian_id: si.id,
+                reviewer_id: user.userId,
+                status_sebelum: 'proses',
+                status_sesudah: 'superseded',
+                catatan: `Auto-superseded karena ada isian valid lain (ID: ${id})`,
+              },
+            });
+          }
+        }
+      }
+
       return updated;
     });
 

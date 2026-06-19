@@ -23,7 +23,7 @@ interface IsianData {
   };
   periode: { tahun: string };
   judul_dokumen: string;
-  status: 'proses' | 'valid' | 'revisi';
+  status: 'proses' | 'valid' | 'revisi' | 'superseded';
   submitted_at: string;
   catatan_kaprodi: string | null;
 }
@@ -54,7 +54,7 @@ interface IsianDetail {
   tahun_pelaksanaan?: string | null;
   capaian?: string | null;
   keterangan?: string | null;
-  status: 'proses' | 'valid' | 'revisi';
+  status: 'proses' | 'valid' | 'revisi' | 'superseded';
   catatan_kaprodi?: string | null;
   submitted_at?: string;
   reviewed_at?: string | null;
@@ -140,6 +140,8 @@ export default function RiwayatIsianPage() {
         return { bg: 'bg-emerald-100', text: 'text-emerald-800', icon: CheckCircle, label: 'Valid' };
       case 'revisi':
         return { bg: 'bg-rose-100', text: 'text-rose-800', icon: AlertCircle, label: 'Perlu Revisi' };
+      case 'superseded':
+        return { bg: 'bg-slate-100', text: 'text-slate-600', icon: XCircle, label: 'Digantikan' };
       default:
         return { bg: 'bg-slate-100', text: 'text-slate-800', icon: Clock, label: status };
     }
@@ -180,6 +182,7 @@ export default function RiwayatIsianPage() {
             <option value="proses">Menunggu Review</option>
             <option value="valid">Valid</option>
             <option value="revisi">Perlu Revisi</option>
+            <option value="superseded">Digantikan</option>
           </select>
         </div>
 

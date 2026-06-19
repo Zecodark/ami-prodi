@@ -6,7 +6,7 @@ import * as R from '@/app/lib/response';
 const serialize = (data: unknown) =>
   JSON.parse(JSON.stringify(data, (_, v) => (typeof v === 'bigint' ? v.toString() : v)));
 
-type UnsurStatus = 'valid' | 'revisi' | 'proses' | 'kosong';
+type UnsurStatus = 'valid' | 'revisi' | 'proses' | 'kosong' | 'superseded';
 
 /**
  * GET /api/isians/by-unsur?periode_id=...&prodi_id=...
@@ -152,6 +152,7 @@ export async function GET(request: NextRequest) {
       let valid = 0;
       let revisi = 0;
       let proses = 0;
+      let superseded = 0;
 
       let latest = list[0];
       let firstValid = null;
@@ -163,6 +164,7 @@ export async function GET(request: NextRequest) {
         }
         else if (it.status === 'revisi') revisi++;
         else if (it.status === 'proses') proses++;
+        else if (it.status === 'superseded') superseded++;
 
         if (
           new Date(it.updated_at).getTime() >
@@ -180,6 +182,7 @@ export async function GET(request: NextRequest) {
       if (valid > 0) status = 'valid';
       else if (revisi > 0) status = 'revisi';
       else if (proses > 0) status = 'proses';
+      else if (superseded > 0) status = 'superseded';
 
       result[unsurId] = {
         status,
