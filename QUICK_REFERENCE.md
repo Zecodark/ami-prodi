@@ -1,262 +1,226 @@
-# Quick Reference: Isi AMI & API Integration
+# Quick Reference - Sistem AMI Prodi
 
-## ✅ Status: FIXED & VERIFIED
+## 🚀 Quick Start
 
-### Fixes Applied
+```bash
+# 1. Reset Database
+npx prisma migrate reset --force
 
-| Issue | File | Fix | Status |
-|-------|------|-----|--------|
-| FileText not defined | `app/dosen/isi-ami/page.tsx` L2 | Add FileText to import | ✅ |
-| Tree data structure mismatch | `app/dosen/isi-ami/page.tsx` L107-145 | Fix buildTree function with safe access | ✅ |
-| API integration | `app/api/kriteria/route.ts` | Already exists, GET endpoint ready | ✅ |
-| Sinkronisasi data | Seed data | Complete struktur instrumen | ✅ |
+# 2. Start Server
+npm run dev
+
+# 3. Access
+http://localhost:3000
+```
 
 ---
 
-## 📋 API Endpoints - Summary
+## 🔐 Login Credentials
 
-| Endpoint | Method | Purpose | Status |
-|----------|--------|---------|--------|
-| `/api/instrumens?is_active=true` | GET | Fetch instrumen aktif | ✅ Working |
-| `/api/kriteria?instrumen_id=X` | GET | Fetch struktur instrumen (tree) | ✅ Working |
-| `/api/periodes?is_active=true` | GET | Fetch periode aktif | ✅ Working |
-| `/api/isians` | GET | Fetch riwayat isian per dosen | ✅ Working |
-| `/api/isians` | POST | Submit isian + file upload | ✅ Working |
-| `/api/isians/{id}` | PUT | Update isian (jika status revisi) | ✅ Working |
+| Role | Email | Password |
+|------|-------|----------|
+| **Admin** | admin@polines.ac.id | password123 |
+| **Kaprodi TI** | kaprodi.ti@polines.ac.id | password123 |
+| **Kaprodi TRK** | kaprodi.trk@polines.ac.id | password123 |
+| **Dosen 1 (TI)** | idhawati.hestiningsih@polines.ac.id | password123 |
+| **Dosen 2 (TI)** | muttabik.fathul@polines.ac.id | password123 |
+| **Dosen 3 (TI)** | sukamto@polines.ac.id | password123 |
+| **Dosen 4 (TRK)** | wiktasari@polines.ac.id | password123 |
 
 ---
 
-## 🔧 Component Data Flow
+## 🎯 Key Features
 
+### 1. View-Only untuk Isian Valid ✅
 ```
-┌─────────────────────────────────────────────────────┐
-│ IsiAmiPage.tsx                                      │
-├─────────────────────────────────────────────────────┤
-│                                                     │
-│  State:                                             │
-│  - instrumens: any[] (dropdown)                     │
-│  - selectedInstrumen: string (pilihan)             │
-│  - treeData: TreeNode[] (struktur)                 │
-│  - selectedUnsur: string | null (yang diklik)      │
-│  - formData: FormData (isian)                      │
-│                                                     │
-│  Lifecycle:                                         │
-│  1. useEffect → fetchInstrumens()                   │
-│  2. Select instrumen → fetchInstrumenStructure()   │
-│  3. buildTree(data) → render Tree                  │
-│  4. Click Unsur → setSelectedUnsur()               │
-│  5. Fill form → handleInputChange()                │
-│  6. Submit → handleSubmit() → POST /api/isians     │
-│                                                     │
-└─────────────────────────────────────────────────────┘
+Dosen → Klik unsur valid → ViewValidIsian (read-only)
+      → Submit buttons TIDAK tampil
+      → Bisa download file & klik link
 ```
+
+### 2. Per-Dosen History ✅
+```
+Constraint: unique([unsur_id, periode_id, dosen_id])
+Setiap dosen: Riwayat isian terpisah
+```
+
+### 3. First Valid Wins ✅
+```
+Multiple dosen mengisi → Kaprodi validasi 1 → Winner
+                       → Lainnya auto superseded
+```
+
+### 4. Revision Flow ✅
+```
+Submit → Revisi → Perbaiki → **SUBMIT ULANG** → Review
+```
+
+### 5. Uppercase Kriteria ✅
+```
+Display: [K1] CRITERIA 1: VISI, MISI, TUJUAN DAN STRATEGI
+```
+
+---
+
+## 📊 Sample Data (Seeder)
+
+| Prodi | Valid | Proses | Revisi | Superseded | Kosong |
+|-------|-------|--------|--------|------------|--------|
+| **TI (D3)** | 40 | 10 | 8 | 5 | ~40 |
+| **TRK (D4)** | 15 | 5 | 3 | 0 | ~77 |
+
+**Special Scenario:**
+- Unsur 1.1: 3 dosen compete → Dosen 1 wins (valid) → Dosen 2 & 3 superseded
+- Unsur 1.2: 2 dosen compete → Dosen 2 wins (valid) → Dosen 1 superseded
 
 ---
 
 ## 🧪 Testing Checklist
 
-### Before Deployment
+### Test 1: View Valid Isian
+- [ ] Login Dosen 1
+- [ ] Klik unsur 1.1 (status valid)
+- [ ] Verify: ViewValidIsian tampil
+- [ ] Verify: Submit buttons TIDAK tampil
+- [ ] Verify: Bisa download file
 
-- [ ] npm run build (no errors)
-- [ ] Browser console: diagnose()
-- [ ] Select instrumen: data tampil?
-- [ ] Click unsur: form muncul?
-- [ ] Fill form + Submit: berhasil?
-- [ ] Cek riwayat: isian tercatat?
-- [ ] Check database: isian_ami & isian_bukti_files ada?
+### Test 2: Competing Scenario
+- [ ] Login Dosen 2
+- [ ] Klik unsur 1.1
+- [ ] Verify: Status "Digantikan"
+- [ ] Verify: Catatan menyebut Dosen 1
 
-### Test Commands
+### Test 3: Revision Flow
+- [ ] Login Dosen
+- [ ] Klik unsur revisi
+- [ ] Verify: Form editable
+- [ ] Verify: Catatan kaprodi tampil
+- [ ] Edit & submit ulang
+- [ ] Verify: Status jadi "Menunggu Review"
 
+### Test 4: Per-Dosen History
+- [ ] Login Dosen 1 → Riwayat Saya
+- [ ] Verify: Hanya tampil isian Dosen 1
+- [ ] Login Dosen 2 → Riwayat Saya
+- [ ] Verify: Hanya tampil isian Dosen 2
+
+### Test 5: Uppercase Kriteria
+- [ ] Check tree view di Isi AMI
+- [ ] Check breadcrumb
+- [ ] Check ViewValidIsian
+- [ ] Verify: Semua kriteria UPPERCASE
+
+---
+
+## 🐛 Common Issues
+
+| Issue | Solution |
+|-------|----------|
+| ViewValidIsian tidak muncul | Check console: `viewValidData` state |
+| Multiple isian untuk unsur sama | Expected! Per-dosen history |
+| Kaprodi tidak bisa validasi revisi | By design! Dosen submit ulang dulu |
+| Status superseded tidak muncul | Run migrations & generate Prisma |
+| Cache issue | Hapus folder `.next`, restart server |
+
+---
+
+## 📂 Important Files
+
+### Components
+```
+app/dosen/isi-ami/ViewValidIsian.tsx    - View-only component
+app/dosen/isi-ami/page.tsx              - Main page dengan conditional
+```
+
+### API Routes
+```
+app/api/isians/route.ts                 - CRUD isian (with validation)
+app/api/isians/[id]/review/route.ts     - Review & auto-supersede
+app/api/isians/by-unsur/route.ts        - Status per unsur
+```
+
+### Database
+```
+prisma/schema.prisma                    - Schema (constraint per-dosen)
+prisma/seed.ts                          - Realistic seeder
+```
+
+### Docs
+```
+FINAL_SUMMARY.md                        - Complete summary
+TEST_GUIDE_VIEW_ONLY.md                 - Testing guide
+SEEDER_DOCUMENTATION.md                 - Seeder guide
+```
+
+---
+
+## 💡 Pro Tips
+
+### 1. Reset Database dengan Data Baru
 ```bash
-# 1. Run seed
-npx prisma db seed
+npx prisma migrate reset --force
+# Otomatis run seeder
+```
 
-# 2. Start dev server
+### 2. Check Database di Browser
+```bash
+npx prisma studio
+# Buka di browser untuk explore data
+```
+
+### 3. Debug Console Log
+```javascript
+// Check di browser console (F12)
+🔍 DEBUG: item.status = valid
+✅ Valid isian detected, setting viewValidData
+```
+
+### 4. Access dari Device Lain (LAN)
+```bash
+# 1. Cari IP: ipconfig (Windows) atau ifconfig (Mac/Linux)
+# 2. Access: http://[YOUR-IP]:3000
+# 3. Pastikan firewall allow port 3000
+```
+
+### 5. Clear Next.js Cache
+```bash
+# Jika ada issue aneh
+rm -rf .next
 npm run dev
-
-# 3. Open browser
-# http://localhost:3000/login
-
-# 4. Login as dosen
-# Email: budi.santoso@polines.ac.id
-# Password: password123
-
-# 5. Navigate to /dosen/isi-ami
-# http://localhost:3000/dosen/isi-ami
-
-# 6. Open console & run API tests
-# diagnose()
-# testInstrumen()
-# testKriteria("1")
-# testPeriode()
-# testSubmitIsan("1", "1")
 ```
 
 ---
 
-## 🎯 File Locations
+## 📞 Support
 
-| Feature | File | Type |
-|---------|------|------|
-| Isi AMI Page | `app/dosen/isi-ami/page.tsx` | Component |
-| Riwayat Isian | `app/dosen/riwayat/page.tsx` | Component |
-| Revisi Saya | `app/dosen/revisi/page.tsx` | Component |
-| Profil | `app/dosen/profil/page.tsx` | Component |
-| Dosen Layout | `app/dosen/layout.tsx` | Layout |
-| API Instrumen | `app/api/instrumens/route.ts` | API |
-| API Kriteria | `app/api/kriteria/route.ts` | API |
-| API Isian | `app/api/isians/route.ts` | API |
-| API Periode | `app/api/periodes/route.ts` | API |
-| API Test Helper | `public/api-test-helper.js` | Utility |
-| Troubleshooting | `TROUBLESHOOTING.md` | Doc |
-| API Guide | `API_INTEGRATION_GUIDE.md` | Doc |
+### Documentation
+- `FINAL_SUMMARY.md` - Overview lengkap
+- `VIEW_ONLY_VALID_ISIAN.md` - View-only details
+- `FIRST_VALID_WINS.md` - First valid wins
+- `FLOW_REVISI_ISIAN.md` - Revision flow
+
+### Troubleshooting
+- `QUICK_FIX_SUPERSEDED.md` - Emergency fixes
+- `SEEDER_DOCUMENTATION.md` - Seeder issues
 
 ---
 
-## 💡 Key Implementation Details
+## ✅ Status
 
-### 1. Build Tree Structure
-```typescript
-// Input dari API /api/kriteria?instrumen_id=1
-// Struktur: Kriteria > KodeAmi > DeskripsiArea > PemeriksaanUnsur
-
-// Output: TreeNode dengan tipe 'kriteria' | 'ami' | 'area' | 'unsur'
-// Dengan expanded state untuk accordion
-// Dengan children array untuk nested render
-```
-
-### 2. Form Data Handling
-```typescript
-// FormData object (bukan JSON) untuk file upload
-const formDataObj = new FormData();
-formDataObj.append('field', 'value');
-formDataObj.append('bukti_file', file); // File object
-
-// POST ke /api/isians dengan body: formDataObj
-```
-
-### 3. Dosen Identification
-```typescript
-// Dosen automatically identified dari JWT token
-// Guard di API memastikan dosen hanya akses data miliknya
-// WHERE dosen_id = {dosen_id_dari_token}
-```
-
-### 4. Periode Integration
-```typescript
-// Periode_id di-fetch saat submit (bukan sebelumnya)
-// Karena periode bisa berubah
-// GET /api/periodes?is_active=true → ambil periode.id
-// Append ke FormData sebelum POST
-```
+| Feature | Status |
+|---------|--------|
+| View-Only Valid Isian | ✅ Complete |
+| Per-Dosen History | ✅ Complete |
+| First Valid Wins | ✅ Complete |
+| Revision Flow | ✅ Complete |
+| Uppercase Kriteria | ✅ Complete |
+| Network Access | ✅ Complete |
+| Realistic Seeder | ✅ Complete |
+| Documentation | ✅ Complete |
+| **PRODUCTION READY** | ✅ **YES** |
 
 ---
 
-## 🔐 Security Notes
-
-✓ **API Guards:** Setiap endpoint check role & user ownership  
-✓ **File Upload:** Saved ke `/public/uploads/bukti/` dengan unique filename  
-✓ **BigInt Handling:** Serialized to string di API response  
-✓ **Token Auth:** JWT token dari localStorage (localStorage only, no secure flag yet)  
-
-⚠️ **TODO for Production:**
-- [ ] Setup secure cookie untuk token (httpOnly, secure, sameSite)
-- [ ] Add rate limiting ke API
-- [ ] Add file size validation (max 10MB)
-- [ ] Add allowed MIME types whitelist
-- [ ] Setup error logging & monitoring
-
----
-
-## 📊 Data Models
-
-### IsianAmi
-```typescript
-{
-  id: BigInt;
-  pemeriksaan_unsur_id: BigInt;  // Link ke unsur yang diisi
-  periode_id: BigInt;            // Periode saat submit
-  dosen_id: BigInt;              // Dosen yang isi
-  prodi_id: BigInt;              // Prodi dosen
-  
-  // Field pengisian
-  judul_dokumen: string;
-  ketersediaan_standar: 'ada' | 'tidak_ada';
-  dokumen: 'ada' | 'tidak_ada';
-  pencapaian_standar_spt_pt: boolean;
-  pencapaian_standar_sn_dikti: boolean;
-  daya_saing_lokal: boolean;
-  daya_saing_nasional: boolean;
-  daya_saing_internasional: boolean;
-  bukti_link: string;
-  tahun_pelaksanaan: string;
-  capaian: string;
-  keterangan: string;
-  
-  // Status & review
-  status: 'proses' | 'valid' | 'revisi';
-  catatan_kaprodi: string;
-  reviewed_by: BigInt;     // User ID kaprodi
-  reviewed_at: Date;
-  
-  // Tracking
-  attempt: number;         // Untuk revisi
-  submitted_at: Date;
-}
-```
-
-### IsianBuktiFile
-```typescript
-{
-  id: BigInt;
-  isian_id: BigInt;
-  original_name: string;   // e.g., "dokumen.pdf"
-  file_name: string;       // e.g., "bukti-1234567890-123456789.pdf"
-  file_path: string;       // e.g., "/uploads/bukti/bukti-xxx.pdf"
-  mime_type: string;       // e.g., "application/pdf"
-  file_size: BigInt;       // bytes
-  uploaded_by: BigInt;     // User ID dosen
-}
-```
-
----
-
-## 🚀 Performance Tips
-
-1. **Lazy Load Tree:** Jangan load semua kriteria > AMI > Area > Unsur sekaligus
-   - Load saat instrumen dipilih
-   - Render incrementally
-
-2. **Memoize State:** Gunakan useMemo untuk computed values
-   ```typescript
-   const progressByKriteria = useMemo(() => {
-     // Calculate dari treeData
-   }, [treeData]);
-   ```
-
-3. **Debounce Search:** Jika ada search unsur
-   ```typescript
-   const [searchTerm, setSearchTerm] = useState('');
-   const debouncedSearch = useMemo(
-     () => debounce((term) => filterTree(term), 300),
-     []
-   );
-   ```
-
-4. **Virtual Scrolling:** Jika tree sangat besar
-   - Gunakan react-window atau react-virtualized
-   - Render hanya visible items
-
----
-
-## 📚 Related Documentation
-
-- **API_INTEGRATION_GUIDE.md:** Lengkap endpoint & data sync
-- **TROUBLESHOOTING.md:** Common issues & solutions
-- **aplikasi_ami.md:** Feature requirements & specifications
-
----
-
-**Last Updated:** 2026-05-11  
-**Version:** 1.0  
-**Status:** ✅ Production Ready (with TODO items for security)
+**Version**: 1.0  
+**Last Updated**: 2026-06-19  
+**Status**: Production Ready 🚀

@@ -221,7 +221,7 @@ export default function IsiAmiPage() {
   }, []);
 
   useEffect(() => {
-    if (!treeData.length) return;
+    if (!treeData.length || Object.keys(statusMap).length === 0) return; // Wait for statusMap
     const unsurId = searchParams.get('pemeriksaan_unsur_id');
     if (!unsurId) return;
 
@@ -238,9 +238,13 @@ export default function IsiAmiPage() {
         return n;
       });
     setTreeData(prev => expandParents(prev));
-    handleNodeClick({ stopPropagation: () => {} }, unsurId);
+    
+    // Add delay to ensure statusMap is available
+    setTimeout(() => {
+      handleNodeClick({ stopPropagation: () => {} }, unsurId);
+    }, 100);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [treeData.length]);
+  }, [treeData.length, statusMap]);
 
   const loadActiveInstrumen = async () => {
     try {
@@ -381,27 +385,55 @@ export default function IsiAmiPage() {
 
   const handleNodeClick = async (e: React.MouseEvent | any, id: string) => {
     if(e?.stopPropagation) e.stopPropagation();
+    
+    // Prevent multiple simultaneous calls
+    if (selectedUnsur === id) {
+      console.log('🛑 Already processing this unsur, skipping duplicate call');
+      return;
+    }
+    
     setSelectedUnsur(id);
-    setViewValidData(null); // Reset view-only data
-    setIsianForm(null); // Reset form data
+    
+    // Reset both states at the beginning
+    setViewValidData(null);
+    setIsianForm(null);
 
     try {
       const token = localStorage.getItem('ami_token');
-      const res = await fetch(
-        `/api/isians?pemeriksaan_unsur_id=${id}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      const json = await res.json();
-      const items = json.data ?? [];
       
-      if (items.length > 0) {
-        const item = items[0]; // Hanya ambil isian pertama (1 unsur 1 isian)
+      // Re-fetch fresh statusMap to avoid stale data
+      const statusRes = await fetch('/api/isians/by-unsur', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const statusJson = await statusRes.json();
+      const freshStatusMap = statusJson.data?.data || {};
+      
+      // Check status dari fresh statusMap
+      const unsurInfo = freshStatusMap[id];
+      console.log('🔍 DEBUG handleNodeClick: unsurId =', id);
+      console.log('🔍 DEBUG handleNodeClick: freshStatusMap =', freshStatusMap);
+      console.log('🔍 DEBUG handleNodeClick: unsurInfo =', unsurInfo);
+      
+      // Jika status unsur ini adalah 'valid', fetch isian yang valid untuk view-only
+      if (unsurInfo?.status === 'valid' && unsurInfo.latest_isian_id) {
+        console.log('✅ Valid status detected, fetching valid isian:', unsurInfo.latest_isian_id);
         
-        console.log('🔍 DEBUG: item.status =', item.status); // Debug log
+        // Fetch detail isian yang valid (bisa milik dosen mana saja di prodi ini)
+        const detailRes = await fetch(
+          `/api/isians/${unsurInfo.latest_isian_id}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
         
-        // Check if isian is valid - show view-only component
-        if (item.status === 'valid') {
-          console.log('✅ Valid isian detected, setting viewValidData'); // Debug log
+        if (!detailRes.ok) {
+          console.error('❌ Failed to fetch valid isian:', detailRes.status, detailRes.statusText);
+          throw new Error(`Failed to fetch isian: ${detailRes.status}`);
+        }
+        
+        const detailJson = await detailRes.json();
+        console.log('✅ Valid isian fetched:', detailJson.data);
+        
+        if (detailJson.data) {
+          const item = detailJson.data;
           setViewValidData({
             id: item.id,
             judul_dokumen: item.judul_dokumen ?? '',
@@ -431,42 +463,67 @@ export default function IsiAmiPage() {
               nama_kriteria: item.pemeriksaan_unsur?.deskripsi_area?.kode_ami?.kriteria?.nama_kriteria ?? '',
             }
           });
-          setSuccessMsg('Isian valid dimuat dalam mode view-only.');
-          setTimeout(() => setSuccessMsg(''), 3000);
-        } else {
-          console.log('📝 Non-valid isian, setting isianForm'); // Debug log
-          // Not valid - show editable form
-          setIsianForm({
-            id: item.id,
-            status: item.status,
-            pemeriksaan_unsur_id: id,
-            judul_dokumen: item.judul_dokumen ?? '',
-            ketersediaan_standar: item.ketersediaan_standar ?? 'tidak_ada',
-            dokumen: item.dokumen ?? 'tidak_ada',
-            pencapaian_standar_spt_pt: item.pencapaian_standar_spt_pt ?? false,
-            pencapaian_standar_sn_dikti: item.pencapaian_standar_sn_dikti ?? false,
-            daya_saing_lokal: item.daya_saing_lokal ?? false,
-            daya_saing_nasional: item.daya_saing_nasional ?? false,
-            daya_saing_internasional: item.daya_saing_internasional ?? false,
-            bukti_link: item.bukti_link ?? '',
-            tahun_pelaksanaan: item.tahun_pelaksanaan ?? '',
-            capaian: item.capaian ?? '',
-            keterangan: item.keterangan ?? '',
-            catatan_kaprodi: item.catatan_kaprodi ?? '',
-            bukti_files: [{ file: null, judul_dokumen: '', keterangan_dokumen: '', tahun_dokumen: '' }],
-            existing_files: item.bukti_files ?? [],
-          });
-          setSuccessMsg('Memuat isian.');
-          setTimeout(() => setSuccessMsg(''), 3000);
+          console.log('✅ viewValidData set successfully, STOPPING HERE');
+          setSuccessMsg('Isian valid untuk unsur ini sudah ada. Mode tampilan view-only.');
+          setTimeout(() => setSuccessMsg(''), 4000);
+          return; // IMPORTANT: Stop execution here, don't fetch dosen own isian
+        }
+      }
+      
+      // Jika unsur belum valid, cek apakah dosen ini punya isian sendiri
+      console.log('⚠️ Non-valid status, checking dosen own isian');
+      const res = await fetch(
+        `/api/isians?pemeriksaan_unsur_id=${id}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      const json = await res.json();
+      const items = json.data ?? [];
+      
+      if (items.length > 0) {
+        const item = items[0]; // Isian milik dosen ini
+        
+        console.log('📝 Dosen own isian found, setting isianForm');
+        // Show editable form
+        setIsianForm({
+          id: item.id,
+          status: item.status,
+          pemeriksaan_unsur_id: id,
+          judul_dokumen: item.judul_dokumen ?? '',
+          ketersediaan_standar: item.ketersediaan_standar ?? 'tidak_ada',
+          dokumen: item.dokumen ?? 'tidak_ada',
+          pencapaian_standar_spt_pt: item.pencapaian_standar_spt_pt ?? false,
+          pencapaian_standar_sn_dikti: item.pencapaian_standar_sn_dikti ?? false,
+          daya_saing_lokal: item.daya_saing_lokal ?? false,
+          daya_saing_nasional: item.daya_saing_nasional ?? false,
+          daya_saing_internasional: item.daya_saing_internasional ?? false,
+          bukti_link: item.bukti_link ?? '',
+          tahun_pelaksanaan: item.tahun_pelaksanaan ?? '',
+          capaian: item.capaian ?? '',
+          keterangan: item.keterangan ?? '',
+          catatan_kaprodi: item.catatan_kaprodi ?? '',
+          bukti_files: [{ file: null, judul_dokumen: '', keterangan_dokumen: '', tahun_dokumen: '' }],
+          existing_files: item.bukti_files ?? [],
+        });
+        
+        if (item.status === 'revisi') {
+          setErrorMsg('Isian Anda perlu direvisi. Silakan perbaiki dan kirim ulang.');
+          setTimeout(() => setErrorMsg(''), 5000);
+        } else if (item.status === 'proses') {
+          setSuccessMsg('Isian Anda sedang menunggu review dari Kaprodi.');
+          setTimeout(() => setSuccessMsg(''), 4000);
+        } else if (item.status === 'superseded') {
+          setErrorMsg('Isian Anda telah digantikan oleh isian valid dari dosen lain.');
+          setTimeout(() => setErrorMsg(''), 5000);
         }
       } else {
         // No isian yet - show empty form
-        console.log('📄 No isian found, reset form'); // Debug log
+        console.log('📄 No isian found, reset form');
         resetForm(id);
       }
     } catch (err) {
-      console.error('❌ Error fetching isian:', err); // Debug log
-      // ignore
+      console.error('❌ Error fetching isian:', err);
+      // If error occurs, try to show empty form
+      resetForm(id);
     }
   };
   
@@ -702,7 +759,7 @@ export default function IsiAmiPage() {
             >
               {node.type === 'kriteria' && (
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-semibold text-slate-800 text-sm">
+                  <span className="font-semibold text-slate-800 text-sm uppercase">
                     [{node.kode_kriteria}] {node.nama_kriteria}
                   </span>
                   {agg && agg.total > 0 && (
@@ -1494,7 +1551,7 @@ function UnsurBreadcrumb({
 
       {/* Nama kriteria lengkap */}
       {kriteria?.nama_kriteria && (
-        <div className="text-[11px] text-slate-500 mt-1">
+        <div className="text-[11px] text-slate-500 mt-1 uppercase">
           Kriteria: {kriteria.nama_kriteria}
         </div>
       )}

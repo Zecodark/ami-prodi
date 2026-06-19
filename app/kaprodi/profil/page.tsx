@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Mail, Briefcase, ShieldCheck, BookOpen, Key, X, Eye, EyeOff } from 'lucide-react';
+import { formatNamaDosen } from '@/app/lib/textUtils';
 
 interface MeData {
   id: string;
@@ -98,8 +99,9 @@ export default function KaprodiProfilPage() {
     );
   }
 
-  const namaTampil =
-    me.dosen?.nama_lengkap || me.email.split('@')[0] || 'Kaprodi';
+  const namaTampil = formatNamaDosen(
+    me.dosen?.nama_lengkap || me.email.split('@')[0] || 'Kaprodi'
+  );
   const initial = namaTampil
     .split(' ')
     .filter(Boolean)

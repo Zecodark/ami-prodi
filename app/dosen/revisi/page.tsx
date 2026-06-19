@@ -125,7 +125,7 @@ export default function RevisiSayaPage() {
                   <div className="grid sm:grid-cols-2 gap-4">
                     <div className="bg-white border border-slate-200 rounded-lg p-3">
                       <label className="text-xs font-medium text-slate-500 uppercase">Kriteria</label>
-                      <p className="text-slate-800 font-medium mt-1 text-sm">
+                      <p className="text-slate-800 font-medium mt-1 text-sm uppercase">
                         [{revisi.pemeriksaan_unsur.deskripsi_area.kode_ami.kriteria.kode_kriteria}] {revisi.pemeriksaan_unsur.deskripsi_area.kode_ami.kriteria.nama_kriteria}
                       </p>
                     </div>

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { History, CheckCircle, Edit3, ChevronRight } from 'lucide-react';
+import { formatNamaDosen } from '@/app/lib/textUtils';
 
 interface ReviewLog {
   id: string;
@@ -247,7 +248,7 @@ export default function KaprodiRiwayatReviewPage() {
                         {/* Dosen */}
                         <div className="col-span-2 text-sm font-semibold text-slate-800 pr-4">
                           <p className="truncate" title={log.dosen_nama}>
-                            {log.dosen_nama}
+                            {formatNamaDosen(log.dosen_nama)}
                           </p>
                         </div>
 

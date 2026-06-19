@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
+import { formatNamaDosen } from '@/app/lib/textUtils';
 import {
   ChevronDown,
   CheckCircle2,
@@ -627,7 +628,7 @@ export default function KaprodiReviewPage() {
                             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
                               Kriteria
                             </p>
-                            <p className="font-bold text-gray-900">
+                            <p className="font-bold text-gray-900 uppercase">
                               {detailData.pemeriksaan_unsur.deskripsi_area.kode_ami.kriteria.nama_kriteria}
                             </p>
                           </div>
@@ -670,7 +671,7 @@ export default function KaprodiReviewPage() {
                           <div className="grid grid-cols-2 gap-6 text-sm">
                             <div>
                               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Dosen</p>
-                              <p className="font-bold text-gray-900">{detailData.dosen.nama_lengkap}</p>
+                              <p className="font-bold text-gray-900">{formatNamaDosen(detailData.dosen.nama_lengkap)}</p>
                               <p className="text-xs text-gray-500 font-mono mt-1">{detailData.dosen.nip}</p>
                             </div>
                             <div>

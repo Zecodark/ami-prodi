@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Search, Eye, Edit2, Clock, CheckCircle, AlertCircle, File, FileText, ExternalLink, Download, Save, History, XCircle } from 'lucide-react';
+import { formatNamaDosen } from '@/app/lib/textUtils';
 
 interface IsianData {
   id: string;
@@ -281,7 +282,7 @@ export default function RiwayatIsianPage() {
                       <div className="grid grid-cols-2 gap-6 text-sm">
                         <div>
                           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Dosen</p>
-                          <p className="font-bold text-gray-900">{detailData.dosen?.nama_lengkap || '-'}</p>
+                          <p className="font-bold text-gray-900">{formatNamaDosen(detailData.dosen?.nama_lengkap)}</p>
                           <p className="text-xs text-gray-500 font-mono mt-1">{detailData.dosen?.nip || ''}</p>
                         </div>
                         <div>

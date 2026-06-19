@@ -66,18 +66,36 @@ type Ctx = { params: Promise<{ id: string }> };
 
 export async function GET(request: NextRequest, { params }: Ctx) {
   try {
-    const { user, error } = guard(request, 'dosen', 'kaprodi');
+    const { user, error } = guard(request, 'dosen', 'kaprodi', 'admin');
     if (error) return error;
 
     const { id } = await params;
     const data = await prisma.isianAmi.findUnique({ where: { id: Number(id) }, include: isianInclude });
     if (!data) return R.notFound();
 
-    // Dosen hanya bisa lihat miliknya
+    // Dosen bisa lihat:
+    // 1. Isian miliknya sendiri (any status)
+    // 2. Isian valid milik dosen lain di prodi yang sama
     if (user.roleName.toLowerCase() === 'dosen') {
-      const dosen = await prisma.dosen.findUnique({ where: { user_id: user.userId } });
-      if (!dosen || data.dosen_id !== dosen.id) return R.forbidden();
+      const dosen = await prisma.dosen.findUnique({ 
+        where: { user_id: user.userId },
+        select: { id: true, prodi_id: true }
+      });
+      
+      if (!dosen) return R.forbidden('Profil dosen tidak ditemukan');
+      
+      // Check if this is dosen's own isian
+      const isOwnIsian = data.dosen_id === dosen.id;
+      
+      // Check if this is valid isian from same prodi
+      const isValidSameProdi = data.status === 'valid' && data.prodi_id === dosen.prodi_id;
+      
+      // Allow access if either condition is true
+      if (!isOwnIsian && !isValidSameProdi) {
+        return R.forbidden('Anda hanya dapat mengakses isian milik sendiri atau isian valid di prodi Anda');
+      }
     }
+    
     return R.ok(serialize(data));
   } catch (e) { return R.serverError(e); }
 }

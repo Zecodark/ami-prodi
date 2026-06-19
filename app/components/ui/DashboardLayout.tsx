@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { LogOut, Menu, X, Bell } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
+import { formatNamaDosen } from '@/app/lib/textUtils';
 
 interface MenuItem {
   title: string;
@@ -37,7 +38,7 @@ export default function DashboardLayout({ children, menuItems, role }: Dashboard
       try {
         const user = JSON.parse(userData);
         if (user.dosen?.nama_lengkap) {
-          setUserName(user.dosen.nama_lengkap);
+          setUserName(formatNamaDosen(user.dosen.nama_lengkap));
         } else if (user.role?.toLowerCase() === 'admin') {
           setUserName('Administrator');
         } else if (user.role?.toLowerCase() === 'kaprodi') {

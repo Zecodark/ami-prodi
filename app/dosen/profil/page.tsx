@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { User, Mail, Phone, MapPin, Briefcase, Save, AlertCircle, CheckCircle, Edit2, X, Key, Eye, EyeOff } from 'lucide-react';
+import { formatNamaDosen } from '@/app/lib/textUtils';
 
 interface ProfilData {
   id: string;
@@ -197,7 +198,7 @@ export default function ProfilPage() {
           <div className="w-24 h-24 rounded-full bg-gradient-to-br from-indigo-400 to-indigo-600 flex items-center justify-center mx-auto mb-4 text-white shadow-lg">
             <User size={48} />
           </div>
-          <h2 className="text-xl font-bold text-slate-800 mb-1">{profil.nama_lengkap}</h2>
+          <h2 className="text-xl font-bold text-slate-800 mb-1">{formatNamaDosen(profil.nama_lengkap)}</h2>
           <p className="text-sm text-slate-500">{profil.status_kepegawaian}</p>
           <div className="mt-6 pt-6 border-t border-slate-100">
             <button
@@ -308,7 +309,7 @@ export default function ProfilPage() {
                     <label className="block text-sm font-medium text-slate-700 mb-1">Nama Lengkap (Tidak dapat diubah)</label>
                     <input 
                       type="text"
-                      value={profil.nama_lengkap}
+                      value={formatNamaDosen(profil.nama_lengkap)}
                       disabled
                       className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-slate-50 text-slate-600 cursor-not-allowed"
                     />

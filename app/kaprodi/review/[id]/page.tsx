@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { formatNamaDosen } from '@/app/lib/textUtils';
 import {
   ArrowLeft,
   CheckCircle2,
@@ -270,7 +271,7 @@ export default function IsianDetailPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
             <div>
               <p className="text-gray-500 mb-1">Nama Dosen</p>
-              <p className="font-medium text-gray-900">{data.dosen.nama_lengkap}</p>
+              <p className="font-medium text-gray-900">{formatNamaDosen(data.dosen.nama_lengkap)}</p>
             </div>
             <div>
               <p className="text-gray-500 mb-1">NIP</p>

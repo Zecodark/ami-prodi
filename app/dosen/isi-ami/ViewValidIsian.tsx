@@ -16,6 +16,7 @@ import {
   Clock,
   X
 } from 'lucide-react';
+import { formatNamaDosen } from '@/app/lib/textUtils';
 
 interface ValidIsianData {
   id: number;
@@ -106,7 +107,7 @@ export default function ViewValidIsian({ data, unsurInfo, onClose }: ViewValidIs
                 Pengisi
               </span>
             </div>
-            <p className="font-bold text-slate-800 text-sm">{data.dosen.nama_lengkap}</p>
+            <p className="font-bold text-slate-800 text-sm">{formatNamaDosen(data.dosen.nama_lengkap)}</p>
             <p className="text-xs text-slate-500 font-mono mt-0.5">{data.dosen.nip}</p>
           </div>
         )}
@@ -183,7 +184,7 @@ export default function ViewValidIsian({ data, unsurInfo, onClose }: ViewValidIs
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
               Kriteria
             </p>
-            <p className="font-medium text-slate-700">{unsurInfo.nama_kriteria}</p>
+            <p className="font-medium text-slate-700 uppercase">{unsurInfo.nama_kriteria}</p>
           </div>
           <div>
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">

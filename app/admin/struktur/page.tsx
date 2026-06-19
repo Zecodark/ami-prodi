@@ -331,7 +331,7 @@ function StrukturContent() {
           <div className="shrink-0"><FolderTree size={16} className="text-indigo-600" /></div>
           <div className="flex-1 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
             <span className="font-mono text-xs font-semibold px-2 py-0.5 bg-white rounded text-indigo-700 border border-indigo-200">{k.kode_kriteria}</span>
-            <span className="text-sm font-bold text-slate-800">{k.nama_kriteria}</span>
+            <span className="text-sm font-bold text-slate-800 uppercase">{k.nama_kriteria}</span>
           </div>
           <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
             <button onClick={() => openModal('kode_ami', false, undefined, k.id)} className="flex items-center gap-1 px-2 py-1 bg-white border border-slate-200 text-xs font-medium text-slate-600 rounded hover:bg-indigo-50 hover:text-indigo-600 transition-colors">

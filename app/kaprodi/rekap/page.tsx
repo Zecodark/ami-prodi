@@ -11,6 +11,7 @@ import {
   ClipboardList,
   AlertCircle
 } from 'lucide-react';
+import { formatNamaDosen } from '@/app/lib/textUtils';
 
 type UnsurStatus = 'valid' | 'revisi' | 'proses' | 'kosong';
 
@@ -348,7 +349,7 @@ export default function KaprodiRekapPage() {
             >
               {node.type === 'kriteria' && (
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-semibold text-slate-800 text-sm">
+                  <span className="font-semibold text-slate-800 text-sm uppercase">
                     [{node.kode_kriteria}] {node.nama_kriteria}
                   </span>
                   {agg && agg.total > 0 && <ParentStatChips agg={agg} />}
@@ -382,7 +383,7 @@ export default function KaprodiRekapPage() {
                         {unsurInfo.latest_dosen_nama && (
                           <span className="text-slate-400">
                             {' '}
-                            • terakhir oleh <span className="text-slate-600 font-medium">{unsurInfo.latest_dosen_nama}</span>
+                            • terakhir oleh <span className="text-slate-600 font-medium">{formatNamaDosen(unsurInfo.latest_dosen_nama)}</span>
                           </span>
                         )}
                       </span>
@@ -416,7 +417,7 @@ export default function KaprodiRekapPage() {
                            </div>
                            <div>
                              <span className="font-semibold text-slate-400 block mb-1 text-[10px] uppercase tracking-wider">Dosen Pengisi</span>
-                             <span className="text-slate-800 font-semibold block">{detail.dosen?.nama_lengkap}</span>
+                             <span className="text-slate-800 font-semibold block">{formatNamaDosen(detail.dosen?.nama_lengkap)}</span>
                              <span className="text-slate-400 block text-xs">NIP: {detail.dosen?.nip}</span>
                            </div>
                            <div>

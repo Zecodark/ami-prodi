@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Plus, Search, Edit2, Trash2, Check, X, AlertCircle } from 'lucide-react';
+import { formatNamaDosen } from '@/app/lib/textUtils';
 
 interface DosenData {
   id: string;
@@ -226,7 +227,7 @@ export default function DosenPage() {
                 filteredDosens.map((d) => (
                   <tr key={d.id} className="hover:bg-slate-50 transition-colors">
                     <td className="py-3 px-4">
-                       <p className="font-bold text-slate-800">{d.nama_lengkap}</p>
+                       <p className="font-bold text-slate-800">{formatNamaDosen(d.nama_lengkap)}</p>
                        <p className="text-xs text-slate-500">{d.nip}</p>
                     </td>
                     <td className="py-3 px-4 text-slate-600">{d.prodi?.nama_prodi || '-'}</td>
