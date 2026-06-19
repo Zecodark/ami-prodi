@@ -64,17 +64,30 @@ export async function POST(request: NextRequest) {
       if (role?.nama_role.toLowerCase() === 'kaprodi') {
         if (parsed.data.prodi_id) {
           // Cek apakah prodi tersebut sudah punya kaprodi aktif
-          const existingKaprodi = await prisma.user.findFirst({
+          // Cari dari user.prodi_id atau dari dosen yang terhubung ke user dengan role kaprodi
+          const existingKaprodiDirect = await prisma.user.findFirst({
             where: {
               prodi_id: parsed.data.prodi_id,
               role: { nama_role: 'kaprodi' },
               is_active: true
             }
           });
+          
+          const existingKaprodiViaDosen = await prisma.dosen.findFirst({
+            where: {
+              prodi_id: parsed.data.prodi_id,
+              user: {
+                role: { nama_role: 'kaprodi' },
+                is_active: true
+              }
+            }
+          });
         
-          if (existingKaprodi) {
-            return R.badRequest('Prodi ini sudah memiliki akun Kaprodi aktif');
+          if (existingKaprodiDirect || existingKaprodiViaDosen) {
+            return R.badRequest('Prodi ini sudah memiliki akun Kaprodi aktif. Setiap prodi hanya boleh memiliki 1 Kaprodi.');
           }
+        } else {
+          return R.badRequest('Kaprodi harus ditautkan ke Program Studi.');
         }
       }
     }

@@ -338,7 +338,7 @@ model IsianAmi {
   bukti_files  IsianBuktiFile[]
   review_logs  IsianReviewLog[]
 
-  @@unique([pemeriksaan_unsur_id, periode_id, prodi_id])
+  @@unique([pemeriksaan_unsur_id, periode_id, dosen_id])
   @@index([pemeriksaan_unsur_id])
   @@index([periode_id])
   @@index([dosen_id])

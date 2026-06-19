@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
       where: {
         pemeriksaan_unsur_id: parsed.data.pemeriksaan_unsur_id,
         periode_id: parsed.data.periode_id,
-        prodi_id: dosen.prodi_id,
+        dosen_id: dosen.id,
         status: 'valid',
       },
     });
@@ -152,7 +152,7 @@ export async function POST(request: NextRequest) {
     const existingDraft = await prisma.isianAmi.findFirst({
       where: {
         pemeriksaan_unsur_id: parsed.data.pemeriksaan_unsur_id,
-        prodi_id: dosen.prodi_id,
+        dosen_id: dosen.id,
         periode_id: parsed.data.periode_id,
       },
     });

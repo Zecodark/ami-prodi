@@ -66,9 +66,13 @@ export async function PUT(request: NextRequest, { params }: Ctx) {
         const targetProdiId = parsed.data.prodi_id !== undefined ? parsed.data.prodi_id : currentUser?.prodi_id;
         const targetIsActive = parsed.data.is_active !== undefined ? parsed.data.is_active : currentUser?.is_active;
 
+        if (!targetProdiId) {
+          return R.badRequest('Kaprodi harus ditautkan ke Program Studi.');
+        }
+
         // Cek duplicate prodi_id untuk kaprodi aktif selain user ini
         if (targetIsActive && targetProdiId) {
-          const existingKaprodi = await prisma.user.findFirst({
+          const existingKaprodiDirect = await prisma.user.findFirst({
             where: {
               id: { not: Number(id) },
               prodi_id: targetProdiId,
@@ -77,8 +81,19 @@ export async function PUT(request: NextRequest, { params }: Ctx) {
             }
           });
           
-          if (existingKaprodi) {
-            return R.badRequest('Prodi ini sudah memiliki akun Kaprodi aktif');
+          const existingKaprodiViaDosen = await prisma.dosen.findFirst({
+            where: {
+              user_id: { not: Number(id) },
+              prodi_id: targetProdiId,
+              user: {
+                role: { nama_role: 'kaprodi' },
+                is_active: true
+              }
+            }
+          });
+          
+          if (existingKaprodiDirect || existingKaprodiViaDosen) {
+            return R.badRequest('Prodi ini sudah memiliki akun Kaprodi aktif. Setiap prodi hanya boleh memiliki 1 Kaprodi.');
           }
         }
       } else {

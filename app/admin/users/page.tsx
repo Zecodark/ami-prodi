@@ -120,12 +120,17 @@ export default function UsersPage() {
       const method = editId ? 'PUT' : 'POST';
       const url = editId ? `/api/users/${editId}` : '/api/users';
 
-      // Validasi: maksimal 2 kaprodi
+      // Validasi: setiap prodi hanya boleh punya 1 kaprodi
       const selectedRole = roles.find(r => r.id.toString() === formData.role_id?.toString());
-      if (selectedRole?.nama_role.toLowerCase() === 'kaprodi' && !editId) {
-        const kaprodiCount = users.filter(u => u.role?.nama_role.toLowerCase() === 'kaprodi').length;
-        if (kaprodiCount >= 2) {
-          setErrorMsg('Sistem hanya mengizinkan maksimal 2 akun Kaprodi. Hapus salah satu kaprodi terlebih dahulu jika ingin menambah yang baru.');
+      if (selectedRole?.nama_role.toLowerCase() === 'kaprodi' && formData.prodi_id) {
+        const existingKaprodi = users.find(u => 
+          u.role?.nama_role.toLowerCase() === 'kaprodi' && 
+          u.dosen?.prodi?.id === parseInt(formData.prodi_id) &&
+          u.id !== editId // kecuali user yang sedang diedit
+        );
+        if (existingKaprodi) {
+          const prodiName = prodis.find(p => p.id === parseInt(formData.prodi_id))?.nama_prodi || 'prodi ini';
+          setErrorMsg(`Prodi ${prodiName} sudah memiliki Kaprodi (${existingKaprodi.dosen?.nama_lengkap || existingKaprodi.email}). Setiap prodi hanya boleh memiliki 1 Kaprodi.`);
           setSubmitLoading(false);
           return;
         }
@@ -378,13 +383,16 @@ export default function UsersPage() {
                 </div>
                 {roles.find(r => r.id.toString() === formData.role_id?.toString())?.nama_role.toLowerCase() === 'kaprodi' && (
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Program Studi (Opsional)</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      Program Studi <span className="text-rose-600">*</span>
+                    </label>
                     <select 
+                      required
                       value={formData.prodi_id}
                       onChange={(e) => setFormData({...formData, prodi_id: e.target.value})}
                       className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none text-sm bg-white"
                     >
-                      <option value="">-- Tidak Ditautkan (None) --</option>
+                      <option value="">-- Pilih Program Studi --</option>
                       {prodis
                         .filter(p => {
                           // Cek apakah prodi ini sudah punya kaprodi (user role kaprodi dengan dosen.prodi_id = p.id)
@@ -400,7 +408,9 @@ export default function UsersPage() {
                         ))
                       }
                     </select>
-                    <p className="text-xs text-slate-500 mt-1">Hanya prodi yang belum memiliki Kaprodi akan ditampilkan</p>
+                    <p className="text-xs text-slate-500 mt-1">
+                      Setiap prodi hanya boleh memiliki 1 Kaprodi. Hanya prodi yang belum memiliki Kaprodi yang ditampilkan.
+                    </p>
                   </div>
                 )}
                 <label className="flex items-center gap-2 mt-4 cursor-pointer">
