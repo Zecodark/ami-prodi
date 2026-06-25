@@ -2,15 +2,27 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import {
-  CheckCircle,
+  Search,
+  Download,
+  Filter,
+  ChevronRight,
+  BookOpen,
   Clock,
+  Activity,
+  FileText,
+  Calendar,
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
+  ArrowRight,
+  Home,
+  CheckCircle,
   CircleDashed,
   ChevronDown,
-  Download,
   ExternalLink,
-  ClipboardList,
-  AlertCircle
+  ClipboardList
 } from 'lucide-react';
+import Swal from 'sweetalert2';
 import { formatNamaDosen } from '@/app/lib/textUtils';
 
 type UnsurStatus = 'valid' | 'revisi' | 'proses' | 'kosong';
@@ -511,7 +523,7 @@ export default function KaprodiRekapPage() {
         </div>
         <button 
           className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 hover:text-[#0a2f6f] rounded-lg shadow-sm transition-all self-start shrink-0"
-          onClick={() => alert("Fitur Export Rekap akan segera tersedia")}
+          onClick={() => Swal.fire({ title: 'Info', text: 'Fitur Export Rekap akan segera tersedia', icon: 'info', confirmButtonColor: '#4f46e5', customClass: { popup: 'rounded-xl' } })}
         >
           <Download size={16} />
           Export Rekap

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { LogOut, Menu, X, Bell } from 'lucide-react';
+import Swal from 'sweetalert2';
 import { useState, useEffect, useMemo } from 'react';
 import { formatNamaDosen } from '@/app/lib/textUtils';
 
@@ -53,8 +54,22 @@ export default function DashboardLayout({ children, menuItems, role }: Dashboard
     }
   }, [router]);
 
-  const handleLogout = () => {
-    if (window.confirm('Apakah Anda yakin ingin keluar?')) {
+  const handleLogout = async () => {
+    const result = await Swal.fire({
+      title: 'Konfirmasi Keluar',
+      text: 'Apakah Anda yakin ingin keluar?',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#0a2f6f',
+      cancelButtonColor: '#ef4444',
+      confirmButtonText: 'Ya, Keluar',
+      cancelButtonText: 'Batal',
+      customClass: {
+        popup: 'rounded-xl'
+      }
+    });
+
+    if (result.isConfirmed) {
       localStorage.removeItem('ami_token');
       localStorage.removeItem('ami_user');
       router.push('/login');

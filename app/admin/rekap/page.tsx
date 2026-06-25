@@ -1,16 +1,8 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
-import {
-  CheckCircle,
-  Clock,
-  CircleDashed,
-  ChevronDown,
-  Download,
-  ExternalLink,
-  ClipboardList,
-  AlertCircle
-} from 'lucide-react';
+import { Search, Download, Filter, ChevronRight, Building2, BookOpen, Clock, Activity, FileText, Calendar, CheckCircle2, XCircle, AlertCircle, ArrowRight } from 'lucide-react';
+import Swal from 'sweetalert2';
 import { formatNamaDosen } from '@/app/lib/textUtils';
 
 type UnsurStatus = 'valid' | 'revisi' | 'proses' | 'kosong';
@@ -515,7 +507,7 @@ export default function AdminRekapPage() {
         </div>
         <button 
           className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 hover:text-indigo-600 rounded-lg shadow-sm transition-all self-start shrink-0"
-          onClick={() => alert("Fitur Export Rekap akan segera tersedia")}
+          onClick={() => Swal.fire({ title: 'Info', text: 'Fitur Export Rekap akan segera tersedia', icon: 'info', confirmButtonColor: '#4f46e5', customClass: { popup: 'rounded-xl' } })}
         >
           <Download size={16} />
           Export Rekap

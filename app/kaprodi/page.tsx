@@ -115,11 +115,18 @@ export default function KaprodiDashboard() {
 
       {/* ====== Hero "Periode Aktif" ====== */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#0a2f6f] via-[#0e4490] to-[#1456a8] text-white p-7 shadow-lg">
-
         <div className="relative z-10">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 border border-white/20 text-xs font-semibold backdrop-blur-sm">
-            <Calendar size={13} /> Periode Aktif
-          </span>
+          <div className="flex items-center gap-3 flex-wrap">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 border border-white/20 text-xs font-semibold backdrop-blur-sm">
+              <Calendar size={13} /> Periode Aktif
+            </span>
+            {data.prodi && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-xs font-semibold backdrop-blur-sm">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-300"></span>
+                Program Studi: {data.prodi.nama_prodi} {data.prodi.jenjang && `(${data.prodi.jenjang})`}
+              </span>
+            )}
+          </div>
           <h2 className="mt-3 text-3xl font-extrabold tracking-tight">
             {data.periode_aktif ? `AMI Tahun ${data.periode_aktif}` : 'Belum ada periode aktif'}
           </h2>

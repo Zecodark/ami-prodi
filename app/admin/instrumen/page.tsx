@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Plus, Search, Edit2, Trash2, Check, X, Eye, AlertCircle } from 'lucide-react';
+import Swal from 'sweetalert2';
 import Link from 'next/link';
 
 interface InstrumenData {
@@ -78,7 +79,19 @@ export default function InstrumenPage() {
   };
 
   const handleDelete = async (id: string, nama: string) => {
-    if (!confirm(`Hapus instrumen ${nama}? Seluruh kriteria dan unsur di dalamnya akan terhapus.`)) return;
+    const result = await Swal.fire({
+      title: 'Hapus Instrumen?',
+      text: `Hapus instrumen ${nama}? Seluruh kriteria dan unsur di dalamnya akan terhapus.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'Ya, Hapus',
+      cancelButtonText: 'Batal',
+      customClass: { popup: 'rounded-xl' }
+    });
+    if (!result.isConfirmed) return;
+
     try {
       const token = localStorage.getItem('ami_token');
       const res = await fetch(`/api/instrumens/${id}`, {
@@ -87,12 +100,13 @@ export default function InstrumenPage() {
       });
       if (res.ok) {
         fetchData();
+        Swal.fire({ title: 'Berhasil', text: 'Instrumen dihapus', icon: 'success', timer: 1500, showConfirmButton: false });
       } else {
         const data = await res.json();
-        alert(data.message || 'Gagal menghapus instrumen');
+        Swal.fire({ title: 'Gagal', text: data.message || 'Gagal menghapus instrumen', icon: 'error' });
       }
     } catch (e) {
-      alert('Terjadi kesalahan server');
+      Swal.fire({ title: 'Error', text: 'Terjadi kesalahan server', icon: 'error' });
     }
   };
 

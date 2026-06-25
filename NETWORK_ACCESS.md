@@ -177,6 +177,60 @@ DATABASE_URL="mysql://root:password@192.168.1.100:3306/ami_prodi"
 - ✅ Pastikan device tersambung ke jaringan yang sama
 - ✅ Coba ping IP server dari device lain: `ping 192.168.1.100`
 
+### "Blocked cross-origin request to Next.js dev resource /_next/webpack-hmr"
+
+Error ini muncul ketika mengakses dari IP yang belum terdaftar di `allowedDevOrigins`. Next.js memblokir akses HMR (Hot Module Replacement) dari origin lain untuk keamanan.
+
+**Solusi:**
+
+1. **Tambahkan IP ke `next.config.ts`:**
+
+   Buka file `next.config.ts` dan tambahkan IP address device kamu ke array `allowedDevOrigins`:
+
+   ```typescript
+   allowedDevOrigins: [
+     "172.16.162.212",
+     "172.16.94.93",
+     "192.168.1.100",  // Tambahkan IP baru di sini
+   ],
+   ```
+
+2. **Restart Dev Server:**
+
+   Perubahan di `next.config.ts` **TIDAK akan ter-apply** tanpa restart server:
+
+   ```bash
+   # Stop server (Ctrl+C), lalu jalankan lagi:
+   npm run dev
+   ```
+
+3. **Reload Browser:**
+
+   Setelah server restart, refresh halaman di browser.
+
+**⚠️ Catatan Penting:**
+
+- Next.js **TIDAK mendukung wildcard** seperti `0.0.0.0` atau `172.16.*.*`
+- Setiap IP harus didaftarkan secara individual
+- Jika sering ganti IP (DHCP), pertimbangkan set static IP di router atau gunakan hostname
+
+**Alternatif (Use with Caution):**
+
+Jika mau allow semua IP (hanya untuk dev environment yang aman):
+
+```typescript
+// next.config.ts
+webpack: (config, { dev, isServer }) => {
+  if (dev && !isServer) {
+    config.devServer = {
+      ...config.devServer,
+      allowedHosts: 'all',
+    };
+  }
+  return config;
+},
+```
+
 ### "Cannot read from database"
 
 - ✅ Pastikan MySQL/MariaDB berjalan

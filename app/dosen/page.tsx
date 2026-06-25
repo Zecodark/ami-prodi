@@ -30,11 +30,18 @@ interface Instrumen {
   nama_instrumen: string;
 }
 
+interface Prodi {
+  id: string;
+  nama_prodi: string;
+  jenjang: string;
+}
+
 export default function DosenDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [periode, setPeriode] = useState<Periode | null>(null);
   const [instrumen, setInstrumen] = useState<Instrumen | null>(null);
+  const [prodi, setProdi] = useState<Prodi | null>(null);
   const [stat, setStat] = useState({
     total: 0,
     valid: 0,
@@ -53,6 +60,13 @@ export default function DosenDashboard() {
           return;
         }
         const headers = { Authorization: `Bearer ${token}` };
+
+        // Fetch user profile to get prodi
+        const meRes = await fetch('/api/auth/me', { headers });
+        const meJson = await meRes.json();
+        if (meJson.data?.dosen?.prodi) {
+          setProdi(meJson.data.dosen.prodi);
+        }
 
         const [periodeRes, instrumenRes, statusRes] = await Promise.all([
           fetch('/api/periodes?is_active=true', { headers }),
@@ -146,9 +160,17 @@ export default function DosenDashboard() {
       {/* ====== Hero "Periode Aktif" ====== */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#0a2f6f] via-[#0e4490] to-[#1456a8] text-white p-7 shadow-lg">
         <div className="relative z-10">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 border border-white/20 text-xs font-semibold backdrop-blur-sm">
-            <Calendar size={13} /> Periode Aktif
-          </span>
+          <div className="flex items-center gap-3 flex-wrap">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 border border-white/20 text-xs font-semibold backdrop-blur-sm">
+              <Calendar size={13} /> Periode Aktif
+            </span>
+            {prodi && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-xs font-semibold backdrop-blur-sm">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-300"></span>
+                Program Studi: {prodi.nama_prodi} {prodi.jenjang && `(${prodi.jenjang})`}
+              </span>
+            )}
+          </div>
           <h2 className="mt-3 text-3xl font-extrabold tracking-tight">
             {periode ? `AMI Tahun ${periode.tahun}` : 'Belum ada periode aktif'}
           </h2>

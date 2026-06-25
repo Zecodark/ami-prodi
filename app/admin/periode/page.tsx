@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, CheckCircle2, AlertCircle, X } from 'lucide-react';
+import Swal from 'sweetalert2';
 
 interface PeriodeData {
   id: string;
@@ -62,7 +63,19 @@ export default function PeriodePage() {
   };
 
   const handleDelete = async (id: string, tahun: string) => {
-    if (!confirm(`Hapus periode ${tahun}? Data instrumen/isian terkait mungkin terpengaruh.`)) return;
+    const result = await Swal.fire({
+      title: 'Hapus Periode?',
+      text: `Hapus periode ${tahun}? Data instrumen/isian terkait mungkin terpengaruh.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'Ya, Hapus',
+      cancelButtonText: 'Batal',
+      customClass: { popup: 'rounded-xl' }
+    });
+    if (!result.isConfirmed) return;
+
     try {
       const token = localStorage.getItem('ami_token');
       const res = await fetch(`/api/periodes/${id}`, {
@@ -71,35 +84,48 @@ export default function PeriodePage() {
       });
       if (res.ok) {
         fetchData();
+        Swal.fire({ title: 'Berhasil', text: 'Periode dihapus', icon: 'success', timer: 1500, showConfirmButton: false });
       } else {
         const data = await res.json();
-        alert(data.message || 'Gagal menghapus periode');
+        Swal.fire({ title: 'Gagal', text: data.message || 'Gagal menghapus periode', icon: 'error' });
       }
     } catch (e) {
-      alert('Terjadi kesalahan server');
+      Swal.fire({ title: 'Error', text: 'Terjadi kesalahan server', icon: 'error' });
     }
   };
 
-  const handleToggleActive = async (id: string, tahun: string, currentlyActive: boolean) => {
-    const message = currentlyActive
-      ? `Nonaktifkan periode ${tahun}? Tidak akan ada periode aktif.`
-      : `Jadikan ${tahun} sebagai periode AKTIF? Periode aktif sebelumnya akan dinonaktifkan.`;
-    if (!confirm(message)) return;
+  const handleToggleActive = async (id: string, currentStatus: boolean, tahun: string) => {
+    const action = currentStatus ? 'Nonaktifkan' : 'Aktifkan';
+    const message = `Yakin ingin ${action.toLowerCase()} periode ${tahun}?`;
+    
+    const result = await Swal.fire({
+      title: 'Konfirmasi Status',
+      text: message,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#4f46e5',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'Ya, Ubah',
+      cancelButtonText: 'Batal',
+      customClass: { popup: 'rounded-xl' }
+    });
+    if (!result.isConfirmed) return;
+
     try {
       const token = localStorage.getItem('ami_token');
-      const res = await fetch(`/api/periodes/${id}`, {
+      const res = await fetch(`/api/periodes/${id}/toggle-status`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ is_active: !currentlyActive })
+        headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
         fetchData();
+        Swal.fire({ title: 'Berhasil', text: `Status periode diubah menjadi ${currentStatus ? 'Nonaktif' : 'Aktif'}`, icon: 'success', timer: 1500, showConfirmButton: false });
       } else {
         const data = await res.json();
-        alert(data.message || 'Gagal mengubah status');
+        Swal.fire({ title: 'Gagal', text: data.message || 'Gagal mengubah status', icon: 'error' });
       }
     } catch (e) {
-      alert('Terjadi kesalahan server');
+      Swal.fire({ title: 'Error', text: 'Terjadi kesalahan server', icon: 'error' });
     }
   };
 

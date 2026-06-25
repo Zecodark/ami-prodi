@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Plus, Search, Edit2, Trash2, AlertCircle, X } from 'lucide-react';
+import Swal from 'sweetalert2';
 
 interface JurusanData {
   id: string;
@@ -56,7 +57,19 @@ export default function JurusanPage() {
   };
 
   const handleDelete = async (id: string, nama: string) => {
-    if (!confirm(`Hapus jurusan ${nama}? Data prodi terkait mungkin terpengaruh.`)) return;
+    const result = await Swal.fire({
+      title: 'Hapus Jurusan?',
+      text: `Hapus jurusan ${nama}? Data prodi terkait mungkin terpengaruh.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'Ya, Hapus',
+      cancelButtonText: 'Batal',
+      customClass: { popup: 'rounded-xl' }
+    });
+    if (!result.isConfirmed) return;
+
     try {
       const token = localStorage.getItem('ami_token');
       const res = await fetch(`/api/jurusans/${id}`, {
@@ -65,12 +78,13 @@ export default function JurusanPage() {
       });
       if (res.ok) {
         fetchJurusans();
+        Swal.fire({ title: 'Berhasil', text: 'Jurusan dihapus', icon: 'success', timer: 1500, showConfirmButton: false });
       } else {
         const data = await res.json();
-        alert(data.message || 'Gagal menghapus jurusan');
+        Swal.fire({ title: 'Gagal', text: data.message || 'Gagal menghapus jurusan', icon: 'error' });
       }
     } catch (e) {
-      alert('Terjadi kesalahan server');
+      Swal.fire({ title: 'Error', text: 'Terjadi kesalahan server', icon: 'error' });
     }
   };
 

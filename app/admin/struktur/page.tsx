@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Plus, ChevronDown, ChevronRight, Edit2, Trash2, FolderTree, FileText, AlertCircle, X, ChevronUp } from 'lucide-react';
+import Swal from 'sweetalert2';
 
 // Interfaces for our nested data structure
 interface UnsurData {
@@ -172,7 +173,19 @@ function StrukturContent() {
   };
 
   const handleDelete = async (type: NodeType, id: string, title: string) => {
-    if (!confirm(`Hapus ${title}? Semua data di bawahnya akan terhapus.`)) return;
+    const result = await Swal.fire({
+      title: 'Hapus Data?',
+      text: `Hapus ${title}? Semua data di bawahnya akan terhapus.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'Ya, Hapus',
+      cancelButtonText: 'Batal',
+      customClass: { popup: 'rounded-xl' }
+    });
+    if (!result.isConfirmed) return;
+
     try {
       const token = localStorage.getItem('ami_token');
       let endpoint = '';
@@ -187,12 +200,13 @@ function StrukturContent() {
       });
       if (res.ok) {
         fetchTreeData(selectedInstrumen);
+        Swal.fire({ title: 'Berhasil', text: 'Data berhasil dihapus', icon: 'success', timer: 1500, showConfirmButton: false });
       } else {
         const data = await res.json();
-        alert(data.message || 'Gagal menghapus data');
+        Swal.fire({ title: 'Gagal', text: data.message || 'Gagal menghapus data', icon: 'error' });
       }
     } catch (e) {
-      alert('Terjadi kesalahan server');
+      Swal.fire({ title: 'Error', text: 'Terjadi kesalahan server', icon: 'error' });
     }
   };
 

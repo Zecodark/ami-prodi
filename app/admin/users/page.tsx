@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Plus, Search, Edit2, Trash2, Check, X, Shield, User, GraduationCap, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import Swal from 'sweetalert2';
 
 interface UserData {
   id: string;
@@ -92,7 +93,19 @@ export default function UsersPage() {
   };
 
   const handleDelete = async (id: string, email: string) => {
-    if (!confirm(`Hapus pengguna ${email}? Data terkait dosen mungkin akan terpengaruh.`)) return;
+    const result = await Swal.fire({
+      title: 'Hapus Pengguna?',
+      text: `Hapus pengguna ${email}? Data terkait dosen mungkin akan terpengaruh.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'Ya, Hapus',
+      cancelButtonText: 'Batal',
+      customClass: { popup: 'rounded-xl' }
+    });
+    if (!result.isConfirmed) return;
+
     try {
       const token = localStorage.getItem('ami_token');
       const res = await fetch(`/api/users/${id}`, {
@@ -101,12 +114,13 @@ export default function UsersPage() {
       });
       if (res.ok) {
         fetchData();
+        Swal.fire({ title: 'Berhasil', text: 'Pengguna dihapus', icon: 'success', timer: 1500, showConfirmButton: false });
       } else {
         const data = await res.json();
-        alert(data.message || 'Gagal menghapus user');
+        Swal.fire({ title: 'Gagal', text: data.message || 'Gagal menghapus user', icon: 'error' });
       }
     } catch (e) {
-      alert('Terjadi kesalahan server');
+      Swal.fire({ title: 'Error', text: 'Terjadi kesalahan server', icon: 'error' });
     }
   };
 
