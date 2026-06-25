@@ -32,12 +32,22 @@ export default function KaprodiRiwayatReviewPage() {
       try {
         setLoading(true);
         const token = localStorage.getItem('ami_token');
-        // GET semua isian valid/revisi yang sudah direview
-        const res = await fetch('/api/isians', {
-          headers: { Authorization: `Bearer ${token}` },
+        // GET active instrumen
+        const instRes = await fetch('/api/instrumens?is_active=true', {
+          headers: { Authorization: `Bearer ${token}` }
         });
-        const json = await res.json();
-        const items = (json.data ?? []) as any[];
+        const instJson = await instRes.json();
+        const activeInstrumen = (instJson.data ?? []).find((ins: any) => ins.periode?.is_active);
+
+        let items: any[] = [];
+        if (activeInstrumen) {
+          // GET semua isian valid/revisi yang sudah direview untuk instrumen aktif
+          const res = await fetch(`/api/isians?periode_id=${activeInstrumen.periode_id}&instrumen_id=${activeInstrumen.id}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const json = await res.json();
+          items = (json.data ?? []) as any[];
+        }
         const filtered: ReviewLog[] = items
           .filter((it) => it.status === 'valid' || it.status === 'revisi')
           .map((it) => ({

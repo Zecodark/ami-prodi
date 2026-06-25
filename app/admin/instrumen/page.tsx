@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Search, Edit2, Trash2, Check, X, Eye, AlertCircle } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, Check, X, Eye, AlertCircle, Building2 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import Link from 'next/link';
 
@@ -19,6 +19,13 @@ interface PeriodeData {
   tahun: string;
 }
 
+interface ProdiAssignment {
+  prodi_id: number;
+  nama_prodi: string;
+  is_active: boolean;
+  is_assigned: boolean;
+}
+
 export default function InstrumenPage() {
   const [instrumens, setInstrumens] = useState<InstrumenData[]>([]);
   const [periodes, setPeriodes] = useState<PeriodeData[]>([]);
@@ -31,6 +38,13 @@ export default function InstrumenPage() {
   const [formData, setFormData] = useState({ nama_instrumen: '', deskripsi: '', periode_id: '', is_active: true });
   const [submitLoading, setSubmitLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+
+  // Prodi Modal State
+  const [isProdiModalOpen, setIsProdiModalOpen] = useState(false);
+  const [selectedInstrumenForProdi, setSelectedInstrumenForProdi] = useState<InstrumenData | null>(null);
+  const [prodiList, setProdiList] = useState<ProdiAssignment[]>([]);
+  const [prodiLoading, setProdiLoading] = useState(false);
+  const [prodiSubmitLoading, setProdiSubmitLoading] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -149,6 +163,78 @@ export default function InstrumenPage() {
     }
   };
 
+  const openProdiModal = async (instrumen: InstrumenData) => {
+    setSelectedInstrumenForProdi(instrumen);
+    setIsProdiModalOpen(true);
+    setProdiLoading(true);
+    try {
+      const token = localStorage.getItem('ami_token');
+      const res = await fetch(`/api/admin/instrumen-prodi?instrumen_id=${instrumen.id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const json = await res.json();
+      if (res.ok && json.data) {
+        setProdiList(json.data);
+      } else {
+        Swal.fire({ title: 'Gagal', text: json.message || 'Gagal memuat prodi', icon: 'error' });
+      }
+    } catch (e) {
+      console.error(e);
+      Swal.fire({ title: 'Error', text: 'Gagal memuat daftar prodi', icon: 'error' });
+    } finally {
+      setProdiLoading(false);
+    }
+  };
+
+  const handleProdiToggleAssign = (prodiId: number, isAssigned: boolean) => {
+    setProdiList(prev => prev.map(p => {
+      if (p.prodi_id === prodiId) {
+        return { ...p, is_assigned: isAssigned, is_active: isAssigned ? true : p.is_active };
+      }
+      return p;
+    }));
+  };
+
+  const handleProdiToggleActive = (prodiId: number, isActive: boolean) => {
+    setProdiList(prev => prev.map(p => {
+      if (p.prodi_id === prodiId) {
+        return { ...p, is_active: isActive };
+      }
+      return p;
+    }));
+  };
+
+  const handleProdiSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedInstrumenForProdi) return;
+    setProdiSubmitLoading(true);
+    try {
+      const token = localStorage.getItem('ami_token');
+      const res = await fetch('/api/admin/instrumen-prodi', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          instrumen_id: Number(selectedInstrumenForProdi.id),
+          assignments: prodiList
+        })
+      });
+      if (res.ok) {
+        setIsProdiModalOpen(false);
+        Swal.fire({ title: 'Berhasil', text: 'Pengaturan Prodi disimpan', icon: 'success', timer: 1500, showConfirmButton: false });
+      } else {
+        const json = await res.json();
+        Swal.fire({ title: 'Gagal', text: json.message || 'Gagal menyimpan', icon: 'error' });
+      }
+    } catch (e) {
+      Swal.fire({ title: 'Error', text: 'Kesalahan jaringan', icon: 'error' });
+    } finally {
+      setProdiSubmitLoading(false);
+    }
+  };
+
   const filteredInstrumens = instrumens.filter(i => 
     i.nama_instrumen.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -233,6 +319,9 @@ export default function InstrumenPage() {
                         >
                           <Eye size={14} /> Lihat Struktur
                         </Link>
+                        <button onClick={() => openProdiModal(i)} className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded border border-emerald-200 transition-colors" title="Atur Prodi">
+                          <Building2 size={14} /> Atur Prodi
+                        </button>
                         <button onClick={() => openEditModal(i)} className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors" title="Edit">
                           <Edit2 size={16} />
                         </button>
@@ -318,6 +407,91 @@ export default function InstrumenPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Prodi Modal */}
+      {isProdiModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden animate-fade-in flex flex-col max-h-[90vh]">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+              <h3 className="text-lg font-bold text-slate-800">
+                Atur Prodi: <span className="text-indigo-600">{selectedInstrumenForProdi?.nama_instrumen}</span>
+              </h3>
+              <button onClick={() => setIsProdiModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto flex-1">
+              {prodiLoading ? (
+                <div className="py-8 text-center text-slate-500">Memuat data prodi...</div>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-sm text-slate-600 mb-4">
+                    Pilih program studi mana saja yang menggunakan instrumen ini, lalu atur status aktif/nonaktif penggunaannya.
+                  </p>
+                  
+                  {prodiList.length === 0 ? (
+                    <div className="py-4 text-center text-slate-500 text-sm bg-slate-50 rounded-lg">Tidak ada data prodi.</div>
+                  ) : (
+                    prodiList.map((p) => (
+                      <div key={p.prodi_id} className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${p.is_assigned ? 'border-indigo-200 bg-indigo-50/30' : 'border-slate-200 bg-white'}`}>
+                        <label className="flex items-center gap-3 cursor-pointer flex-1">
+                          <input 
+                            type="checkbox"
+                            checked={p.is_assigned}
+                            onChange={(e) => handleProdiToggleAssign(p.prodi_id, e.target.checked)}
+                            className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300"
+                          />
+                          <span className={`font-medium text-sm ${p.is_assigned ? 'text-indigo-900' : 'text-slate-700'}`}>
+                            {p.nama_prodi}
+                          </span>
+                        </label>
+                        
+                        {p.is_assigned && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-slate-500">Status:</span>
+                            <button
+                              type="button"
+                              onClick={() => handleProdiToggleActive(p.prodi_id, !p.is_active)}
+                              className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2 ${p.is_active ? 'bg-emerald-500' : 'bg-slate-300'}`}
+                            >
+                              <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${p.is_active ? 'translate-x-2' : '-translate-x-2'}`} />
+                            </button>
+                            <span className={`text-xs font-medium w-12 ${p.is_active ? 'text-emerald-600' : 'text-slate-500'}`}>
+                              {p.is_active ? 'Aktif' : 'Nonaktif'}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="px-6 py-4 border-t border-slate-200 flex justify-end gap-3 bg-slate-50">
+              <button 
+                type="button" 
+                onClick={() => setIsProdiModalOpen(false)} 
+                className="px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-300 hover:bg-slate-50 rounded-lg transition-colors"
+              >
+                Batal
+              </button>
+              <button 
+                onClick={handleProdiSubmit}
+                disabled={prodiSubmitLoading || prodiLoading} 
+                className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors disabled:opacity-70 flex items-center gap-2"
+              >
+                {prodiSubmitLoading ? (
+                  <>Menyimpan...</>
+                ) : (
+                  <>Simpan Pengaturan</>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -164,9 +164,9 @@ export default function AdminDashboard() {
   const revisi = summary.revisi;
   const masuk = summary.masuk;
 
-  const unsurTerisi = valid + proses + revisi > 0 ? Math.min(totalUnsur, valid + proses + revisi) : 0;
-  const unsurBelumTerisi = Math.max(0, totalUnsur - unsurTerisi);
-  const progress = totalUnsur > 0 ? Math.round((unsurTerisi / totalUnsur) * 100) : 0;
+  const unsurValid = valid > 0 ? Math.min(totalUnsur, valid) : 0;
+  const unsurBelumValid = Math.max(0, totalUnsur - unsurValid);
+  const progress = totalUnsur > 0 ? Math.round((unsurValid / totalUnsur) * 100) : 0;
 
   const currentInstrumenObj = data.instrumens.find(i => i.id === selectedInstrumen);
 
@@ -260,7 +260,7 @@ export default function AdminDashboard() {
               />
             </div>
             <p className="mt-3 text-xs text-slate-500 max-w-[18rem]">
-              Total seluruh unsur pemeriksaan yang sudah terisi.
+              Total seluruh unsur pemeriksaan yang sudah valid.
             </p>
           </div>
 
@@ -272,13 +272,13 @@ export default function AdminDashboard() {
               icon={<FileText size={20} className="text-[#1456a8]" />}
             />
             <KpiCard
-              label="Total Isian Belum Terisi"
-              value={unsurBelumTerisi}
+              label="Total Isian Belum Valid"
+              value={unsurBelumValid}
               icon={<Inbox size={20} className="text-slate-500" />}
             />
             <KpiCard
-              label="Total Isian Terisi"
-              value={unsurTerisi}
+              label="Total Isian Valid"
+              value={unsurValid}
               icon={<CheckCircle size={20} className="text-emerald-500" />}
             />
             <KpiCard
@@ -289,16 +289,6 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* ====== Status Isian (4 dark blue cards) ====== */}
-        <div className="bg-white rounded-2xl border border-[#cfdbf2] shadow-sm p-6 mt-6">
-          <h3 className="text-lg font-bold text-[#0a2f6f] mb-4">Status Isian</h3>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatusBlock label="Total Isian Masuk" value={masuk} />
-            <StatusBlock label="Total Isian Valid" value={valid} accentDot="emerald" />
-            <StatusBlock label="Total Isian Menunggu Review" value={proses} accentDot="amber" />
-            <StatusBlock label="Total Isian Perlu Revisi" value={revisi} accentDot="rose" />
-          </div>
-        </div>
       </div>
 
       {/* ====== Data Sistem ====== */}
@@ -351,40 +341,4 @@ function KpiCard({
   );
 }
 
-function StatusBlock({
-  label,
-  value,
-  accentDot,
-}: {
-  label: string;
-  value: number;
-  accentDot?: 'emerald' | 'amber' | 'rose';
-}) {
-  const dotMap = {
-    emerald: 'bg-emerald-400',
-    amber: 'bg-amber-400',
-    rose: 'bg-rose-400',
-  };
-  return (
-    <div className="relative overflow-hidden rounded-xl p-4 text-white shadow-md bg-gradient-to-br from-[#0e4490] to-[#1456a8]">
-      <div
-        aria-hidden
-        className="absolute inset-0 opacity-15 pointer-events-none"
-        style={{
-          backgroundImage:
-            'repeating-linear-gradient(90deg, rgba(255,255,255,0.18) 0 1.5px, transparent 1.5px 14px)',
-        }}
-      />
-      <div className="relative z-10 flex items-start justify-between gap-2">
-        <div className="text-[11px] uppercase tracking-wider font-semibold text-blue-100/90 truncate">
-          {label}
-        </div>
-        {accentDot && (
-          <span className={`inline-block w-2 h-2 rounded-full ${dotMap[accentDot]}`} />
-        )}
-      </div>
-      <div className="relative z-10 mt-2 text-3xl font-extrabold leading-tight">{value}</div>
-    </div>
-  );
-}
 

@@ -69,6 +69,16 @@ export async function GET(request: NextRequest) {
     if (searchParams.get('pemeriksaan_unsur_id'))
       where.pemeriksaan_unsur_id = Number(searchParams.get('pemeriksaan_unsur_id')!);
 
+    if (searchParams.get('instrumen_id')) {
+      where.pemeriksaan_unsur = {
+        deskripsi_area: {
+          kode_ami: {
+            kriteria: { instrumen_id: Number(searchParams.get('instrumen_id')!) }
+          }
+        }
+      };
+    }
+
     if (user.roleName.toLowerCase() === 'dosen') {
       const dosen = await prisma.dosen.findUnique({ where: { user_id: user.userId } });
       if (!dosen) return R.notFound('Profil dosen tidak ditemukan');

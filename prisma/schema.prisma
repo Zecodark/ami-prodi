@@ -81,8 +81,9 @@ model Prodi {
 
   jurusan Jurusan? @relation(fields: [jurusan_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
   dosens  Dosen[]
-  isians  IsianAmi[]
-  users   User[]
+  isians   IsianAmi[]
+  users    User[]
+  instrumen_links InstrumenProdi[]
 
   @@unique([nama_prodi, jurusan_id])
   @@index([jurusan_id])
@@ -149,6 +150,7 @@ model Instrumen {
   periode          Periode?          @relation(fields: [periode_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
   creator          User?             @relation("InstrumenCreatedBy", fields: [created_by], references: [id], onDelete: SetNull, onUpdate: Cascade)
   kriteria_standars KriteriaStandar[]
+  prodi_links       InstrumenProdi[]
 
   @@index([periode_id])
   @@index([is_active])
@@ -157,6 +159,27 @@ model Instrumen {
 }
 
 // =========================================================
+// 7.5. INSTRUMEN PRODIS
+// =========================================================
+model InstrumenProdi {
+  id           Int       @id @default(autoincrement())
+  instrumen_id Int
+  prodi_id     Int
+  is_active    Boolean   @default(true)
+  created_at   DateTime  @default(now()) @db.Timestamp(0)
+  updated_at   DateTime  @default(now()) @updatedAt @db.Timestamp(0)
+
+  instrumen    Instrumen @relation(fields: [instrumen_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  prodi        Prodi     @relation(fields: [prodi_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([instrumen_id, prodi_id])
+  @@index([instrumen_id])
+  @@index([prodi_id])
+  @@map("instrumen_prodis")
+}
+
+// =========================================================
+
 // 8. KRITERIA STANDAR
 // =========================================================
 model KriteriaStandar {
@@ -330,7 +353,7 @@ model IsianAmi {
   created_at                  DateTime            @default(now()) @db.Timestamp(0)
   updated_at                  DateTime            @default(now()) @updatedAt @db.Timestamp(0)
 
-  pemeriksaan_unsur PemeriksaanUnsur @relation(fields: [pemeriksaan_unsur_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  pemeriksaan_unsur PemeriksaanUnsur @relation(fields: [pemeriksaan_unsur_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
   periode           Periode          @relation(fields: [periode_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
   dosen             Dosen            @relation(fields: [dosen_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
   prodi             Prodi?           @relation(fields: [prodi_id], references: [id], onDelete: SetNull, onUpdate: Cascade)

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import Swal from 'sweetalert2';
 import { useSearchParams } from 'next/navigation';
 import {
   FileUp,
@@ -254,14 +255,20 @@ export default function IsiAmiPage() {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
-      const aktif = data.data?.[0];
+      const aktif = data.data?.find((ins: any) => ins.periode?.is_active);
       if (!aktif) {
         setErrorMsg('Tidak ada instrumen aktif saat ini.');
         return;
       }
       setInstrumenName(aktif.nama_instrumen);
+      
+      const meRes = await fetch('/api/auth/me', { headers: { Authorization: `Bearer ${token}` } });
+      const meJson = await meRes.json();
+      const prodiObj = meJson.data?.dosen?.prodi;
+      const targetJenjangs = prodiObj ? [prodiObj.jenjang, prodiObj.jenjang === 'D4' ? 'STR' : prodiObj.jenjang === 'STR' ? 'D4' : ''] : [];
+
       // Langsung load struktur
-      await fetchInstrumenStructure(aktif.id.toString());
+      await fetchInstrumenStructure(aktif.id.toString(), targetJenjangs);
     } catch (e) {
       console.error(e);
       setErrorMsg('Gagal memuat instrumen aktif');
@@ -284,7 +291,7 @@ export default function IsiAmiPage() {
     }
   };
 
-  const fetchInstrumenStructure = async (instrumenId: string) => {
+  const fetchInstrumenStructure = async (instrumenId: string, targetJenjangs: string[] = []) => {
     try {
       setLoading(true);
       setSelectedUnsur(null);
@@ -296,7 +303,7 @@ export default function IsiAmiPage() {
       });
       const data = await res.json();
 
-      if (data.data) buildTree(data.data);
+      if (data.data) buildTree(data.data, targetJenjangs);
     } catch (e) {
       console.error(e);
       setErrorMsg('Gagal memuat struktur instrumen');
@@ -305,9 +312,16 @@ export default function IsiAmiPage() {
     }
   };
 
-  const buildTree = (kriteria: any[]) => {
+  const buildTree = (kriteria: any[], targetJenjangs: string[] = []) => {
     const tree: TreeNode[] = kriteria.map((k) => {
-      const kodeAmis = (k.kode_amis || []).map((ami: any) => {
+      const filteredKodeAmis = (k.kode_amis || []).filter((ami: any) => {
+        if (targetJenjangs.length === 0) return true;
+        if (!ami.butir_standars || ami.butir_standars.length === 0) return true;
+        const isMatch = ami.butir_standars.some((bs: any) => targetJenjangs.includes(bs.jenjang?.kode_jenjang));
+        return isMatch;
+      });
+
+      const kodeAmis = filteredKodeAmis.map((ami: any) => {
         const deskripsiAreas = (ami.deskripsi_areas || []).map((area: any) => ({
           id: area.id ? `area-${area.id}` : `area-rnd-${Math.random()}`,
           deskripsi_area_audit: area.deskripsi_area_audit,
@@ -338,7 +352,8 @@ export default function IsiAmiPage() {
         children: kodeAmis,
       };
     });
-    setTreeData(tree);
+    // Filter out kriteria that have no kodeAmis after filtering
+    setTreeData(tree.filter(k => k.children && k.children.length > 0));
   };
 
   // Set semua node expanded / collapsed
@@ -666,9 +681,16 @@ export default function IsiAmiPage() {
         throw new Error(resData.message || 'Gagal menyimpan isian');
       }
 
-      setSuccessMsg(isDraft ? 'Draft berhasil disimpan' : 'Isian berhasil dikirim untuk review');
+      Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: 'success',
+        title: isDraft ? 'Draft berhasil disimpan' : 'Isian berhasil dikirim untuk review',
+        showConfirmButton: false,
+        timer: 3000
+      });
       
-      handleNodeClick({ stopPropagation: () => {} } as any, selectedUnsur);
+      setSelectedUnsur(null);
       fetchStatusMap();
 
     } catch (e: any) {

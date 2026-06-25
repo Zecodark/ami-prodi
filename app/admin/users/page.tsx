@@ -139,7 +139,7 @@ export default function UsersPage() {
       if (selectedRole?.nama_role.toLowerCase() === 'kaprodi' && formData.prodi_id) {
         const existingKaprodi = users.find(u => 
           u.role?.nama_role.toLowerCase() === 'kaprodi' && 
-          u.dosen?.prodi?.id === parseInt(formData.prodi_id) &&
+          (u.prodi_id === parseInt(formData.prodi_id) || u.dosen?.prodi?.id === parseInt(formData.prodi_id)) &&
           u.id !== editId // kecuali user yang sedang diedit
         );
         if (existingKaprodi) {
@@ -292,11 +292,18 @@ export default function UsersPage() {
                       </div>
                     </td>
                     <td className="py-3 px-4">
-                      <div className="flex items-center gap-1.5">
-                         {user.role?.nama_role.toLowerCase() === 'admin' ? <Shield size={14} className="text-purple-500"/> : 
-                          user.role?.nama_role.toLowerCase() === 'kaprodi' ? <GraduationCap size={14} className="text-blue-500"/> :
-                          <User size={14} className="text-slate-500"/>}
-                         <span className="font-medium text-slate-700 capitalize">{user.role?.nama_role || '-'}</span>
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-1.5">
+                           {user.role?.nama_role.toLowerCase() === 'admin' ? <Shield size={14} className="text-purple-500"/> : 
+                            user.role?.nama_role.toLowerCase() === 'kaprodi' ? <GraduationCap size={14} className="text-blue-500"/> :
+                            <User size={14} className="text-slate-500"/>}
+                           <span className="font-medium text-slate-700 capitalize">{user.role?.nama_role || '-'}</span>
+                        </div>
+                        {user.role?.nama_role.toLowerCase() === 'kaprodi' && (user.prodi?.nama_prodi || user.dosen?.prodi?.nama_prodi) && (
+                          <span className="text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 inline-block max-w-fit truncate" title={user.prodi?.nama_prodi || user.dosen?.prodi?.nama_prodi}>
+                            {user.prodi?.nama_prodi || user.dosen?.prodi?.nama_prodi}
+                          </span>
+                        )}
                       </div>
                     </td>
                     <td className="py-3 px-4">
@@ -409,10 +416,9 @@ export default function UsersPage() {
                       <option value="">-- Pilih Program Studi --</option>
                       {prodis
                         .filter(p => {
-                          // Cek apakah prodi ini sudah punya kaprodi (user role kaprodi dengan dosen.prodi_id = p.id)
                           const hasKaprodi = users.some(u => 
                             u.role?.nama_role.toLowerCase() === 'kaprodi' && 
-                            u.dosen?.prodi?.id === p.id &&
+                            (u.prodi_id === p.id || u.dosen?.prodi?.id === p.id) &&
                             u.id !== editId // kecuali user yang sedang diedit
                           );
                           return !hasKaprodi || p.id.toString() === formData.prodi_id;

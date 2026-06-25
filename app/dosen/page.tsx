@@ -61,60 +61,37 @@ export default function DosenDashboard() {
         }
         const headers = { Authorization: `Bearer ${token}` };
 
-        // Fetch user profile to get prodi
-        const meRes = await fetch('/api/auth/me', { headers });
-        const meJson = await meRes.json();
-        if (meJson.data?.dosen?.prodi) {
-          setProdi(meJson.data.dosen.prodi);
-        }
-
-        const [periodeRes, instrumenRes, statusRes] = await Promise.all([
-          fetch('/api/periodes?is_active=true', { headers }),
-          fetch('/api/instrumens?is_active=true', { headers }),
-          fetch('/api/isians/by-unsur', { headers }),
-        ]);
-
-        const periodeJson = await periodeRes.json();
-        const instrumenJson = await instrumenRes.json();
-        const statusJson = await statusRes.json();
-
-        if (periodeJson.data?.length) setPeriode(periodeJson.data[0]);
-        if (instrumenJson.data?.length) setInstrumen(instrumenJson.data[0]);
-
-        // Hitung total unsur dari instrumen aktif
-        let totalUnsur = 0;
-        if (instrumenJson.data?.length) {
-          const insId = instrumenJson.data[0].id;
-          const krRes = await fetch(`/api/kriteria?instrumen_id=${insId}`, { headers });
-          const krJson = await krRes.json();
-          for (const k of krJson.data ?? []) {
-            for (const ami of k.kode_amis ?? []) {
-              for (const area of ami.deskripsi_areas ?? []) {
-                totalUnsur += (area.pemeriksaan_unsurs ?? []).length;
-              }
-            }
-          }
-        }
-
-        const map: Record<string, UnsurStatusInfo> = statusJson.data?.data ?? {};
-        let valid = 0,
-          proses = 0,
-          revisi = 0;
-        for (const v of Object.values(map)) {
-          if (v.status === 'valid') valid++;
-          else if (v.status === 'proses') proses++;
-          else if (v.status === 'revisi') revisi++;
-        }
+        // Fetch dashboard data from API
+        const res = await fetch('/api/dosen/dashboard', { headers });
+        const json = await res.json();
         
-        // Gunakan statistik milik dosen yang login untuk indikator proses & revisi
-        if (statusJson.data?.dosen_stats) {
-          proses = statusJson.data.dosen_stats.proses;
-          revisi = statusJson.data.dosen_stats.revisi;
+        if (!res.ok) {
+          setError(json.message || 'Gagal memuat data dashboard');
+          return;
         }
 
-        const kosong = Math.max(0, totalUnsur - (valid + proses + revisi));
+        const data = json.data;
 
-        setStat({ total: totalUnsur, valid, proses, revisi, kosong });
+        // Set periode dan instrumen
+        if (data.periode_aktif) {
+          setPeriode({ id: '', tahun: data.periode_aktif });
+        }
+        if (data.instrumen_aktif) {
+          setInstrumen({ id: '', nama_instrumen: data.instrumen_aktif });
+        }
+        if (data.prodi) {
+          setProdi(data.prodi);
+        }
+
+        // Set statistik
+        const kosong = Math.max(0, data.total_unsur - (data.unsur_valid + data.unsur_proses + data.unsur_perlu_revisi));
+        setStat({
+          total: data.total_unsur,
+          valid: data.unsur_valid,
+          proses: data.dosen_proses, // Statistik khusus dosen yang login
+          revisi: data.dosen_revisi, // Statistik khusus dosen yang login
+          kosong,
+        });
       } catch (e) {
         console.error(e);
         setError('Gagal memuat data dashboard');

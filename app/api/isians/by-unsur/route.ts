@@ -58,6 +58,7 @@ export async function GET(request: NextRequest) {
     // Tentukan prodi_id
     let prodiId: any = null;
     const prodiParam = searchParams.get('prodi_id');
+    const instrumenParam = searchParams.get('instrumen_id');
 
     if (user.roleName.toLowerCase() === 'dosen') {
       // Dosen hanya bisa lihat prodinya sendiri
@@ -94,6 +95,63 @@ export async function GET(request: NextRequest) {
     const whereClause: any = { periode_id: periodeId };
     if (prodiId) {
       whereClause.prodi_id = prodiId;
+    }
+
+    // Filter by instrumen (either from query param, or fallback to active instrument for the period)
+    let targetInstrumenId = instrumenParam ? Number(instrumenParam) : null;
+    if (!targetInstrumenId) {
+      // Try to get linked instrumen first
+      let activeInstrumen = await prisma.instrumen.findFirst({
+        where: { 
+          periode_id: periodeId, 
+          is_active: true,
+          ...(prodiId ? {
+            prodi_links: {
+              some: {
+                prodi_id: prodiId,
+                is_active: true
+              }
+            }
+          } : {})
+        },
+        select: { id: true },
+        orderBy: { created_at: 'desc' },
+      });
+      
+      // Fallback: if no linked instrumen, get any active instrumen for this periode
+      if (!activeInstrumen && prodiId) {
+        activeInstrumen = await prisma.instrumen.findFirst({
+          where: { 
+            periode_id: periodeId, 
+            is_active: true
+          },
+          select: { id: true },
+          orderBy: { created_at: 'desc' },
+        });
+      }
+      
+      if (activeInstrumen) {
+        targetInstrumenId = activeInstrumen.id;
+      }
+    }
+
+    if (targetInstrumenId) {
+      const prodiObj = await prisma.prodi.findUnique({ where: { id: prodiId } });
+      const targetJenjangs = prodiObj ? [prodiObj.jenjang, prodiObj.jenjang === 'D4' ? 'STR' : prodiObj.jenjang === 'STR' ? 'D4' : ''] : [];
+
+      whereClause.pemeriksaan_unsur = {
+        deskripsi_area: {
+          kode_ami: {
+            kriteria: {
+              instrumen_id: targetInstrumenId
+            },
+            OR: [
+              { butir_standars: { none: {} } },
+              { butir_standars: { some: { jenjang: { kode_jenjang: { in: targetJenjangs as string[] } } } } }
+            ]
+          }
+        }
+      };
     }
 
     // Ambil semua isian untuk prodi+periode terkait
@@ -199,11 +257,6 @@ export async function GET(request: NextRequest) {
       };
     }
 
-    console.log('[DEBUG by-unsur] prodiId:', prodiId, 'periodeId:', periodeId);
-    console.log('[DEBUG by-unsur] result keys:', Object.keys(result));
-    for (const key of Object.keys(result)) {
-      console.log(`[DEBUG by-unsur] unsur ${key} status:`, result[key].status);
-    }
     return R.ok(serialize({ 
       data: result, 
       periode_id: periodeId, 

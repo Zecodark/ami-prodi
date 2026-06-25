@@ -99,12 +99,30 @@ export default function RiwayatIsianPage() {
     try {
       setLoading(true);
       const token = localStorage.getItem('ami_token');
-      const res = await fetch('/api/isians', {
+      
+      // Ambil instrumen yang sedang aktif dan juga periodenya harus aktif
+      const resInstrumen = await fetch('/api/instrumens?is_active=true', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const dataInstrumen = await resInstrumen.json();
+      const aktif = dataInstrumen.data?.find((ins: any) => ins.periode?.is_active);
+
+      if (!aktif || !aktif.periode_id) {
+        setIsians([]);
+        return;
+      }
+
+      // Fetch isian sesuai periode aktif
+      const res = await fetch(`/api/isians?periode_id=${aktif.periode_id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
       if (data.data) {
-        setIsians(data.data);
+        // Filter tambahan memastikan instrumennya cocok
+        const filtered = data.data.filter((r: IsianData) => 
+          r.pemeriksaan_unsur?.deskripsi_area?.kode_ami?.kriteria?.instrumen?.nama_instrumen === aktif.nama_instrumen
+        );
+        setIsians(filtered);
       }
     } catch (e) {
       console.error(e);

@@ -53,19 +53,51 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Instrumen aktif untuk periode aktif
-    const activeInstrumen = await prisma.instrumen.findFirst({
-      where: { periode_id: activePeriode.id, is_active: true },
+    // Instrumen aktif untuk periode aktif yang terhubung dengan prodi kaprodi
+    // Jika tidak ada yang ter-link, fallback ke instrumen aktif dari periode
+    let activeInstrumen = await prisma.instrumen.findFirst({
+      where: { 
+        periode_id: activePeriode.id, 
+        is_active: true,
+        prodi_links: {
+          some: {
+            prodi_id: prodiId,
+            is_active: true
+          }
+        }
+      },
       orderBy: { created_at: 'desc' },
     });
+    
+    // Fallback: if no linked instrumen, get any active instrumen for this periode
+    if (!activeInstrumen) {
+      activeInstrumen = await prisma.instrumen.findFirst({
+        where: { 
+          periode_id: activePeriode.id, 
+          is_active: true
+        },
+        orderBy: { created_at: 'desc' },
+      });
+    }
 
-    // Total unsur dari instrumen aktif
+    // Total unsur dari instrumen aktif (SEMUA unsur, tidak filter jenjang di sini)
+    // Karena pemeriksaan_unsur sudah terhubung ke kode_ami yang punya butir_standar
     let totalUnsur = 0;
+    const targetJenjangs = prodi?.jenjang ? [prodi.jenjang] : [];
+    if (prodi?.jenjang === 'D4') targetJenjangs.push('STR');
+    if (prodi?.jenjang === 'STR') targetJenjangs.push('D4');
+
     if (activeInstrumen) {
       totalUnsur = await prisma.pemeriksaanUnsur.count({
         where: {
           deskripsi_area: {
-            kode_ami: { kriteria: { instrumen_id: activeInstrumen.id } },
+            kode_ami: { 
+              kriteria: { instrumen_id: activeInstrumen.id },
+              OR: [
+                { butir_standars: { none: {} } },
+                { butir_standars: { some: { jenjang: { kode_jenjang: { in: targetJenjangs as string[] } } } } }
+              ]
+            },
           },
         },
       });
@@ -76,13 +108,31 @@ export async function GET(request: NextRequest) {
       where: { prodi_id: prodiId, is_active: true },
     });
 
-    // Statistik isian (status counts)
+    // Statistik isian (status counts) untuk instrumen aktif (tidak perlu filter jenjang)
+    const whereIsianFilter: any = { 
+      periode_id: activePeriode.id, 
+      prodi_id: prodiId 
+    };
+    
+    if (activeInstrumen) {
+      whereIsianFilter.pemeriksaan_unsur = {
+        deskripsi_area: {
+          kode_ami: {
+            kriteria: { instrumen_id: activeInstrumen.id },
+            OR: [
+              { butir_standars: { none: {} } },
+              { butir_standars: { some: { jenjang: { kode_jenjang: { in: targetJenjangs as string[] } } } } }
+            ]
+          }
+        }
+      };
+    }
+
     const isianStats = await prisma.isianAmi.groupBy({
       by: ['status'],
-      where: { periode_id: activePeriode.id, prodi_id: prodiId },
+      where: whereIsianFilter,
       _count: true,
     });
-
     const statsMap = { masuk: 0, proses: 0, valid: 0, revisi: 0 };
     for (const s of isianStats) {
       if (s.status === 'proses') statsMap.proses = s._count;
@@ -94,7 +144,7 @@ export async function GET(request: NextRequest) {
     // Hitung berapa unsur yang sudah terisi (kolektif), perlu revisi, dst.
     // Ambil semua isian, group by unsur, ambil attempt terbaru per (unsur, dosen)
     const isians = await prisma.isianAmi.findMany({
-      where: { periode_id: activePeriode.id, prodi_id: prodiId },
+      where: whereIsianFilter,
       select: {
         pemeriksaan_unsur_id: true,
         dosen_id: true,
@@ -146,8 +196,7 @@ export async function GET(request: NextRequest) {
     // Dua isian terlama yang masih menunggu review
     const recentIsians = await prisma.isianAmi.findMany({
       where: {
-        periode_id: activePeriode.id,
-        prodi_id: prodiId,
+        ...whereIsianFilter,
         status: 'proses',
       },
       include: {

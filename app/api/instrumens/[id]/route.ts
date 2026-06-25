@@ -83,6 +83,7 @@ export async function DELETE(request: NextRequest, { params }: Ctx) {
     return R.ok(null, 'Instrumen berhasil dihapus');
   } catch (e: any) {
     if (e.code === 'P2025') return R.notFound();
+    if (e.code === 'P2003') return R.badRequest('Data tidak dapat dihapus karena masih terhubung dengan data lain (misal: isian AMI).');
     return R.serverError(e);
   }
 }

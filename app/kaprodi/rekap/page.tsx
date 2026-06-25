@@ -90,8 +90,11 @@ export default function KaprodiRekapPage() {
   const [prodiId, setProdiId] = useState<string | null>(null);
   const [periodes, setPeriodes] = useState<any[]>([]);
   const [selectedPeriodeId, setSelectedPeriodeId] = useState<string | null>(null);
+  const [instrumens, setInstrumens] = useState<any[]>([]);
+  const [selectedInstrumenId, setSelectedInstrumenId] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
   const [isAllExpanded, setIsAllExpanded] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   const selectedPeriodeObj = periodes.find(p => String(p.id) === selectedPeriodeId);
 
@@ -133,25 +136,41 @@ export default function KaprodiRekapPage() {
 
   useEffect(() => {
     if (!selectedPeriodeId) return;
+    const fetchInstrumens = async () => {
+      try {
+        setLoading(true);
+        const token = localStorage.getItem('ami_token');
+        const headers = { Authorization: `Bearer ${token}` };
+        const insRes = await fetch(`/api/instrumens?periode_id=${selectedPeriodeId}`, { headers });
+        const insJson = await insRes.json();
+        if (insJson.data?.length > 0) {
+          setInstrumens(insJson.data);
+          setSelectedInstrumenId(String(insJson.data[0].id));
+        } else {
+          setInstrumens([]);
+          setSelectedInstrumenId(null);
+          setTreeData([]);
+          setStatusMap({});
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchInstrumens();
+  }, [selectedPeriodeId]);
+
+  useEffect(() => {
+    if (!selectedInstrumenId) return;
     const fetchData = async () => {
       try {
         setLoading(true);
         const token = localStorage.getItem('ami_token');
         const headers = { Authorization: `Bearer ${token}` };
 
-        // Ambil instrumen untuk periode ini
-        const insRes = await fetch(`/api/instrumens?periode_id=${selectedPeriodeId}`, { headers });
-        const insJson = await insRes.json();
-        if (!insJson.data?.length) {
-          setTreeData([]);
-          setStatusMap({});
-          setLoading(false);
-          return;
-        }
-        const insId = insJson.data[0].id;
-
         // Ambil struktur kriteria
-        const krRes = await fetch(`/api/kriteria?instrumen_id=${insId}`, { headers });
+        const krRes = await fetch(`/api/kriteria?instrumen_id=${selectedInstrumenId}`, { headers });
         const krJson = await krRes.json();
         if (krJson.data) buildTree(krJson.data);
 
@@ -164,7 +183,7 @@ export default function KaprodiRekapPage() {
       }
     };
     fetchData();
-  }, [selectedPeriodeId, prodiId]);
+  }, [selectedInstrumenId, prodiId, selectedPeriodeId]);
 
   const fetchStatusMap = async (pid: string | null, periodId: string | null) => {
     if (!periodId) return;
@@ -177,6 +196,44 @@ export default function KaprodiRekapPage() {
       if (data.data?.data) setStatusMap(data.data.data);
     } catch (e) {
       console.error(e);
+    }
+  };
+
+  const handleExport = async () => {
+    if (!selectedPeriodeId || !selectedInstrumenId) {
+      Swal.fire('Error', 'Pilih Periode dan Instrumen terlebih dahulu', 'error');
+      return;
+    }
+    try {
+      setIsExporting(true);
+      const token = localStorage.getItem('ami_token');
+      const prodiQuery = prodiId ? `&prodi_id=${prodiId}` : '';
+      
+      const res = await fetch(`/api/export/rekap?periode_id=${selectedPeriodeId}&instrumen_id=${selectedInstrumenId}${prodiQuery}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (!res.ok) {
+        throw new Error('Gagal export data');
+      }
+
+      // Download file
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Rekap_AMI_Prodi_${new Date().getTime()}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+      
+      Swal.fire('Sukses', 'Data rekap berhasil diexport', 'success');
+    } catch (e: any) {
+      console.error(e);
+      Swal.fire('Error', e.message || 'Gagal export data', 'error');
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -522,11 +579,12 @@ export default function KaprodiRekapPage() {
           </p>
         </div>
         <button 
-          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 hover:text-[#0a2f6f] rounded-lg shadow-sm transition-all self-start shrink-0"
-          onClick={() => Swal.fire({ title: 'Info', text: 'Fitur Export Rekap akan segera tersedia', icon: 'info', confirmButtonColor: '#4f46e5', customClass: { popup: 'rounded-xl' } })}
+          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm transition-all self-start shrink-0 disabled:opacity-50"
+          onClick={handleExport}
+          disabled={isExporting}
         >
-          <Download size={16} />
-          Export Rekap
+          {isExporting ? <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" /> : <Download size={16} />}
+          Export Rekap Excel
         </button>
       </div>
 
@@ -541,6 +599,19 @@ export default function KaprodiRekapPage() {
               <h2 className={`text-lg font-bold ${selectedPeriodeObj.is_active ? 'text-blue-900' : 'text-slate-800'}`}>
                 Periode {selectedPeriodeObj.tahun}
               </h2>
+              {instrumens.length > 0 && (
+                <div className="mt-2">
+                   <select 
+                    value={selectedInstrumenId || ''} 
+                    onChange={e => setSelectedInstrumenId(e.target.value)}
+                    className={`border rounded-lg px-2 py-1 text-sm bg-white outline-none focus:border-blue-500 min-w-[200px] ${selectedPeriodeObj.is_active ? 'border-blue-300 text-blue-800' : 'border-slate-300 text-slate-700'}`}
+                  >
+                    {instrumens.map(i => (
+                      <option key={i.id} value={i.id}>{i.nama_instrumen}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
             
             <div className="relative">

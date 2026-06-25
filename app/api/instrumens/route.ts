@@ -16,7 +16,7 @@ const schema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
-    const { error } = guard(request, 'admin', 'dosen', 'kaprodi');
+    const { user, error } = guard(request, 'admin', 'dosen', 'kaprodi');
     if (error) return error;
 
     const periodeId = request.nextUrl.searchParams.get('periode_id');
@@ -26,6 +26,49 @@ export async function GET(request: NextRequest) {
     if (periodeId) where.periode_id = Number(periodeId);
     if (isActive !== null) where.is_active = isActive === 'true';
 
+    // For dosen and kaprodi, filter by prodi_links
+    if (user.roleName === 'dosen' || user.roleName === 'kaprodi') {
+      if (!user.prodiId) return R.ok(serialize([]));
+      
+      // Try to get instrumen linked to this prodi
+      const linkedWhere = {
+        ...where,
+        prodi_links: {
+          some: {
+            prodi_id: user.prodiId,
+            is_active: true
+          }
+        }
+      };
+      
+      const linkedData = await prisma.instrumen.findMany({
+        where: linkedWhere,
+        include: {
+          periode: { select: { id: true, tahun: true, is_active: true } },
+          _count: { select: { kriteria_standars: true } },
+        },
+        orderBy: { created_at: 'asc' },
+      });
+      
+      // If no linked instrumen found, fallback to all instrumen from active periode
+      // This allows new prodi to see active instrumen before admin links them
+      if (linkedData.length === 0) {
+        console.log(`[INFO] No linked instrumen for prodi ${user.prodiId}, using fallback`);
+        const fallbackData = await prisma.instrumen.findMany({
+          where,
+          include: {
+            periode: { select: { id: true, tahun: true, is_active: true } },
+            _count: { select: { kriteria_standars: true } },
+          },
+          orderBy: { created_at: 'asc' },
+        });
+        return R.ok(serialize(fallbackData));
+      }
+      
+      return R.ok(serialize(linkedData));
+    }
+
+    // For admin, return all
     const data = await prisma.instrumen.findMany({
       where,
       include: {

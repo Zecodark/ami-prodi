@@ -113,9 +113,13 @@ export default function PeriodePage() {
 
     try {
       const token = localStorage.getItem('ami_token');
-      const res = await fetch(`/api/periodes/${id}/toggle-status`, {
+      const res = await fetch(`/api/periodes/${id}`, {
         method: 'PUT',
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { 
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}` 
+        },
+        body: JSON.stringify({ is_active: !currentStatus })
       });
       if (res.ok) {
         fetchData();
@@ -210,7 +214,7 @@ export default function PeriodePage() {
                     <td className="py-3 px-4 text-center">
                       <div className="flex items-center justify-center gap-2">
                         <button
-                          onClick={() => handleToggleActive(p.id, p.tahun, p.is_active)}
+                          onClick={() => handleToggleActive(p.id, p.is_active, p.tahun)}
                           className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${p.is_active ? 'bg-indigo-600' : 'bg-slate-300'}`}
                           title={p.is_active ? 'Klik untuk menonaktifkan' : 'Klik untuk mengaktifkan'}
                         >

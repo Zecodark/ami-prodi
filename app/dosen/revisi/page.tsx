@@ -44,12 +44,32 @@ export default function RevisiSayaPage() {
     try {
       setLoading(true);
       const token = localStorage.getItem('ami_token');
-      const res = await fetch('/api/isians?status=revisi', {
+      
+      // Ambil instrumen yang sedang aktif dan juga periodenya harus aktif
+      const resInstrumen = await fetch('/api/instrumens?is_active=true', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const dataInstrumen = await resInstrumen.json();
+      
+      // Filter secara spesifik untuk memastikan bahwa periodenya juga masih aktif
+      const aktif = dataInstrumen.data?.find((ins: any) => ins.periode?.is_active);
+
+      if (!aktif || !aktif.periode_id) {
+        setRevisis([]);
+        return;
+      }
+
+      // Fetch isian dengan status revisi sesuai periode aktif
+      const res = await fetch(`/api/isians?status=revisi&periode_id=${aktif.periode_id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
       if (data.data) {
-        setRevisis(data.data);
+        // Filter tambahan untuk memastikan instrumennya cocok (meski biasanya 1 periode = 1 instrumen aktif)
+        const filtered = data.data.filter((r: RevisiData) => 
+          r.pemeriksaan_unsur?.deskripsi_area?.kode_ami?.kriteria?.instrumen?.nama_instrumen === aktif.nama_instrumen
+        );
+        setRevisis(filtered);
       }
     } catch (e) {
       console.error(e);

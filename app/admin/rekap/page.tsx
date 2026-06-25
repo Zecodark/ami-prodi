@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
-import { Search, Download, Filter, ChevronRight, Building2, BookOpen, Clock, Activity, FileText, Calendar, CheckCircle2, XCircle, AlertCircle, ArrowRight } from 'lucide-react';
+import { Search, Download, Filter, ChevronRight, Building2, BookOpen, Clock, Activity, FileText, Calendar, CheckCircle, CheckCircle2, XCircle, AlertCircle, ArrowRight, CircleDashed, ChevronDown, ClipboardList, ExternalLink } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { formatNamaDosen } from '@/app/lib/textUtils';
 
@@ -74,15 +74,18 @@ export default function AdminRekapPage() {
   const [periodes, setPeriodes] = useState<any[]>([]);
   const [selectedPeriodeId, setSelectedPeriodeId] = useState<string | null>(null);
   
+  const [instrumens, setInstrumens] = useState<any[]>([]);
+  const [selectedInstrumenId, setSelectedInstrumenId] = useState<string | null>(null);
+  
   const [showHistory, setShowHistory] = useState(false);
   const [isAllExpanded, setIsAllExpanded] = useState(false);
 
   const selectedPeriodeObj = periodes.find(p => String(p.id) === selectedPeriodeId);
 
-  // States for Accordion details
   const [expandedDetails, setExpandedDetails] = useState<Record<string, boolean>>({});
   const [detailsCache, setDetailsCache] = useState<Record<string, any>>({});
   const [loadingDetails, setLoadingDetails] = useState<Record<string, boolean>>({});
+  const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
     const run = async () => {
@@ -117,26 +120,42 @@ export default function AdminRekapPage() {
   }, []);
 
   useEffect(() => {
-    if (!selectedPeriodeId || !selectedProdiId) return;
+    if (!selectedPeriodeId) return;
+    const fetchInstrumens = async () => {
+      try {
+        setLoading(true);
+        const token = localStorage.getItem('ami_token');
+        const headers = { Authorization: `Bearer ${token}` };
+        const insRes = await fetch(`/api/instrumens?periode_id=${selectedPeriodeId}`, { headers });
+        const insJson = await insRes.json();
+        if (insJson.data?.length > 0) {
+          setInstrumens(insJson.data);
+          setSelectedInstrumenId(String(insJson.data[0].id));
+        } else {
+          setInstrumens([]);
+          setSelectedInstrumenId(null);
+          setTreeData([]);
+          setStatusMap({});
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchInstrumens();
+  }, [selectedPeriodeId]);
+
+  useEffect(() => {
+    if (!selectedInstrumenId || !selectedProdiId) return;
     const fetchData = async () => {
       try {
         setLoading(true);
         const token = localStorage.getItem('ami_token');
         const headers = { Authorization: `Bearer ${token}` };
 
-        // Ambil instrumen untuk periode ini
-        const insRes = await fetch(`/api/instrumens?periode_id=${selectedPeriodeId}`, { headers });
-        const insJson = await insRes.json();
-        if (!insJson.data?.length) {
-          setTreeData([]);
-          setStatusMap({});
-          setLoading(false);
-          return;
-        }
-        const insId = insJson.data[0].id;
-
         // Ambil struktur kriteria
-        const krRes = await fetch(`/api/kriteria?instrumen_id=${insId}`, { headers });
+        const krRes = await fetch(`/api/kriteria?instrumen_id=${selectedInstrumenId}`, { headers });
         const krJson = await krRes.json();
         if (krJson.data) buildTree(krJson.data);
 
@@ -149,18 +168,57 @@ export default function AdminRekapPage() {
       }
     };
     fetchData();
-  }, [selectedPeriodeId, selectedProdiId]);
+  }, [selectedInstrumenId, selectedProdiId, selectedPeriodeId]);
 
   const fetchStatusMap = async (pid: string | null, periodId: string | null) => {
     if (!periodId || !pid) return;
     try {
       const token = localStorage.getItem('ami_token');
-      const url = `/api/isians/by-unsur?periode_id=${periodId}&prodi_id=${pid}`;
+      const prodiQuery = pid === 'all' ? '' : `&prodi_id=${pid}`;
+      const url = `/api/isians/by-unsur?periode_id=${periodId}${prodiQuery}`;
       const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
       const data = await res.json();
       if (data.data?.data) setStatusMap(data.data.data);
     } catch (e) {
       console.error(e);
+    }
+  };
+
+  const handleExport = async () => {
+    if (!selectedPeriodeId || !selectedInstrumenId) {
+      Swal.fire('Error', 'Pilih Periode dan Instrumen terlebih dahulu', 'error');
+      return;
+    }
+    try {
+      setIsExporting(true);
+      const token = localStorage.getItem('ami_token');
+      const prodiQuery = selectedProdiId && selectedProdiId !== 'all' ? `&prodi_id=${selectedProdiId}` : '&prodi_id=all';
+      
+      const res = await fetch(`/api/export/rekap?periode_id=${selectedPeriodeId}&instrumen_id=${selectedInstrumenId}${prodiQuery}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (!res.ok) {
+        throw new Error('Gagal export data');
+      }
+
+      // Download file
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Rekap_AMI_${new Date().getTime()}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+      
+      Swal.fire('Sukses', 'Data rekap berhasil diexport', 'success');
+    } catch (e: any) {
+      console.error(e);
+      Swal.fire('Error', e.message || 'Gagal export data', 'error');
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -506,11 +564,12 @@ export default function AdminRekapPage() {
           </p>
         </div>
         <button 
-          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 hover:text-indigo-600 rounded-lg shadow-sm transition-all self-start shrink-0"
-          onClick={() => Swal.fire({ title: 'Info', text: 'Fitur Export Rekap akan segera tersedia', icon: 'info', confirmButtonColor: '#4f46e5', customClass: { popup: 'rounded-xl' } })}
+          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm transition-all self-start shrink-0 disabled:opacity-50"
+          onClick={handleExport}
+          disabled={isExporting}
         >
-          <Download size={16} />
-          Export Rekap
+          {isExporting ? <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" /> : <Download size={16} />}
+          Export Rekap Excel
         </button>
       </div>
 
@@ -522,6 +581,7 @@ export default function AdminRekapPage() {
             onChange={e => setSelectedProdiId(e.target.value)}
             className="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white outline-none focus:border-indigo-500 min-w-[200px]"
           >
+            <option value="all">Semua Prodi</option>
             {prodis.map(p => (
               <option key={p.id} value={p.id}>{p.nama_prodi}</option>
             ))}
@@ -529,7 +589,7 @@ export default function AdminRekapPage() {
         </div>
         
         {periodes.length > 0 && (
-          <div className="flex items-center gap-3 ml-auto">
+          <div className="flex items-center gap-3">
              <label className="text-sm font-semibold text-slate-700">Periode:</label>
              <select 
               value={selectedPeriodeId || ''} 
@@ -538,6 +598,21 @@ export default function AdminRekapPage() {
             >
               {periodes.map(p => (
                 <option key={p.id} value={p.id}>Periode {p.tahun}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {instrumens.length > 0 && (
+          <div className="flex items-center gap-3 ml-auto">
+             <label className="text-sm font-semibold text-slate-700">Instrumen:</label>
+             <select 
+              value={selectedInstrumenId || ''} 
+              onChange={e => setSelectedInstrumenId(e.target.value)}
+              className="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white outline-none focus:border-indigo-500 min-w-[200px]"
+            >
+              {instrumens.map(i => (
+                <option key={i.id} value={i.id}>{i.nama_instrumen}</option>
               ))}
             </select>
           </div>
