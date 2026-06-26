@@ -106,6 +106,21 @@ CREATE TABLE `instrumens` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
+CREATE TABLE `instrumen_prodis` (
+    `id` INTEGER NOT NULL AUTO_INCREMENT,
+    `instrumen_id` INTEGER NOT NULL,
+    `prodi_id` INTEGER NOT NULL,
+    `is_active` BOOLEAN NOT NULL DEFAULT true,
+    `created_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
+    `updated_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
+
+    INDEX `instrumen_prodis_instrumen_id_idx`(`instrumen_id`),
+    INDEX `instrumen_prodis_prodi_id_idx`(`prodi_id`),
+    UNIQUE INDEX `instrumen_prodis_instrumen_id_prodi_id_key`(`instrumen_id`, `prodi_id`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
 CREATE TABLE `kriteria_standars` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `instrumen_id` INTEGER NOT NULL,
@@ -213,7 +228,7 @@ CREATE TABLE `isian_ami` (
     `tahun_pelaksanaan` CHAR(4) NULL,
     `capaian` TEXT NULL,
     `keterangan` TEXT NULL,
-    `status` ENUM('draft', 'proses', 'valid', 'revisi') NOT NULL DEFAULT 'proses',
+    `status` ENUM('draft', 'proses', 'valid', 'revisi', 'superseded') NOT NULL DEFAULT 'proses',
     `catatan_kaprodi` TEXT NULL,
     `reviewed_by` INTEGER NULL,
     `reviewed_at` TIMESTAMP(0) NULL,
@@ -229,7 +244,7 @@ CREATE TABLE `isian_ami` (
     INDEX `isian_ami_status_idx`(`status`),
     INDEX `isian_ami_reviewed_by_idx`(`reviewed_by`),
     INDEX `isian_ami_submitted_at_idx`(`submitted_at`),
-    UNIQUE INDEX `isian_ami_pemeriksaan_unsur_id_periode_id_prodi_id_key`(`pemeriksaan_unsur_id`, `periode_id`, `prodi_id`),
+    UNIQUE INDEX `isian_ami_pemeriksaan_unsur_id_periode_id_dosen_id_key`(`pemeriksaan_unsur_id`, `periode_id`, `dosen_id`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -258,8 +273,8 @@ CREATE TABLE `isian_review_logs` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `isian_id` INTEGER NOT NULL,
     `reviewer_id` INTEGER NULL,
-    `status_sebelum` ENUM('draft', 'proses', 'valid', 'revisi') NULL,
-    `status_sesudah` ENUM('draft', 'proses', 'valid', 'revisi') NOT NULL,
+    `status_sebelum` ENUM('draft', 'proses', 'valid', 'revisi', 'superseded') NULL,
+    `status_sesudah` ENUM('draft', 'proses', 'valid', 'revisi', 'superseded') NOT NULL,
     `catatan` TEXT NULL,
     `created_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
 
@@ -308,6 +323,12 @@ ALTER TABLE `instrumens` ADD CONSTRAINT `instrumens_periode_id_fkey` FOREIGN KEY
 ALTER TABLE `instrumens` ADD CONSTRAINT `instrumens_created_by_fkey` FOREIGN KEY (`created_by`) REFERENCES `users`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE `instrumen_prodis` ADD CONSTRAINT `instrumen_prodis_instrumen_id_fkey` FOREIGN KEY (`instrumen_id`) REFERENCES `instrumens`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `instrumen_prodis` ADD CONSTRAINT `instrumen_prodis_prodi_id_fkey` FOREIGN KEY (`prodi_id`) REFERENCES `prodis`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE `kriteria_standars` ADD CONSTRAINT `kriteria_standars_instrumen_id_fkey` FOREIGN KEY (`instrumen_id`) REFERENCES `instrumens`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -326,7 +347,7 @@ ALTER TABLE `deskripsi_areas` ADD CONSTRAINT `deskripsi_areas_kode_ami_id_fkey` 
 ALTER TABLE `pemeriksaan_unsurs` ADD CONSTRAINT `pemeriksaan_unsurs_deskripsi_area_id_fkey` FOREIGN KEY (`deskripsi_area_id`) REFERENCES `deskripsi_areas`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `isian_ami` ADD CONSTRAINT `isian_ami_pemeriksaan_unsur_id_fkey` FOREIGN KEY (`pemeriksaan_unsur_id`) REFERENCES `pemeriksaan_unsurs`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `isian_ami` ADD CONSTRAINT `isian_ami_pemeriksaan_unsur_id_fkey` FOREIGN KEY (`pemeriksaan_unsur_id`) REFERENCES `pemeriksaan_unsurs`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `isian_ami` ADD CONSTRAINT `isian_ami_periode_id_fkey` FOREIGN KEY (`periode_id`) REFERENCES `periodes`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
