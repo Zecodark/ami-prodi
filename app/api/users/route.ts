@@ -9,7 +9,7 @@ const serialize = (data: unknown) =>
   JSON.parse(JSON.stringify(data, (_, v) => (typeof v === 'bigint' ? v.toString() : v)));
 
 const select = {
-  id: true, email: true, is_active: true, is_mfa_active: true, last_login_at: true, created_at: true, updated_at: true,
+  id: true, email: true, is_active: true, last_login_at: true, created_at: true, updated_at: true,
   role: { select: { id: true, nama_role: true } },
   prodi_id: true,
   prodi: { select: { id: true, nama_prodi: true, jenjang: true } },
@@ -55,7 +55,6 @@ export async function POST(request: NextRequest) {
       role_id: z.coerce.number().optional().nullable(),
       prodi_id: z.coerce.number().optional().nullable(),
       is_active: z.boolean().default(true),
-      is_mfa_active: z.boolean().default(true),
     });
     const parsed = schema.safeParse(body);
     if (!parsed.success) return R.badRequest('Validasi gagal', parsed.error.flatten());
@@ -101,7 +100,6 @@ export async function POST(request: NextRequest) {
         role_id: parsed.data.role_id ?? null,
         prodi_id: parsed.data.prodi_id ?? null,
         is_active: parsed.data.is_active,
-        is_mfa_active: parsed.data.is_mfa_active,
       },
       select,
     });

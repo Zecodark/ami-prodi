@@ -1007,6 +1007,16 @@ async function main() {
   console.log('     Password : password123');
   console.log('     Nama     : WIKTASARI, S.T., M.KOM.');
   console.log('     NIP      : 197506012003122004');
+  // =====================================
+  // 10. SYSTEM SETTINGS
+  // =====================================
+  await prisma.systemSetting.upsert({
+    where: { key: 'mfa_enabled' },
+    update: {},
+    create: { key: 'mfa_enabled', value: 'true' },
+  });
+  console.log('✅ System Settings seeded');
+
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log('');
   console.log('💡 FITUR YANG DAPAT DITEST:');

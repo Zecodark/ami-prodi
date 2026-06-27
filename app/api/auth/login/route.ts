@@ -39,7 +39,13 @@ export async function POST(request: NextRequest) {
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) return R.unauthorized('Email atau password salah');
 
-    if (!user.is_mfa_active) {
+    // Cek pengaturan MFA global
+    const mfaSetting = await prisma.systemSetting.findUnique({
+      where: { key: 'mfa_enabled' }
+    });
+    const isMfaActive = mfaSetting?.value === 'true';
+
+    if (!isMfaActive) {
       // Langsung login tanpa OTP
       const tokenPayload = {
         userId: user.id.toString(),
@@ -55,13 +61,24 @@ export async function POST(request: NextRequest) {
         data: { last_login_at: new Date() },
       });
 
-      const { password: _, ...userWithoutPassword } = user;
-
       return R.ok(
         serialize({
           require_otp: false,
           token,
-          user: userWithoutPassword,
+          user: {
+            id: user.id,
+            email: user.email,
+            is_active: user.is_active,
+            role: user.role?.nama_role ?? null,
+            dosen: user.dosen
+              ? {
+                  id: user.dosen.id,
+                  nip: user.dosen.nip,
+                  nama_lengkap: user.dosen.nama_lengkap,
+                  prodi: user.dosen.prodi,
+                }
+              : null,
+          },
           message: 'Login berhasil',
         })
       );

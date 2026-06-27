@@ -8,7 +8,6 @@ interface UserData {
   id: string;
   email: string;
   is_active: boolean;
-  is_mfa_active: boolean;
   last_login_at: string | null;
   role: { id: string; nama_role: string } | null;
   prodi_id: number | null;
@@ -39,10 +38,14 @@ export default function UsersPage() {
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
-  const [formData, setFormData] = useState({ email: '', password: '', role_id: '', prodi_id: '', is_active: true, is_mfa_active: true });
+  const [formData, setFormData] = useState({ email: '', password: '', role_id: '', prodi_id: '', is_active: true });
   const [showPassword, setShowPassword] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  
+  // Global MFA State
+  const [globalMfa, setGlobalMfa] = useState(true);
+  const [mfaLoading, setMfaLoading] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -54,15 +57,19 @@ export default function UsersPage() {
       const token = localStorage.getItem('ami_token');
       const headers = { Authorization: `Bearer ${token}` };
       
-      const [resUsers, resRoles, resProdis] = await Promise.all([
+      const [resUsers, resRoles, resProdis, resSettings] = await Promise.all([
         fetch('/api/users', { headers }),
         fetch('/api/roles', { headers }),
-        fetch('/api/prodis', { headers })
+        fetch('/api/prodis', { headers }),
+        fetch('/api/settings', { headers })
       ]);
       
       const dataUsers = await resUsers.json();
       const dataRoles = await resRoles.json();
       const dataProdis = await resProdis.json();
+      const dataSettings = await resSettings.json();
+      
+      if (dataSettings.data) setGlobalMfa(dataSettings.data.mfa_enabled !== false);
       
       if (dataUsers.data) setUsers(dataUsers.data);
       if (dataRoles.data) setRoles(dataRoles.data);
@@ -76,7 +83,7 @@ export default function UsersPage() {
 
   const openAddModal = () => {
     setEditId(null);
-    setFormData({ email: '', password: '', role_id: '', prodi_id: '', is_active: true, is_mfa_active: true });
+    setFormData({ email: '', password: '', role_id: '', prodi_id: '', is_active: true });
     setErrorMsg('');
     setIsModalOpen(true);
   };
@@ -88,8 +95,7 @@ export default function UsersPage() {
       password: '', // blank so we don't update unless typed
       role_id: user.role?.id?.toString() || '',
       prodi_id: user.prodi_id?.toString() || '',
-      is_active: user.is_active,
-      is_mfa_active: user.is_mfa_active ?? true
+      is_active: user.is_active
     });
     setErrorMsg('');
     setIsModalOpen(true);
@@ -157,8 +163,7 @@ export default function UsersPage() {
         email: formData.email,
         role_id: formData.role_id || null,
         prodi_id: formData.prodi_id || null,
-        is_active: formData.is_active,
-        is_mfa_active: formData.is_mfa_active
+        is_active: formData.is_active
       };
       
       if (formData.password) {
@@ -189,6 +194,38 @@ export default function UsersPage() {
       setErrorMsg('Kesalahan jaringan');
     } finally {
       setSubmitLoading(false);
+    }
+  };
+
+  const toggleGlobalMfa = async () => {
+    setMfaLoading(true);
+    try {
+      const token = localStorage.getItem('ami_token');
+      const newValue = !globalMfa;
+      const res = await fetch('/api/settings', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ mfa_enabled: newValue })
+      });
+      if (res.ok) {
+        setGlobalMfa(newValue);
+        Swal.fire({
+          title: 'Berhasil',
+          text: `MFA Global telah ${newValue ? 'diaktifkan' : 'dinonaktifkan'}`,
+          icon: 'success',
+          timer: 1500,
+          showConfirmButton: false
+        });
+      } else {
+        Swal.fire({ title: 'Gagal', text: 'Gagal mengubah pengaturan MFA', icon: 'error' });
+      }
+    } catch (e) {
+      Swal.fire({ title: 'Error', text: 'Terjadi kesalahan jaringan', icon: 'error' });
+    } finally {
+      setMfaLoading(false);
     }
   };
 
@@ -226,13 +263,29 @@ export default function UsersPage() {
           <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Kelola Anggota / User</h1>
           <p className="text-slate-500 text-sm mt-1">Manajemen akun pengguna sistem AMI</p>
         </div>
-        <button 
-          onClick={openAddModal}
-          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium shadow-sm"
-        >
-          <Plus size={16} />
-          Tambah User
-        </button>
+        <div className="flex items-center gap-4">
+          <label className="flex items-center gap-2 cursor-pointer bg-white px-4 py-2 rounded-lg border border-slate-200 shadow-sm hover:bg-slate-50 transition-colors">
+            <span className="text-sm font-medium text-slate-700">Wajibkan MFA (Global)</span>
+            <div className="relative inline-block w-10 h-6">
+              <input 
+                type="checkbox" 
+                className="peer sr-only"
+                checked={globalMfa}
+                onChange={toggleGlobalMfa}
+                disabled={mfaLoading}
+              />
+              <div className="block w-full h-full rounded-full bg-slate-200 peer-checked:bg-blue-600 transition-colors"></div>
+              <div className="absolute left-1 top-1 w-4 h-4 rounded-full bg-white transition-transform peer-checked:translate-x-4"></div>
+            </div>
+          </label>
+          <button 
+            onClick={openAddModal}
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium shadow-sm"
+          >
+            <Plus size={16} />
+            Tambah User
+          </button>
+        </div>
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
@@ -325,15 +378,6 @@ export default function UsersPage() {
                             <X size={12} /> Nonaktif
                           </span>
                         )}
-                        {user.is_mfa_active ? (
-                           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 w-fit" title="Multi-Factor Authentication Aktif">
-                             <Shield size={12} /> MFA On
-                           </span>
-                         ) : (
-                           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-600 w-fit" title="Multi-Factor Authentication Nonaktif">
-                             <Shield size={12} className="opacity-50" /> MFA Off
-                           </span>
-                         )}
                       </div>
                     </td>
                     <td className="py-3 px-4 text-slate-500 text-xs">
@@ -461,15 +505,6 @@ export default function UsersPage() {
                       className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
                     />
                     <span className="text-sm font-medium text-slate-700">Akun Aktif (Dapat Login)</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer w-fit">
-                    <input 
-                      type="checkbox" 
-                      checked={formData.is_mfa_active}
-                      onChange={(e) => setFormData({...formData, is_mfa_active: e.target.checked})}
-                      className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    <span className="text-sm font-medium text-slate-700">Wajibkan Verifikasi OTP Email (MFA)</span>
                   </label>
                 </div>
               </div>
