@@ -222,7 +222,7 @@ export default function KaprodiRekapPage() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `Rekap_AMI_Prodi_${new Date().getTime()}.xlsx`;
+      a.download = `Rekap_AMI_Prodi_${new Date().getTime()}.pdf`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -584,7 +584,7 @@ export default function KaprodiRekapPage() {
           disabled={isExporting}
         >
           {isExporting ? <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" /> : <Download size={16} />}
-          Export Rekap Excel
+          Export Rekap PDF
         </button>
       </div>
 

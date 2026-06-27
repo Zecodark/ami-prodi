@@ -953,7 +953,6 @@ async function main() {
   const totalUnsur = instrumenItems.reduce((total, item) => total + item.unsurList.length, 0);
   console.log(`✅ Struktur instrumen AMI seeded: ${instrumenItems.length} area audit, ${totalUnsur} pemeriksaan unsur terpisah, ${kriteriaMap.size} kriteria`);
 
-
   console.log('\n🎉 Seed selesai!');
   console.log('===========================================');
   console.log('📊 STATISTIK DATA:');

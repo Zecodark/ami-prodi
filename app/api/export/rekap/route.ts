@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/prisma';
 import { guard } from '@/app/lib/auth';
-import * as xlsx from 'xlsx';
+import React from 'react';
+import { renderToStream } from '@react-pdf/renderer';
+import { PdfExportDocument, ExportProdi, ExportKriteria, ExportKodeAmi, ExportArea, ExportUnsur } from '@/app/components/PdfExportDocument';
 
 export async function GET(request: NextRequest) {
   try {
@@ -94,9 +96,6 @@ export async function GET(request: NextRequest) {
       include: { dosen: true, bukti_files: true }
     });
 
-    // Buat map isian berdasarkan unsur_id dan prodi_id
-    // Catatan: Jika ada lebih dari satu dosen mengisi unsur yang sama di prodi yang sama (meski jarang), 
-    // kita akan gabungkan atau ambil yang terakhir
     const isianMap = new Map<string, any[]>();
     for (const is of isians) {
       const key = `${is.pemeriksaan_unsur_id}::${is.prodi_id}`;
@@ -104,90 +103,95 @@ export async function GET(request: NextRequest) {
       isianMap.get(key)!.push(is);
     }
 
-    // 4. Generate excel data (Cross join Prodi x Unsur)
-    const excelData: any[] = [];
+    // 4. Generate data hierarki untuk PDF
+    const pdfData: ExportProdi[] = [];
     const baseUrl = request.nextUrl.origin;
     
     for (const prodi of targetProdis) {
+      const prodiExport: ExportProdi = { prodiName: prodi.nama_prodi, kriterias: [] };
+      
+      const kriteriaMap = new Map<number, ExportKriteria>();
+      const kodeAmiMap = new Map<number, ExportKodeAmi>();
+      const areaMap = new Map<number, ExportArea>();
+
       for (const unsur of unsurs) {
         const area = unsur.deskripsi_area;
         const kodeAmi = area.kode_ami;
         const kriteria = kodeAmi.kriteria;
         
+        if (!kriteriaMap.has(kriteria.id)) {
+          const newKriteria: ExportKriteria = { kriteriaKode: kriteria.kode_kriteria, kriteriaNama: kriteria.nama_kriteria, amis: [] };
+          kriteriaMap.set(kriteria.id, newKriteria);
+          prodiExport.kriterias.push(newKriteria);
+        }
+        const currentKriteria = kriteriaMap.get(kriteria.id)!;
+
+        if (!kodeAmiMap.has(kodeAmi.id)) {
+          const newKodeAmi: ExportKodeAmi = { kodeAmi: kodeAmi.kode_ami, areas: [] };
+          kodeAmiMap.set(kodeAmi.id, newKodeAmi);
+          currentKriteria.amis.push(newKodeAmi);
+        }
+        const currentKodeAmi = kodeAmiMap.get(kodeAmi.id)!;
+
+        if (!areaMap.has(area.id)) {
+          const newArea: ExportArea = { deskripsi: area.deskripsi_area_audit, unsurs: [] };
+          areaMap.set(area.id, newArea);
+          currentKodeAmi.areas.push(newArea);
+        }
+        const currentArea = areaMap.get(area.id)!;
+
         const key = `${unsur.id}::${prodi.id}`;
         const matchedIsians = isianMap.get(key) || [];
 
         if (matchedIsians.length > 0) {
           for (const isian of matchedIsians) {
             const listBukti = (isian.bukti_files || []).map((b: any) => `${baseUrl}${b.file_path}`).join('\n');
-            excelData.push({
-              'Program Studi': prodi.nama_prodi,
-              'Kriteria Standar': `[${kriteria.kode_kriteria}] ${kriteria.nama_kriteria}`,
-              'Kode AMI': kodeAmi.kode_ami,
-              'Deskripsi Area': area.deskripsi_area_audit,
-              'Isi Unsur': unsur.isi_unsur,
-              'Status': 'Valid',
-              'Dosen Pengisi': isian.dosen.nama_lengkap,
-              'Judul Dokumen': isian.judul_dokumen || '-',
-              'Ketersediaan Standar': isian.ketersediaan_standar === 'ada' ? 'Ada' : 'Tidak Ada',
-              'Ketersediaan Dokumen': isian.dokumen === 'ada' ? 'Ada' : 'Tidak Ada',
-              'Pencapaian SPT PT': isian.pencapaian_standar_spt_pt ? 'Ya' : 'Tidak',
-              'Pencapaian SN DIKTI': isian.pencapaian_standar_sn_dikti ? 'Ya' : 'Tidak',
-              'Daya Saing Lokal': isian.daya_saing_lokal ? 'Ya' : 'Tidak',
-              'Daya Saing Nasional': isian.daya_saing_nasional ? 'Ya' : 'Tidak',
-              'Daya Saing Internasional': isian.daya_saing_internasional ? 'Ya' : 'Tidak',
-              'Link Bukti Fisik': isian.bukti_link || '-',
-              'Daftar File Bukti': listBukti || '-',
-              'Tahun Pelaksanaan': isian.tahun_pelaksanaan || '-',
-              'Capaian': isian.capaian || '-',
-              'Keterangan': isian.keterangan || '-',
+            currentArea.unsurs.push({
+              isiUnsur: unsur.isi_unsur,
+              status: isian.status === 'valid' ? 'Valid' : isian.status,
+              ketersediaanStandar: isian.ketersediaan_standar === 'ada' ? 'Ada' : 'Tidak Ada',
+              ketersediaanDokumen: isian.dokumen === 'ada' ? 'Ada' : 'Tidak Ada',
+              pencapaianSptPt: isian.pencapaian_standar_spt_pt || false,
+              pencapaianSnDikti: isian.pencapaian_standar_sn_dikti || false,
+              dayaSaingLokal: isian.daya_saing_lokal || false,
+              dayaSaingNasional: isian.daya_saing_nasional || false,
+              dayaSaingInternasional: isian.daya_saing_internasional || false,
+              keterangan: isian.keterangan || '-',
+              buktiLink: isian.bukti_link || listBukti || '-'
             });
           }
         } else {
-          excelData.push({
-            'Program Studi': prodi.nama_prodi,
-            'Kriteria Standar': `[${kriteria.kode_kriteria}] ${kriteria.nama_kriteria}`,
-            'Kode AMI': kodeAmi.kode_ami,
-            'Deskripsi Area': area.deskripsi_area_audit,
-            'Isi Unsur': unsur.isi_unsur,
-            'Status': 'Belum Terisi / Proses',
-            'Dosen Pengisi': '-',
-            'Judul Dokumen': '-',
-            'Ketersediaan Standar': '-',
-            'Ketersediaan Dokumen': '-',
-            'Pencapaian SPT PT': '-',
-            'Pencapaian SN DIKTI': '-',
-            'Daya Saing Lokal': '-',
-            'Daya Saing Nasional': '-',
-            'Daya Saing Internasional': '-',
-            'Link Bukti Fisik': '-',
-            'Daftar File Bukti': '-',
-            'Tahun Pelaksanaan': '-',
-            'Capaian': '-',
-            'Keterangan': '-',
+          currentArea.unsurs.push({
+            isiUnsur: unsur.isi_unsur,
+            status: 'Belum Terisi',
+            ketersediaanStandar: '-',
+            ketersediaanDokumen: '-',
+            pencapaianSptPt: false,
+            pencapaianSnDikti: false,
+            dayaSaingLokal: false,
+            dayaSaingNasional: false,
+            dayaSaingInternasional: false,
+            keterangan: '-',
+            buktiLink: '-'
           });
         }
       }
+      pdfData.push(prodiExport);
     }
 
-    if (excelData.length === 0) {
-       excelData.push({ 'Informasi': 'Tidak ada struktur instrumen ditemukan.' });
-    }
+    const periodeObj = await prisma.periode.findUnique({ where: { id: periodeId } });
+    const periodeLabel = periodeObj?.tahun || 'Tidak Diketahui';
 
-    // Create workbook and worksheet
-    const worksheet = xlsx.utils.json_to_sheet(excelData);
-    const workbook = xlsx.utils.book_new();
-    xlsx.utils.book_append_sheet(workbook, worksheet, 'Rekap Isian Valid');
+    // 5. Render to PDF stream
+    const stream = await renderToStream(
+      React.createElement(PdfExportDocument, { data: pdfData, periodeLabel })
+    );
 
-    // Generate buffer
-    const buffer = xlsx.write(workbook, { type: 'buffer', bookType: 'xlsx' });
-
-    // Return response
-    return new NextResponse(buffer, {
+    return new NextResponse(stream as any, {
       status: 200,
       headers: {
-        'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'Content-Disposition': `attachment; filename="Rekap_AMI_${new Date().toISOString().split('T')[0]}.xlsx"`
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="Rekap_AMI_${new Date().toISOString().split('T')[0]}.pdf"`
       }
     });
 
