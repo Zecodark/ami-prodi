@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { prisma } from '@/app/lib/prisma';
-import { guard } from '@/app/lib/auth';
+import { guard, signToken } from '@/app/lib/auth';
 import * as R from '@/app/lib/response';
 
 const serialize = (data: unknown) =>
@@ -38,6 +38,34 @@ export async function POST(request: NextRequest) {
 
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) return R.unauthorized('Email atau password salah');
+
+    if (!user.is_mfa_active) {
+      // Langsung login tanpa OTP
+      const tokenPayload = {
+        userId: user.id.toString(),
+        email: user.email,
+        roleId: user.role?.id?.toString() || null,
+        roleName: user.role?.nama_role || '',
+        prodiId: user.prodi?.id?.toString() || user.dosen?.prodi?.id?.toString() || null,
+      };
+      const token = signToken(tokenPayload);
+      
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { last_login_at: new Date() },
+      });
+
+      const { password: _, ...userWithoutPassword } = user;
+
+      return R.ok(
+        serialize({
+          require_otp: false,
+          token,
+          user: userWithoutPassword,
+          message: 'Login berhasil',
+        })
+      );
+    }
 
     // Generate OTP 6 digit
     const otp = Math.floor(100000 + Math.random() * 900000).toString();

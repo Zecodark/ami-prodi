@@ -8,6 +8,7 @@ interface UserData {
   id: string;
   email: string;
   is_active: boolean;
+  is_mfa_active: boolean;
   last_login_at: string | null;
   role: { id: string; nama_role: string } | null;
   prodi_id: number | null;
@@ -38,7 +39,7 @@ export default function UsersPage() {
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
-  const [formData, setFormData] = useState({ email: '', password: '', role_id: '', prodi_id: '', is_active: true });
+  const [formData, setFormData] = useState({ email: '', password: '', role_id: '', prodi_id: '', is_active: true, is_mfa_active: true });
   const [showPassword, setShowPassword] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -75,7 +76,7 @@ export default function UsersPage() {
 
   const openAddModal = () => {
     setEditId(null);
-    setFormData({ email: '', password: '', role_id: '', prodi_id: '', is_active: true });
+    setFormData({ email: '', password: '', role_id: '', prodi_id: '', is_active: true, is_mfa_active: true });
     setErrorMsg('');
     setIsModalOpen(true);
   };
@@ -87,7 +88,8 @@ export default function UsersPage() {
       password: '', // blank so we don't update unless typed
       role_id: user.role?.id?.toString() || '',
       prodi_id: user.prodi_id?.toString() || '',
-      is_active: user.is_active
+      is_active: user.is_active,
+      is_mfa_active: user.is_mfa_active ?? true
     });
     setErrorMsg('');
     setIsModalOpen(true);
@@ -155,7 +157,8 @@ export default function UsersPage() {
         email: formData.email,
         role_id: formData.role_id || null,
         prodi_id: formData.prodi_id || null,
-        is_active: formData.is_active
+        is_active: formData.is_active,
+        is_mfa_active: formData.is_mfa_active
       };
       
       if (formData.password) {
@@ -287,8 +290,12 @@ export default function UsersPage() {
                           {user.email.charAt(0).toUpperCase()}
                         </div>
                         <div>
-                          <p className="font-medium text-slate-800">{user.dosen?.nama_lengkap || user.email}</p>
-                          {user.dosen && <p className="text-xs text-slate-500">{user.email}</p>}
+                          <p className="font-medium text-slate-800">{user.email}</p>
+                          {user.dosen?.nama_lengkap && (
+                            <p className="text-xs text-slate-500 capitalize mt-0.5">
+                              {user.dosen.nama_lengkap.toLowerCase()}
+                            </p>
+                          )}
                         </div>
                       </div>
                     </td>
@@ -300,7 +307,7 @@ export default function UsersPage() {
                             <User size={14} className="text-slate-500"/>}
                            <span className="font-medium text-slate-700 capitalize">{user.role?.nama_role || '-'}</span>
                         </div>
-                        {user.role?.nama_role.toLowerCase() === 'kaprodi' && (user.prodi?.nama_prodi || user.dosen?.prodi?.nama_prodi) && (
+                        {(user.role?.nama_role.toLowerCase() === 'kaprodi' || user.role?.nama_role.toLowerCase() === 'dosen') && (user.prodi?.nama_prodi || user.dosen?.prodi?.nama_prodi) && (
                           <span className="text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 inline-block max-w-fit truncate" title={user.prodi?.nama_prodi || user.dosen?.prodi?.nama_prodi}>
                             {user.prodi?.nama_prodi || user.dosen?.prodi?.nama_prodi}
                           </span>
@@ -308,15 +315,26 @@ export default function UsersPage() {
                       </div>
                     </td>
                     <td className="py-3 px-4">
-                      {user.is_active ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
-                          <Check size={12} /> Aktif
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-rose-100 text-rose-800">
-                          <X size={12} /> Nonaktif
-                        </span>
-                      )}
+                      <div className="flex flex-col gap-1.5">
+                        {user.is_active ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 w-fit">
+                            <Check size={12} /> Aktif
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-rose-100 text-rose-800 w-fit">
+                            <X size={12} /> Nonaktif
+                          </span>
+                        )}
+                        {user.is_mfa_active ? (
+                           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 w-fit" title="Multi-Factor Authentication Aktif">
+                             <Shield size={12} /> MFA On
+                           </span>
+                         ) : (
+                           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-600 w-fit" title="Multi-Factor Authentication Nonaktif">
+                             <Shield size={12} className="opacity-50" /> MFA Off
+                           </span>
+                         )}
+                      </div>
                     </td>
                     <td className="py-3 px-4 text-slate-500 text-xs">
                       {user.last_login_at ? new Date(user.last_login_at).toLocaleString('id-ID') : 'Belum pernah'}
@@ -434,15 +452,26 @@ export default function UsersPage() {
                     </p>
                   </div>
                 )}
-                <label className="flex items-center gap-2 mt-4 cursor-pointer">
-                  <input 
-                    type="checkbox" 
-                    checked={formData.is_active}
-                    onChange={(e) => setFormData({...formData, is_active: e.target.checked})}
-                    className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-                  />
-                  <span className="text-sm font-medium text-slate-700">Akun Aktif (Dapat Login)</span>
-                </label>
+                <div className="flex flex-col gap-3 mt-4">
+                  <label className="flex items-center gap-2 cursor-pointer w-fit">
+                    <input 
+                      type="checkbox" 
+                      checked={formData.is_active}
+                      onChange={(e) => setFormData({...formData, is_active: e.target.checked})}
+                      className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                    />
+                    <span className="text-sm font-medium text-slate-700">Akun Aktif (Dapat Login)</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer w-fit">
+                    <input 
+                      type="checkbox" 
+                      checked={formData.is_mfa_active}
+                      onChange={(e) => setFormData({...formData, is_mfa_active: e.target.checked})}
+                      className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="text-sm font-medium text-slate-700">Wajibkan Verifikasi OTP Email (MFA)</span>
+                  </label>
+                </div>
               </div>
               <div className="mt-8 flex justify-end gap-3">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">
