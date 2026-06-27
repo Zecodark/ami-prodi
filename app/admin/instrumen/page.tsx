@@ -163,6 +163,28 @@ export default function InstrumenPage() {
     }
   };
 
+  const handleToggleInstrumenStatus = async (id: string, currentStatus: boolean) => {
+    try {
+      const token = localStorage.getItem('ami_token');
+      const res = await fetch(`/api/instrumens/${id}`, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}` 
+        },
+        body: JSON.stringify({ is_active: !currentStatus })
+      });
+      if (res.ok) {
+        setInstrumens(prev => prev.map(i => i.id === id ? { ...i, is_active: !currentStatus } : i));
+      } else {
+        const data = await res.json();
+        Swal.fire({ title: 'Gagal', text: data.message || 'Gagal mengubah status', icon: 'error' });
+      }
+    } catch (e) {
+      Swal.fire({ title: 'Error', text: 'Terjadi kesalahan jaringan', icon: 'error' });
+    }
+  };
+
   const openProdiModal = async (instrumen: InstrumenData) => {
     setSelectedInstrumenForProdi(instrumen);
     setIsProdiModalOpen(true);
@@ -301,15 +323,13 @@ export default function InstrumenPage() {
                        <span className="font-bold text-indigo-600">{i._count?.kriteria_standars || 0}</span>
                     </td>
                     <td className="py-3 px-4">
-                      {i.is_active ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
-                          <Check size={12} /> Aktif
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-rose-100 text-rose-800">
-                          <X size={12} /> Nonaktif
-                        </span>
-                      )}
+                      <button 
+                        onClick={() => handleToggleInstrumenStatus(i.id, i.is_active)}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${i.is_active ? 'bg-emerald-500' : 'bg-slate-300'}`}
+                        title={i.is_active ? 'Nonaktifkan Instrumen' : 'Aktifkan Instrumen'}
+                      >
+                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${i.is_active ? 'translate-x-6' : 'translate-x-1'}`} />
+                      </button>
                     </td>
                     <td className="py-3 px-4 text-right">
                       <div className="flex justify-end gap-2">
