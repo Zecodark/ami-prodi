@@ -85,7 +85,7 @@ export async function GET(request: NextRequest) {
       const p = await prisma.prodi.findUnique({ where: { id: prodiId } });
       if (p) targetProdis.push(p);
     } else {
-      targetProdis = await prisma.prodi.findMany({ where: { is_active: true }, orderBy: { id: 'asc' } });
+      targetProdis = await prisma.prodi.findMany({ orderBy: { id: 'asc' } });
     }
 
     // 3. Ambil isian valid
@@ -203,7 +203,7 @@ export async function GET(request: NextRequest) {
 
     // 5. Render to PDF stream
     const stream = await renderToStream(
-      React.createElement(PdfExportDocument, { data: pdfData, periodeLabel })
+      React.createElement(PdfExportDocument as any, { data: pdfData, periodeLabel }) as any
     );
 
     return new NextResponse(stream as any, {

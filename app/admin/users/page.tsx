@@ -11,7 +11,8 @@ interface UserData {
   last_login_at: string | null;
   role: { id: string; nama_role: string } | null;
   prodi_id: number | null;
-  dosen: { nama_lengkap: string; prodi: { nama_prodi: string } } | null;
+  prodi?: { nama_prodi: string } | null;
+  dosen: { nama_lengkap: string; prodi: { id?: number; nama_prodi: string } } | null;
 }
 
 interface ProdiData {

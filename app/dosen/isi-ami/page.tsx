@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, Suspense } from 'react';
 import Swal from 'sweetalert2';
 import { useSearchParams } from 'next/navigation';
 import {
@@ -198,7 +198,7 @@ function aggregateParentStatus(children: UnsurStatus[]): {
 // =====================================================================
 // Page
 // =====================================================================
-export default function IsiAmiPage() {
+function IsiAmiContent() {
   const [instrumenName, setInstrumenName] = useState<string>('');
   const [treeData, setTreeData] = useState<TreeNode[]>([]);
   const [selectedUnsur, setSelectedUnsur] = useState<string | null>(null);
@@ -1578,5 +1578,13 @@ function UnsurBreadcrumb({
         </div>
       )}
     </div>
+  );
+}
+
+export default function IsiAmiPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-screen"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600" /></div>}>
+      <IsiAmiContent />
+    </Suspense>
   );
 }

@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
 
     // Get all prodi
     const allProdi = await prisma.prodi.findMany({
-      select: { id: true, nama_prodi: true, jenjang: true, is_active: true },
+      select: { id: true, nama_prodi: true, jenjang: true },
       orderBy: { nama_prodi: 'asc' },
     });
 
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
 
     // Get all prodi links for active instrumen
     const prodiLinks = activeInstrumen
-      ? await prisma.prodiInstrumenLink.findMany({
+      ? await prisma.instrumenProdi.findMany({
           where: { instrumen_id: activeInstrumen.id },
           include: {
             prodi: { select: { id: true, nama_prodi: true, jenjang: true } },
