@@ -61,7 +61,12 @@ export async function GET(request: NextRequest) {
         deskripsi_area: {
           include: {
             kode_ami: {
-              include: { kriteria: true }
+              include: { 
+                kriteria: true,
+                butir_standars: {
+                  include: { jenjang: true }
+                }
+              }
             }
           }
         }
@@ -134,7 +139,21 @@ export async function GET(request: NextRequest) {
         const currentKodeAmi = kodeAmiMap.get(kodeAmi.id)!;
 
         if (!areaMap.has(area.id)) {
-          const newArea: ExportArea = { deskripsi: area.deskripsi_area_audit, unsurs: [] };
+          // Ambil butir standar dari kodeAmi
+          let s2 = '', str = '', d3 = '';
+          if (kodeAmi.butir_standars) {
+            for (const b of kodeAmi.butir_standars) {
+              if (b.jenjang?.kode_jenjang === 'S2_MGTR') s2 = b.no_butir || '';
+              if (b.jenjang?.kode_jenjang === 'STR') str = b.no_butir || '';
+              if (b.jenjang?.kode_jenjang === 'D3') d3 = b.no_butir || '';
+            }
+          }
+          const newArea: ExportArea = { 
+            deskripsi: area.deskripsi_area_audit, 
+            areaNo: area.urutan || 0, // asalkan ini berurutan, atau kita generate global di akhir
+            s2, str, d3,
+            unsurs: [] 
+          };
           areaMap.set(area.id, newArea);
           currentKodeAmi.areas.push(newArea);
         }
