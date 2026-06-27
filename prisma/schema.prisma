@@ -48,6 +48,7 @@ model User {
   isian_bukti_uploads IsianBuktiFile[]  @relation("BuktiFIleUploadedBy")
   review_logs         IsianReviewLog[]  @relation("ReviewLogReviewer")
   password_reset_otps PasswordResetOtp[]
+  login_otps          LoginOtp[]
 
   @@index([role_id])
   @@index([prodi_id])
@@ -442,4 +443,25 @@ model PasswordResetOtp {
   @@index([user_id])
   @@index([email])
   @@map("password_reset_otps")
+}
+
+// =========================================================
+// 18. LOGIN OTPS (MFA)
+// =========================================================
+model LoginOtp {
+  id            Int       @id @default(autoincrement())
+  user_id       Int
+  email         String    @db.VarChar(50)
+  otp_hash      String    @db.VarChar(255)
+  expires_at    DateTime  @db.Timestamp(0)
+  used_at       DateTime? @db.Timestamp(0)
+  attempt_count Int       @default(0) @db.UnsignedInt
+  created_at    DateTime  @default(now()) @db.Timestamp(0)
+  updated_at    DateTime  @default(now()) @updatedAt @db.Timestamp(0)
+
+  user          User      @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([user_id])
+  @@index([email])
+  @@map("login_otps")
 }

@@ -692,6 +692,15 @@ async function main() {
     },
   });
 
+  const adminUserWisdom = await prisma.user.create({
+    data: {
+      email: 'wisdom.wahyuaji@gmail.com',
+      password: hashedPassword,
+      role_id: roleAdmin.id,
+      is_active: true,
+    },
+  });
+
   const kaprodiUser = await prisma.user.create({
     data: {
       email: 'kaprodi.ti@polines.ac.id',

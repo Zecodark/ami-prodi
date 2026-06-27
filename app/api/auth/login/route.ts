@@ -39,41 +39,78 @@ export async function POST(request: NextRequest) {
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) return R.unauthorized('Email atau password salah');
 
-    // Update last_login_at
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { last_login_at: new Date() },
+    // Generate OTP 6 digit
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    // Hash OTP
+    const salt = await bcrypt.genSalt(10);
+    const otpHash = await bcrypt.hash(otp, salt);
+
+    // Set expiration to 5 minutes from now
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+
+    // Hapus OTP lama yang belum terpakai (opsional, untuk kebersihan)
+    await prisma.loginOtp.deleteMany({
+      where: { user_id: user.id },
     });
 
-    const { signToken } = await import('@/app/lib/auth');
-    const token = signToken({
-      userId: user.id.toString(),
-      email: user.email,
-      roleId: user.role_id?.toString() ?? null,
-      roleName: user.role?.nama_role ?? '',
-      prodiId: (user.prodi_id ?? user.dosen?.prodi_id)?.toString() ?? null,
+    // Simpan ke DB
+    await prisma.loginOtp.create({
+      data: {
+        user_id: user.id,
+        email: user.email,
+        otp_hash: otpHash,
+        expires_at: expiresAt,
+      },
     });
+
+    // Kirim email menggunakan nodemailer
+    const nodemailer = await import('nodemailer');
+    const transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST || 'smtp.gmail.com',
+      port: parseInt(process.env.SMTP_PORT || '465'),
+      secure: process.env.SMTP_SECURE === 'true' || true,
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+    });
+
+    const mailOptions = {
+      from: `"Sistem AMI Prodi" <${process.env.SMTP_USER}>`,
+      to: user.email,
+      subject: 'Kode OTP Login AMI Prodi',
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+          <h2>Verifikasi Login</h2>
+          <p>Halo,</p>
+          <p>Anda sedang mencoba login ke sistem AMI Prodi.</p>
+          <p>Kode OTP Anda adalah: <strong style="font-size: 24px; color: #0a2f6f; letter-spacing: 2px;">${otp}</strong></p>
+          <p>Kode ini berlaku selama 5 menit.</p>
+          <p>Jika Anda tidak mencoba login, mohon amankan akun Anda.</p>
+          <br/>
+          <p>Salam,</p>
+          <p><strong>Sistem AMI Prodi</strong></p>
+        </div>
+      `,
+    };
+
+    try {
+      await transporter.sendMail(mailOptions);
+    } catch (err) {
+      console.error('Gagal mengirim email OTP Login:', err);
+      return R.serverError('Gagal mengirim OTP ke email');
+    }
 
     return R.ok(
       serialize({
-        token,
-        user: {
-          id: user.id,
-          email: user.email,
-          is_active: user.is_active,
-          role: user.role?.nama_role ?? null,
-          dosen: user.dosen
-            ? {
-                id: user.dosen.id,
-                nip: user.dosen.nip,
-                nama_lengkap: user.dosen.nama_lengkap,
-                prodi: user.dosen.prodi,
-              }
-            : null,
-        },
+        require_otp: true,
+        email: user.email,
+        message: 'Kode OTP telah dikirim ke email Anda',
       }),
     );
   } catch (e) {
+    console.error(e);
     return R.serverError(e);
   }
 }

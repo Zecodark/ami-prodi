@@ -9,13 +9,17 @@ export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [otp, setOtp] = useState('');
+  const [requireOtp, setRequireOtp] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
+    setSuccess('');
     setLoading(true);
 
     try {
@@ -32,21 +36,60 @@ export default function LoginPage() {
         return;
       }
 
-      localStorage.setItem('ami_token', data.data.token);
-      localStorage.setItem('ami_user', JSON.stringify(data.data.user));
-
-      const role = data.data.user.role?.toLowerCase();
-      if (role === 'admin') {
-        router.push('/admin');
-      } else if (role === 'kaprodi') {
-        router.push('/kaprodi');
-      } else {
-        router.push('/dosen');
+      if (data.data.require_otp) {
+        setRequireOtp(true);
+        setSuccess(data.data.message || 'OTP telah dikirim ke email Anda');
+        return;
       }
+      
+      // Fallback jika karena suatu hal tidak require_otp (meski di kode sekarang selalu require)
+      processLoginSuccess(data.data);
     } catch {
       setError('Terjadi kesalahan. Coba lagi nanti.');
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleVerifyOtp(e: React.FormEvent) {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+    setLoading(true);
+
+    try {
+      const res = await fetch('/api/auth/verify-login-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, otp }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.message || 'OTP tidak valid');
+        return;
+      }
+
+      processLoginSuccess(data.data);
+    } catch {
+      setError('Terjadi kesalahan saat memverifikasi OTP. Coba lagi nanti.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function processLoginSuccess(data: any) {
+    localStorage.setItem('ami_token', data.token);
+    localStorage.setItem('ami_user', JSON.stringify(data.user));
+
+    const role = data.user.role?.toLowerCase();
+    if (role === 'admin') {
+      router.push('/admin');
+    } else if (role === 'kaprodi') {
+      router.push('/kaprodi');
+    } else {
+      router.push('/dosen');
     }
   }
 
@@ -87,11 +130,11 @@ export default function LoginPage() {
 
         {/* ====== RIGHT PANEL (FORM) ====== */}
         <div className="login-right">
-          <h1 className="form-title">Masuk</h1>
+          <h1 className="form-title">{requireOtp ? 'Verifikasi OTP' : 'Masuk'}</h1>
           <p className="form-sub">
-            Masukkan Username Dan
-            <br />
-            Password Yang Valid
+            {requireOtp
+              ? 'Masukkan 6 digit kode OTP yang telah dikirimkan ke email Anda'
+              : 'Masukkan Username Dan\nPassword Yang Valid'}
           </p>
 
           {error && (
@@ -107,75 +150,133 @@ export default function LoginPage() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="login-form">
-            <div className="field">
-              <label htmlFor="email" className="field-label">
-                Username
-              </label>
-              <input
-                id="email"
-                type="email"
-                className="field-input"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                autoComplete="email"
-                placeholder="nama@polines.ac.id"
-              />
-            </div>
-
-            <div className="field">
-              <label htmlFor="password" className="field-label">
-                Password
-              </label>
-              <div className="field-pass-wrap">
-                <input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  className="field-input"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  autoComplete="current-password"
-                  placeholder="••••••••"
+          {success && (
+            <div className="alert-success" role="alert" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#ecfdf5', border: '1px solid #a7f3d0', color: '#047857', padding: '0.65rem 0.85rem', borderRadius: '10px', fontSize: '0.85rem', marginBottom: '1rem' }}>
+              <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clipRule="evenodd"
                 />
-                <button
-                  type="button"
-                  className="field-pass-toggle"
-                  onClick={() => setShowPassword(!showPassword)}
-                  aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
-                >
-                  {showPassword ? (
-                    <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                    </svg>
-                  ) : (
-                    <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                    </svg>
-                  )}
-                </button>
+              </svg>
+              <span>{success}</span>
+            </div>
+          )}
+
+          {!requireOtp ? (
+            <form onSubmit={handleSubmit} className="login-form">
+              <div className="field">
+                <label htmlFor="email" className="field-label">
+                  Username (Email)
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  className="field-input"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  autoComplete="email"
+                  placeholder="nama@polines.ac.id"
+                />
               </div>
-            </div>
 
-            <div className="text-right">
-              <Link href="/lupa-password" className="text-[13px] font-semibold text-[#0a2f6f] hover:underline">
-                Lupa Password?
-              </Link>
-            </div>
+              <div className="field">
+                <label htmlFor="password" className="field-label">
+                  Password
+                </label>
+                <div className="field-pass-wrap">
+                  <input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    className="field-input"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    autoComplete="current-password"
+                    placeholder="••••••••"
+                  />
+                  <button
+                    type="button"
+                    className="field-pass-toggle"
+                    onClick={() => setShowPassword(!showPassword)}
+                    aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
+                  >
+                    {showPassword ? (
+                      <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                      </svg>
+                    ) : (
+                      <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
+              </div>
 
-            <button id="btn-login" type="submit" className="btn-login" disabled={loading}>
-              {loading ? (
-                <>
-                  <span className="spinner" />
-                  <span>Memproses...</span>
-                </>
-              ) : (
-                <span>Masuk</span>
-              )}
-            </button>
-          </form>
+              <div className="text-right">
+                <Link href="/lupa-password" className="text-[13px] font-semibold text-[#0a2f6f] hover:underline">
+                  Lupa Password?
+                </Link>
+              </div>
+
+              <button id="btn-login" type="submit" className="btn-login" disabled={loading}>
+                {loading ? (
+                  <>
+                    <span className="spinner" />
+                    <span>Memproses...</span>
+                  </>
+                ) : (
+                  <span>Masuk</span>
+                )}
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleVerifyOtp} className="login-form">
+              <div className="field">
+                <label htmlFor="otp" className="field-label">
+                  Kode OTP (6 Digit)
+                </label>
+                <input
+                  id="otp"
+                  type="text"
+                  className="field-input text-center font-bold tracking-widest text-lg"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  required
+                  placeholder="------"
+                  maxLength={6}
+                />
+              </div>
+
+              <button type="submit" className="btn-login mt-2" disabled={loading || otp.length < 6}>
+                {loading ? (
+                  <>
+                    <span className="spinner" />
+                    <span>Memverifikasi...</span>
+                  </>
+                ) : (
+                  <span>Verifikasi & Masuk</span>
+                )}
+              </button>
+              
+              <button 
+                type="button" 
+                className="btn-login bg-slate-100 text-slate-700 hover:bg-slate-200 mt-2 shadow-none"
+                onClick={() => {
+                  setRequireOtp(false);
+                  setSuccess('');
+                  setOtp('');
+                }}
+                disabled={loading}
+                style={{ background: '#f1f5f9', color: '#334155', marginTop: '10px' }}
+              >
+                Batal / Kembali
+              </button>
+            </form>
+          )}
 
           <p className="footer-note">
             Sistem AMI Politeknik Negeri Semarang &copy; {new Date().getFullYear()}
