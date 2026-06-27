@@ -60,12 +60,10 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
     const isian = await prisma.isianAmi.findUnique({ where: { id: Number(id) } });
     if (!isian) return R.notFound();
     
-    // Allow review for 'proses' status only (submitted for review)
-    // Note: 'revisi' isian must be resubmitted by dosen, which will change status to 'proses'
-    if (isian.status !== 'proses') {
+    // Allow review for 'proses' and 'valid' status
+    if (isian.status !== 'proses' && isian.status !== 'valid') {
       const statusMessages: Record<string, string> = {
         'draft': 'Isian ini masih draft dan belum disubmit oleh dosen',
-        'valid': 'Isian ini sudah divalidasi dan tidak dapat diubah lagi',
         'revisi': 'Isian ini menunggu perbaikan dari dosen. Dosen harus submit ulang sebelum dapat direview lagi',
         'superseded': 'Isian ini sudah digantikan oleh isian valid lain',
       };

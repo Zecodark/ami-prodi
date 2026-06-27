@@ -490,8 +490,8 @@ export default function IsianDetailPage() {
           </div>
         )}
 
-        {/* Review Form - only show if status is proses */}
-        {data.status === 'proses' && (
+        {/* Review Form - show if status is proses or valid */}
+        {(data.status === 'proses' || data.status === 'valid') && (
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <h2 className="text-sm font-bold text-gray-900 uppercase mb-4">Review Isian</h2>
 
@@ -512,14 +512,16 @@ export default function IsianDetailPage() {
 
               {/* Buttons */}
               <div className="flex gap-3">
-                <button
-                  onClick={() => handleReviewSubmit('valid')}
-                  disabled={isSubmitting}
-                  className="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50 flex items-center justify-center gap-2 transition"
-                >
-                  <CheckCircle2 size={16} />
-                  {isSubmitting ? 'Memproses...' : 'Validkan'}
-                </button>
+                {data.status !== 'valid' && (
+                  <button
+                    onClick={() => handleReviewSubmit('valid')}
+                    disabled={isSubmitting}
+                    className="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50 flex items-center justify-center gap-2 transition"
+                  >
+                    <CheckCircle2 size={16} />
+                    {isSubmitting ? 'Memproses...' : 'Validkan'}
+                  </button>
+                )}
                 <button
                   onClick={() => handleReviewSubmit('revisi')}
                   disabled={isSubmitting || !reviewCatatan.trim()}
