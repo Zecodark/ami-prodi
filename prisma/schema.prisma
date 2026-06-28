@@ -465,3 +465,14 @@ model LoginOtp {
   @@index([email])
   @@map("login_otps")
 }
+
+// =========================================================
+// 19. SYSTEM SETTINGS
+// =========================================================
+model SystemSetting {
+  id    Int     @id @default(autoincrement())
+  key   String  @unique @db.VarChar(50)
+  value String  @db.Text
+  
+  @@map("system_settings")
+}

@@ -9,7 +9,7 @@ const serialize = (data: unknown) =>
   JSON.parse(JSON.stringify(data, (_, v) => (typeof v === 'bigint' ? v.toString() : v)));
 
 const select = {
-  id: true, email: true, created_at: true, updated_at: true,
+  id: true, email: true, created_at: true, updated_at: true, is_active: true,
   role: { select: { id: true, nama_role: true } },
   prodi_id: true,
   dosen: { select: { id: true, nip: true, nama_lengkap: true, status_kepegawaian: true, prodi: { select: { nama_prodi: true } } } },

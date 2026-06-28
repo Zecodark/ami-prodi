@@ -42,6 +42,10 @@ export default function UsersPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  
+  // Global MFA State
+  const [globalMfa, setGlobalMfa] = useState(true);
+  const [mfaLoading, setMfaLoading] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -53,15 +57,19 @@ export default function UsersPage() {
       const token = localStorage.getItem('ami_token');
       const headers = { Authorization: `Bearer ${token}` };
       
-      const [resUsers, resRoles, resProdis] = await Promise.all([
+      const [resUsers, resRoles, resProdis, resSettings] = await Promise.all([
         fetch('/api/users', { headers }),
         fetch('/api/roles', { headers }),
-        fetch('/api/prodis', { headers })
+        fetch('/api/prodis', { headers }),
+        fetch('/api/settings', { headers })
       ]);
       
       const dataUsers = await resUsers.json();
       const dataRoles = await resRoles.json();
       const dataProdis = await resProdis.json();
+      const dataSettings = await resSettings.json();
+      
+      if (dataSettings.data) setGlobalMfa(dataSettings.data.mfa_enabled !== false);
       
       if (dataUsers.data) setUsers(dataUsers.data);
       if (dataRoles.data) setRoles(dataRoles.data);
@@ -189,6 +197,38 @@ export default function UsersPage() {
     }
   };
 
+  const toggleGlobalMfa = async () => {
+    setMfaLoading(true);
+    try {
+      const token = localStorage.getItem('ami_token');
+      const newValue = !globalMfa;
+      const res = await fetch('/api/settings', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ mfa_enabled: newValue })
+      });
+      if (res.ok) {
+        setGlobalMfa(newValue);
+        Swal.fire({
+          title: 'Berhasil',
+          text: `MFA Global telah ${newValue ? 'diaktifkan' : 'dinonaktifkan'}`,
+          icon: 'success',
+          timer: 1500,
+          showConfirmButton: false
+        });
+      } else {
+        Swal.fire({ title: 'Gagal', text: 'Gagal mengubah pengaturan MFA', icon: 'error' });
+      }
+    } catch (e) {
+      Swal.fire({ title: 'Error', text: 'Terjadi kesalahan jaringan', icon: 'error' });
+    } finally {
+      setMfaLoading(false);
+    }
+  };
+
   const roleOrder: Record<string, number> = {
     'admin': 1,
     'kaprodi': 2,
@@ -223,13 +263,29 @@ export default function UsersPage() {
           <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Kelola Anggota / User</h1>
           <p className="text-slate-500 text-sm mt-1">Manajemen akun pengguna sistem AMI</p>
         </div>
-        <button 
-          onClick={openAddModal}
-          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium shadow-sm"
-        >
-          <Plus size={16} />
-          Tambah User
-        </button>
+        <div className="flex items-center gap-4">
+          <label className="flex items-center gap-2 cursor-pointer bg-white px-4 py-2 rounded-lg border border-slate-200 shadow-sm hover:bg-slate-50 transition-colors">
+            <span className="text-sm font-medium text-slate-700">Wajibkan MFA (Global)</span>
+            <div className="relative inline-block w-10 h-6">
+              <input 
+                type="checkbox" 
+                className="peer sr-only"
+                checked={globalMfa}
+                onChange={toggleGlobalMfa}
+                disabled={mfaLoading}
+              />
+              <div className="block w-full h-full rounded-full bg-slate-200 peer-checked:bg-blue-600 transition-colors"></div>
+              <div className="absolute left-1 top-1 w-4 h-4 rounded-full bg-white transition-transform peer-checked:translate-x-4"></div>
+            </div>
+          </label>
+          <button 
+            onClick={openAddModal}
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium shadow-sm"
+          >
+            <Plus size={16} />
+            Tambah User
+          </button>
+        </div>
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
@@ -287,8 +343,12 @@ export default function UsersPage() {
                           {user.email.charAt(0).toUpperCase()}
                         </div>
                         <div>
-                          <p className="font-medium text-slate-800">{user.dosen?.nama_lengkap || user.email}</p>
-                          {user.dosen && <p className="text-xs text-slate-500">{user.email}</p>}
+                          <p className="font-medium text-slate-800">{user.email}</p>
+                          {user.dosen?.nama_lengkap && (
+                            <p className="text-xs text-slate-500 capitalize mt-0.5">
+                              {user.dosen.nama_lengkap.toLowerCase()}
+                            </p>
+                          )}
                         </div>
                       </div>
                     </td>
@@ -300,7 +360,7 @@ export default function UsersPage() {
                             <User size={14} className="text-slate-500"/>}
                            <span className="font-medium text-slate-700 capitalize">{user.role?.nama_role || '-'}</span>
                         </div>
-                        {user.role?.nama_role.toLowerCase() === 'kaprodi' && (user.prodi?.nama_prodi || user.dosen?.prodi?.nama_prodi) && (
+                        {(user.role?.nama_role.toLowerCase() === 'kaprodi' || user.role?.nama_role.toLowerCase() === 'dosen') && (user.prodi?.nama_prodi || user.dosen?.prodi?.nama_prodi) && (
                           <span className="text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 inline-block max-w-fit truncate" title={user.prodi?.nama_prodi || user.dosen?.prodi?.nama_prodi}>
                             {user.prodi?.nama_prodi || user.dosen?.prodi?.nama_prodi}
                           </span>
@@ -308,15 +368,17 @@ export default function UsersPage() {
                       </div>
                     </td>
                     <td className="py-3 px-4">
-                      {user.is_active ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
-                          <Check size={12} /> Aktif
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-rose-100 text-rose-800">
-                          <X size={12} /> Nonaktif
-                        </span>
-                      )}
+                      <div className="flex flex-col gap-1.5">
+                        {user.is_active ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 w-fit">
+                            <Check size={12} /> Aktif
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-rose-100 text-rose-800 w-fit">
+                            <X size={12} /> Nonaktif
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="py-3 px-4 text-slate-500 text-xs">
                       {user.last_login_at ? new Date(user.last_login_at).toLocaleString('id-ID') : 'Belum pernah'}
@@ -434,15 +496,17 @@ export default function UsersPage() {
                     </p>
                   </div>
                 )}
-                <label className="flex items-center gap-2 mt-4 cursor-pointer">
-                  <input 
-                    type="checkbox" 
-                    checked={formData.is_active}
-                    onChange={(e) => setFormData({...formData, is_active: e.target.checked})}
-                    className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-                  />
-                  <span className="text-sm font-medium text-slate-700">Akun Aktif (Dapat Login)</span>
-                </label>
+                <div className="flex flex-col gap-3 mt-4">
+                  <label className="flex items-center gap-2 cursor-pointer w-fit">
+                    <input 
+                      type="checkbox" 
+                      checked={formData.is_active}
+                      onChange={(e) => setFormData({...formData, is_active: e.target.checked})}
+                      className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                    />
+                    <span className="text-sm font-medium text-slate-700">Akun Aktif (Dapat Login)</span>
+                  </label>
+                </div>
               </div>
               <div className="mt-8 flex justify-end gap-3">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">
