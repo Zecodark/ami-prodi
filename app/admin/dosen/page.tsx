@@ -163,6 +163,13 @@ export default function DosenPage() {
       if (res.ok) {
         setIsModalOpen(false);
         fetchData();
+        Swal.fire({
+          title: 'Berhasil',
+          text: editId ? 'Data dosen berhasil diperbarui' : 'Dosen berhasil ditambahkan',
+          icon: 'success',
+          timer: 1500,
+          showConfirmButton: false
+        });
       } else {
         setErrorMsg(data.message || 'Terjadi kesalahan');
       }
