@@ -187,6 +187,13 @@ export default function UsersPage() {
       if (res.ok) {
         setIsModalOpen(false);
         fetchData();
+        Swal.fire({
+          title: 'Berhasil',
+          text: editId ? 'Pengguna berhasil diperbarui' : 'Pengguna berhasil ditambahkan',
+          icon: 'success',
+          timer: 1500,
+          showConfirmButton: false
+        });
       } else {
         setErrorMsg(data.message || 'Terjadi kesalahan');
       }
