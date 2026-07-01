@@ -271,9 +271,10 @@ export default function UsersPage() {
           <p className="text-slate-500 text-sm mt-1">Manajemen akun pengguna sistem AMI</p>
         </div>
         <div className="flex items-center gap-4">
-          <label className="flex items-center gap-2 cursor-pointer bg-white px-4 py-2 rounded-lg border border-slate-200 shadow-sm hover:bg-slate-50 transition-colors">
-            <span className="text-sm font-medium text-slate-700">Wajibkan MFA (Global)</span>
-            <div className="relative inline-block w-10 h-6">
+          <label className={`flex items-center gap-2 cursor-pointer px-4 py-2 rounded-lg shadow-sm transition-colors text-white ${globalMfa ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'}`}>
+            <Shield size={16} className="text-white" />
+            <span className="text-sm font-semibold text-white">Wajibkan MFA (Global)</span>
+            <div className="relative inline-block w-10 h-6 ml-1">
               <input 
                 type="checkbox" 
                 className="peer sr-only"
@@ -281,8 +282,8 @@ export default function UsersPage() {
                 onChange={toggleGlobalMfa}
                 disabled={mfaLoading}
               />
-              <div className="block w-full h-full rounded-full bg-slate-200 peer-checked:bg-blue-600 transition-colors"></div>
-              <div className="absolute left-1 top-1 w-4 h-4 rounded-full bg-white transition-transform peer-checked:translate-x-4"></div>
+              <div className="block w-full h-full rounded-full bg-black/20 peer-checked:bg-black/20 transition-colors"></div>
+              <div className="absolute left-1 top-1 w-4 h-4 rounded-full bg-white transition-transform peer-checked:translate-x-4 shadow-sm"></div>
             </div>
           </label>
           <button 
