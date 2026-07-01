@@ -11,6 +11,7 @@ const nextConfig: NextConfig = {
     "192.168.56.1",
     "192.168.1.33",
     "192.168.10.10",
+    "192.168.10.245", // Requested IP
     
     // Common IP ranges (add more as needed)
     // Note: Next.js doesn't support wildcard, so you need to add each IP individually
