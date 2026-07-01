@@ -133,7 +133,7 @@ function StatusBadge({
   status: UnsurStatus;
   size?: 'sm' | 'xs';
 }) {
-  const meta = STATUS_META[status];
+  const meta = STATUS_META[status] || STATUS_META['kosong'];
   return (
     <span
       className={`inline-flex items-center gap-1 rounded-full border font-semibold ${meta.bg} ${meta.text} ${meta.border} ${
@@ -147,7 +147,7 @@ function StatusBadge({
 }
 
 function StatusDot({ status }: { status: UnsurStatus }) {
-  const meta = STATUS_META[status];
+  const meta = STATUS_META[status] || STATUS_META['kosong'];
   return (
     <span
       className={`inline-block w-2.5 h-2.5 rounded-full ring-2 ring-offset-1 ring-offset-white ${meta.ring} ${

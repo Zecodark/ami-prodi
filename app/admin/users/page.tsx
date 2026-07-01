@@ -271,7 +271,7 @@ export default function UsersPage() {
           <p className="text-slate-500 text-sm mt-1">Manajemen akun pengguna sistem AMI</p>
         </div>
         <div className="flex items-center gap-4">
-          <label className={`flex items-center gap-2 cursor-pointer px-4 py-2 rounded-lg shadow-sm transition-colors text-white ${globalMfa ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'}`}>
+          <label className={`flex items-center gap-2 cursor-pointer px-4 py-2 rounded-lg shadow-sm transition-colors text-white ${globalMfa ? 'bg-green-600 hover:bg-green-700' : 'bg-slate-400 hover:bg-slate-500'}`}>
             <Shield size={16} className="text-white" />
             <span className="text-sm font-semibold text-white">Wajibkan MFA (Global)</span>
             <div className="relative inline-block w-10 h-6 ml-1">
