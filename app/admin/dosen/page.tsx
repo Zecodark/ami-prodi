@@ -13,8 +13,9 @@ interface DosenData {
   no_hp: string | null;
   alamat: string | null;
   is_active: boolean;
+  is_active: boolean;
+  foto_profil: string | null;
   prodi: { id: string; nama_prodi: string } | null;
-  user: { id: string; email: string } | null;
 }
 
 interface ProdiData {
@@ -39,8 +40,10 @@ export default function DosenPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [formData, setFormData] = useState({ 
-    nip: '', nama_lengkap: '', status_kepegawaian: 'PNS', no_hp: '', alamat: '', prodi_id: '', user_id: '', is_active: true 
+    nip: '', nama_lengkap: '', status_kepegawaian: 'PNS', no_hp: '', alamat: '', prodi_id: '', user_id: '', is_active: true, foto_profil: ''
   });
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [deletePhoto, setDeletePhoto] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -79,7 +82,9 @@ export default function DosenPage() {
 
   const openAddModal = () => {
     setEditId(null);
-    setFormData({ nip: '', nama_lengkap: '', status_kepegawaian: 'PNS', no_hp: '', alamat: '', prodi_id: '', user_id: '', is_active: true });
+    setFormData({ nip: '', nama_lengkap: '', status_kepegawaian: 'PNS', no_hp: '', alamat: '', prodi_id: '', user_id: '', is_active: true, foto_profil: '' });
+    setSelectedFile(null);
+    setDeletePhoto(false);
     setErrorMsg('');
     setIsModalOpen(true);
   };
@@ -94,8 +99,11 @@ export default function DosenPage() {
       alamat: dosen.alamat || '',
       prodi_id: dosen.prodi?.id || '',
       user_id: dosen.user?.id || '',
-      is_active: dosen.is_active
+      is_active: dosen.is_active,
+      foto_profil: dosen.foto_profil || ''
     });
+    setSelectedFile(null);
+    setDeletePhoto(false);
     setErrorMsg('');
     setIsModalOpen(true);
   };
@@ -142,12 +150,37 @@ export default function DosenPage() {
       const method = editId ? 'PUT' : 'POST';
       const url = editId ? `/api/dosens/${editId}` : '/api/dosens';
 
+      let foto_profil_url = formData.foto_profil;
+      if (deletePhoto) {
+        foto_profil_url = '';
+      }
+
+      if (selectedFile) {
+        const fileData = new FormData();
+        fileData.append('file', selectedFile);
+        
+        const uploadRes = await fetch('/api/upload', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: fileData
+        });
+        const uploadData = await uploadRes.json();
+        if (uploadRes.ok && uploadData.data?.url) {
+          foto_profil_url = uploadData.data.url;
+        } else {
+          setErrorMsg(uploadData.message || 'Gagal mengupload foto');
+          setSubmitLoading(false);
+          return;
+        }
+      }
+
       const payload = {
         ...formData,
         prodi_id: formData.prodi_id || null,
         user_id: formData.user_id || null,
         no_hp: formData.no_hp || null,
         alamat: formData.alamat || null,
+        foto_profil: foto_profil_url || null,
       };
 
       const res = await fetch(url, {
@@ -248,8 +281,19 @@ export default function DosenPage() {
                 filteredDosens.map((d) => (
                   <tr key={d.id} className="hover:bg-slate-50 transition-colors">
                     <td className="py-3 px-4">
-                       <p className="font-bold text-slate-800">{formatNamaDosen(d.nama_lengkap)}</p>
-                       <p className="text-xs text-slate-500">{d.nip}</p>
+                       <div className="flex items-center gap-3">
+                         <div className="w-10 h-10 rounded-full bg-indigo-100 overflow-hidden border border-indigo-200 flex-shrink-0 flex items-center justify-center">
+                           {d.foto_profil ? (
+                             <img src={d.foto_profil} alt={d.nama_lengkap} className="w-full h-full object-cover" />
+                           ) : (
+                             <span className="text-indigo-600 font-bold text-lg">{d.nama_lengkap.charAt(0)}</span>
+                           )}
+                         </div>
+                         <div>
+                           <p className="font-bold text-slate-800">{formatNamaDosen(d.nama_lengkap)}</p>
+                           <p className="text-xs text-slate-500">{d.nip}</p>
+                         </div>
+                       </div>
                     </td>
                     <td className="py-3 px-4 text-slate-600">{d.prodi?.nama_prodi || '-'}</td>
                     <td className="py-3 px-4 text-slate-600">{d.status_kepegawaian}</td>
@@ -373,6 +417,43 @@ export default function DosenPage() {
                     onChange={(e) => setFormData({...formData, no_hp: e.target.value})}
                     className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none text-sm"
                   />
+                </div>
+                
+                {/* Photo Upload UI */}
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Foto Profil (Opsional)</label>
+                  <div className="flex items-center gap-4">
+                    <div className="w-16 h-16 rounded-full bg-slate-100 overflow-hidden border border-slate-300 flex-shrink-0">
+                      {selectedFile ? (
+                        <img src={URL.createObjectURL(selectedFile)} alt="Preview" className="w-full h-full object-cover" />
+                      ) : (formData.foto_profil && !deletePhoto) ? (
+                        <img src={formData.foto_profil} alt="Preview" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-slate-300">
+                          <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                          </svg>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <input 
+                        type="file" 
+                        accept="image/*"
+                        onChange={(e) => { setSelectedFile(e.target.files?.[0] || null); setDeletePhoto(false); }}
+                        className="text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+                      />
+                      {(formData.foto_profil || selectedFile) && !deletePhoto && (
+                        <button 
+                          type="button" 
+                          onClick={() => { setSelectedFile(null); setDeletePhoto(true); }}
+                          className="text-xs text-rose-600 hover:text-rose-700 font-medium self-start px-2"
+                        >
+                          Hapus Foto
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
 

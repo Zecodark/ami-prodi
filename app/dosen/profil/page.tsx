@@ -12,6 +12,7 @@ interface ProfilData {
   status_kepegawaian: string;
   no_hp: string | null;
   alamat: string | null;
+  foto_profil: string | null;
 }
 
 export default function ProfilPage() {
@@ -21,6 +22,8 @@ export default function ProfilPage() {
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [deletePhoto, setDeletePhoto] = useState(false);
 
   const [formData, setFormData] = useState({
     no_hp: '',
@@ -118,6 +121,31 @@ export default function ProfilPage() {
       setSuccessMsg('');
 
       const token = localStorage.getItem('ami_token');
+      
+      let foto_profil_url = profil.foto_profil;
+      if (deletePhoto) {
+        foto_profil_url = null;
+      }
+
+      if (selectedFile) {
+        const fileData = new FormData();
+        fileData.append('file', selectedFile);
+        
+        const uploadRes = await fetch('/api/upload', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: fileData
+        });
+        const uploadData = await uploadRes.json();
+        if (uploadRes.ok && uploadData.data?.url) {
+          foto_profil_url = uploadData.data.url;
+        } else {
+          setErrorMsg(uploadData.message || 'Gagal mengupload foto');
+          setSaving(false);
+          return;
+        }
+      }
+
       const res = await fetch(`/api/dosens/${profil.id}`, {
         method: 'PUT',
         headers: {
@@ -129,6 +157,7 @@ export default function ProfilPage() {
           nama_lengkap: profil.nama_lengkap,
           status_kepegawaian: profil.status_kepegawaian,
           prodi_id: profil.prodi?.id || null,
+          foto_profil: foto_profil_url,
           ...formData,
         })
       });
@@ -144,6 +173,8 @@ export default function ProfilPage() {
         }
         setSuccessMsg('Profil berhasil diperbarui');
         setEditMode(false);
+        setSelectedFile(null);
+        setDeletePhoto(false);
         setTimeout(() => setSuccessMsg(''), 3000);
       } else {
         const data = await res.json();
@@ -195,9 +226,36 @@ export default function ProfilPage() {
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Avatar Card */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 text-center">
-          <div className="w-24 h-24 rounded-full bg-gradient-to-br from-indigo-400 to-indigo-600 flex items-center justify-center mx-auto mb-4 text-white shadow-lg">
-            <User size={48} />
+          <div className="w-24 h-24 rounded-full bg-gradient-to-br from-indigo-400 to-indigo-600 flex items-center justify-center mx-auto mb-4 text-white shadow-lg overflow-hidden border-2 border-indigo-100 relative">
+            {editMode ? (
+              <div className="w-full h-full relative group">
+                 {selectedFile ? (
+                   <img src={URL.createObjectURL(selectedFile)} alt="Preview" className="w-full h-full object-cover" />
+                 ) : (profil.foto_profil && !deletePhoto) ? (
+                   <img src={profil.foto_profil} alt={profil.nama_lengkap} className="w-full h-full object-cover" />
+                 ) : (
+                   <div className="w-full h-full flex items-center justify-center"><User size={48} /></div>
+                 )}
+                 <label className="absolute inset-0 bg-black/50 hidden group-hover:flex items-center justify-center cursor-pointer transition-all">
+                   <Edit2 size={24} className="text-white opacity-80" />
+                   <input type="file" accept="image/*" className="hidden" onChange={(e) => { setSelectedFile(e.target.files?.[0] || null); setDeletePhoto(false); }} />
+                 </label>
+              </div>
+            ) : profil.foto_profil ? (
+               <img src={profil.foto_profil} alt={profil.nama_lengkap} className="w-full h-full object-cover" />
+            ) : (
+               <User size={48} />
+            )}
           </div>
+          {editMode && (profil.foto_profil || selectedFile) && !deletePhoto && (
+            <button 
+              type="button" 
+              onClick={() => { setSelectedFile(null); setDeletePhoto(true); }}
+              className="mb-4 text-xs font-semibold text-rose-500 hover:text-rose-600 px-3 py-1 bg-rose-50 rounded-full transition-colors"
+            >
+              Hapus Foto
+            </button>
+          )}
           <h2 className="text-xl font-bold text-slate-800 mb-1">{formatNamaDosen(profil.nama_lengkap)}</h2>
           <p className="text-sm text-slate-500">{profil.status_kepegawaian}</p>
           <div className="mt-6 pt-6 border-t border-slate-100">
@@ -369,6 +427,8 @@ export default function ProfilPage() {
                       type="button"
                       onClick={() => {
                         setEditMode(false);
+                        setSelectedFile(null);
+                        setDeletePhoto(false);
                         setFormData({
                           no_hp: profil.no_hp || '',
                           alamat: profil.alamat || '',

@@ -15,12 +15,13 @@ const createSchema = z.object({
   status_kepegawaian: z.string().min(1, 'Status kepegawaian wajib diisi'),
   no_hp: z.string().optional().nullable(),
   alamat: z.string().optional().nullable(),
+  foto_profil: z.string().optional().nullable(),
   is_active: z.boolean().default(true),
 });
 
 const dosenSelect = {
   id: true, nip: true, nama_lengkap: true, status_kepegawaian: true, no_hp: true,
-  alamat: true, is_active: true, created_at: true, updated_at: true,
+  alamat: true, foto_profil: true, is_active: true, created_at: true, updated_at: true,
   user: { select: { id: true, email: true, is_active: true, role: { select: { nama_role: true } } } },
   prodi: { select: { id: true, nama_prodi: true, jenjang: true, jurusan: { select: { nama_jurusan: true } } } },
 };
@@ -54,12 +55,13 @@ export async function POST(request: NextRequest) {
     const parsed = createSchema.safeParse(body);
     if (!parsed.success) return R.badRequest('Validasi gagal', parsed.error.flatten());
 
-    const { nip, nama_lengkap, status_kepegawaian, no_hp, alamat, user_id, prodi_id, is_active } = parsed.data;
+    const { nip, nama_lengkap, status_kepegawaian, no_hp, alamat, user_id, prodi_id, is_active, foto_profil } = parsed.data;
     const data = await prisma.dosen.create({
       data: {
         nip, nama_lengkap: nama_lengkap.toUpperCase(), status_kepegawaian,
         no_hp: no_hp ?? null,
         alamat: alamat ?? null,
+        foto_profil: foto_profil ?? null,
         user_id: user_id ?? null,
         prodi_id: prodi_id ?? null,
         is_active,

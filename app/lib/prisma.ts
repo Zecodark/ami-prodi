@@ -2,7 +2,7 @@ import { PrismaClient } from '../generated/prisma/client';
 import { PrismaMariaDb } from '@prisma/adapter-mariadb';
 
 const globalForPrisma = globalThis as unknown as {
-  prisma_v3: PrismaClient | undefined;
+  prisma_v4: PrismaClient | undefined;
 };
 
 // Parse DATABASE_URL: mysql://user:pass@host:port/database
@@ -22,9 +22,9 @@ const config = parseDbUrl(process.env.DATABASE_URL!);
 const adapter = new PrismaMariaDb(config);
 
 export const prisma =
-  globalForPrisma.prisma_v3 ??
+  globalForPrisma.prisma_v4 ??
   new PrismaClient({ adapter });
 
 if (process.env.NODE_ENV !== 'production') {
-  globalForPrisma.prisma_v3 = prisma;
+  globalForPrisma.prisma_v4 = prisma;
 }

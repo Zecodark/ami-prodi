@@ -103,6 +103,7 @@ model Dosen {
   status_kepegawaian String   @db.VarChar(50)
   no_hp              String?  @db.VarChar(20)
   alamat             String?  @db.Text
+  foto_profil        String?  @db.VarChar(255)
   is_active          Boolean  @default(true)
   created_at         DateTime @default(now()) @db.Timestamp(0)
   updated_at         DateTime @default(now()) @updatedAt @db.Timestamp(0)

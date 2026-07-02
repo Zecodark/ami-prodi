@@ -15,12 +15,13 @@ const updateSchema = z.object({
   status_kepegawaian: z.string().min(1).optional(),
   no_hp: z.string().optional().nullable(),
   alamat: z.string().optional().nullable(),
+  foto_profil: z.string().optional().nullable(),
   is_active: z.boolean().optional(),
 });
 
 const dosenSelect = {
   id: true, nip: true, nama_lengkap: true, status_kepegawaian: true, no_hp: true,
-  alamat: true, is_active: true, created_at: true, updated_at: true,
+  alamat: true, foto_profil: true, is_active: true, created_at: true, updated_at: true,
   user: { select: { id: true, email: true, is_active: true, role: { select: { nama_role: true } } } },
   prodi: { select: { id: true, nama_prodi: true, jenjang: true, jurusan: { select: { nama_jurusan: true } } } },
 };
@@ -43,21 +44,36 @@ export async function GET(request: NextRequest, { params }: Ctx) {
 
 export async function PUT(request: NextRequest, { params }: Ctx) {
   try {
-    const { error } = guard(request, 'admin');
+    const { user, error } = guard(request, 'admin', 'dosen');
     if (error) return error;
 
     const { id } = await params;
+
+    if (user.roleName.toLowerCase() === 'dosen') {
+      const existing = await prisma.dosen.findUnique({ where: { id: Number(id) } });
+      if (!existing || existing.user_id !== user.userId) {
+        return R.forbidden('Akses ditolak. Anda hanya dapat mengubah profil Anda sendiri.');
+      }
+    }
+
     const body = await request.json();
     const parsed = updateSchema.safeParse(body);
     if (!parsed.success) return R.badRequest('Validasi gagal', parsed.error.flatten());
 
-    if (parsed.data.nama_lengkap) {
-      parsed.data.nama_lengkap = parsed.data.nama_lengkap.toUpperCase();
+    let dataToUpdate = parsed.data;
+    if (user.roleName.toLowerCase() === 'dosen') {
+      dataToUpdate = {
+        no_hp: dataToUpdate.no_hp,
+        alamat: dataToUpdate.alamat,
+        foto_profil: dataToUpdate.foto_profil,
+      };
+    } else if (dataToUpdate.nama_lengkap) {
+      dataToUpdate.nama_lengkap = dataToUpdate.nama_lengkap.toUpperCase();
     }
 
     const data = await prisma.dosen.update({
       where: { id: Number(id) },
-      data: parsed.data,
+      data: dataToUpdate,
       select: dosenSelect,
     });
     return R.ok(serialize(data), 'Dosen berhasil diperbarui');
